@@ -2,8 +2,9 @@
 *.sh
 out.txt
 out1.txt
-**/build/
-**/run/
+**/build/*
+**/run/*
+.idea/
 
 
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore

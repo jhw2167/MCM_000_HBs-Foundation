@@ -5,6 +5,8 @@ plugins {
     id("org.spongepowered.mixin") version "0.7-SNAPSHOT" apply(false)
 }
 
+allprojects { apply plugin: "idea" }
+
 subprojects {
     apply plugin: 'java'
 
@@ -57,10 +59,14 @@ subprojects {
         implementation "org.xerial:sqlite-jdbc:${sqlite_version}"
     }
 
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
     tasks.withType(JavaCompile).configureEach {
-    
         it.options.encoding = 'UTF-8'
-        it.options.getRelease().set(17)
     }
 
     processResources {

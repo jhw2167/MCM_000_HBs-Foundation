@@ -20,7 +20,7 @@ Errors
 
 onLoad not a valid
 	- use the correct minecraftforge.level.ChunkEvent
-	- use the correct @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = OreClustersAndRegenMain.MODID)
+	- use the correct @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = FoundationMain.MOD_ID)
 	- 
 
 2. .toml config suddenly stopped loading

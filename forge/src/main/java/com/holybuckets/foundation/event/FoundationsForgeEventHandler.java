@@ -1,10 +1,11 @@
 package com.holybuckets.foundation.event;
 
+import com.holybuckets.foundation.FoundationMain;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.model.ManagedChunkCapabilityProvider;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
+
 import net.minecraft.resources.ResourceLocation;
 
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -22,7 +23,7 @@ import net.minecraftforge.event.CommandEvent;
 
 
 
-@EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = OreClustersAndRegenMain.MODID)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE, modid = FoundationMain.MOD_ID)
 public class FoundationsForgeEventHandler {
 
     //create class_id

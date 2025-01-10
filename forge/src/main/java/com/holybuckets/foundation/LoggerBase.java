@@ -117,7 +117,7 @@ public class LoggerBase {
     /** EXCLUDE PROJECTS **/
     private static final HashSet<String> EXCLUDE_PROJECTS = new HashSet<>(
         Arrays.asList(
-            //OreClustersAndRegenMain.NAME,
+            //FoundationMain.NAME,
             //HolyBucketsUtility.NAME,
             ""
         )

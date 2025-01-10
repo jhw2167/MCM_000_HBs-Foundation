@@ -7,7 +7,7 @@ import com.google.gson.JsonElement;
 import com.holybuckets.foundation.database.DatabaseManager;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
-import com.holybuckets.orecluster.LoggerProject;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
@@ -60,7 +60,7 @@ public class HBUtil {
         {
             if( blockType == null)
             {
-                LoggerProject.logError("004000", "Error parsing blockType to string, blockType is null");
+                LoggerBase.logError( null, "004000", "Error parsing blockType to string, blockType is null");
                 return null;
             }
 
@@ -76,7 +76,7 @@ public class HBUtil {
         {
             if( blockStringName == null || blockStringName.isEmpty() )
             {
-                LoggerProject.logError("004001", "Error parsing block name as string into a Minecraft Block type, " +
+                LoggerBase.logError( null, "004001", "Error parsing block name as string into a Minecraft Block type, " +
                     "type provided was null or provided as empty string");
                 return null;
             }
@@ -96,7 +96,7 @@ public class HBUtil {
 
             if( b == null )
             {
-                LoggerProject.logError("004002", "Error parsing block name as string into a Minecraft Block type, " +
+                LoggerBase.logError( null, "004002", "Error parsing block name as string into a Minecraft Block type, " +
                     "block name provided was not found in Minecraft/Forge registry: " + formattedBlockStringFinal);
             }
 
@@ -519,7 +519,7 @@ public class HBUtil {
                 warnNoUserFile.append(configFile.getPath());
                 warnNoUserFile.append(". Attempting to load the default file at default location: ");
                 warnNoUserFile.append(configFile.getAbsolutePath());
-                LoggerProject.logWarning("000001",  warnNoUserFile.toString() );
+                LoggerBase.logWarning( null,"000001",  warnNoUserFile.toString() );
 
                 configFile = defaultConfigFile;
                 if( !configFile.exists() )  //default file
@@ -528,7 +528,7 @@ public class HBUtil {
                     warnNoDefaultFile.append("Could not find the default ore cluster JSON config file at path: ");
                     warnNoDefaultFile.append(configFile.getAbsolutePath());
                     warnNoDefaultFile.append(". A default file will be created for future reference.");
-                    LoggerProject.logError("000002", warnNoDefaultFile.toString());
+                    LoggerBase.logError( null, "000002", warnNoDefaultFile.toString());
 
                     try {
                         configFile.createNewFile();
@@ -540,7 +540,7 @@ public class HBUtil {
                         error.append(configFile.getAbsolutePath());
                         error.append(" due to an unknown exception. The game will still run using default values from memory.");
                         error.append("  You can try running the game as an administrator or update the file permissions to fix this issue.");
-                        LoggerProject.logError("000003", error.toString());
+                        LoggerBase.logError( null, "000003", error.toString());
 
                         return DEFAULT_DATA;
                     }
@@ -563,7 +563,7 @@ public class HBUtil {
                 error.append("Could not read the ore cluster JSON config file at path: ");
                 error.append(configFile.getAbsolutePath());
                 error.append(" due to an unknown exception. The game will still run using default values from memory.");
-                LoggerProject.logError("000004", error.toString());
+                LoggerBase.logError( null, "000004", error.toString());
 
                 return DEFAULT_DATA;
             }
@@ -583,7 +583,7 @@ public class HBUtil {
                 error.append(configFile.getAbsolutePath());
                 error.append(" due to an unknown exception." );
                 error.append("  You can try running the game as an administrator or check the file permissions.");
-                LoggerProject.logError("000004", error.toString());
+                LoggerBase.logError( null, "000004", error.toString());
                 return false;
             }
 
@@ -645,7 +645,7 @@ public class HBUtil {
             try {
                 chunk.getBlockState(pos);
             } catch (Exception e) {
-                LoggerProject.logError("004003", "Error setting world position, block state not found at position: " + pos.toString());
+                LoggerBase.logError( null, "004003", "Error setting world position, block state not found at position: " + pos.toString());
                 DNE = true;
                 return;
             }

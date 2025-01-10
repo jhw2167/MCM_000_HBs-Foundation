@@ -1,8 +1,9 @@
 package com.holybuckets.foundation.event;
 
+import com.holybuckets.foundation.FoundationMain;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
+
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
@@ -11,7 +12,7 @@ import net.minecraftforge.fml.event.lifecycle.ModLifecycleEvent;
 import net.minecraftforge.registries.RegisterEvent;
 
 
-@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = OreClustersAndRegenMain.MODID)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = FoundationMain.MOD_ID)
 public class FoundationsModEventHandler {
 
     //create class_id

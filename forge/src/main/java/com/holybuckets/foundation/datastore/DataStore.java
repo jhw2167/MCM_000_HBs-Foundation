@@ -2,11 +2,12 @@ package com.holybuckets.foundation.datastore;
 
 import com.google.common.primitives.UnsignedLong;
 import com.google.gson.*;
+import com.holybuckets.foundation.FoundationMain;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
+
 import jdk.jfr.Unsigned;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.event.level.LevelEvent;
@@ -78,7 +79,7 @@ public class DataStore implements IStringSerializable {
     {
         //Loading on world Start, Reloading, Unloading on World End
         //if(event.getConfig().getFileName() != "hbs_utility-server.toml")
-        if( !(event.getConfig().getFileName().equals(OreClustersAndRegenMain.MODID + "-server.toml")) )
+        if( !(event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml")) )
             return;
 
         if( event instanceof ModConfigEvent.Unloading )

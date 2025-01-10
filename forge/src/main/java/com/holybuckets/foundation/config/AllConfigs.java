@@ -2,7 +2,7 @@ package com.holybuckets.foundation.config;
 
 import com.holybuckets.foundation.FoundationMain;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.orecluster.OreClustersAndRegenMain;
+
 
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -19,7 +19,7 @@ import java.util.Map.Entry;
 import java.util.function.Supplier;
 
 
-//@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = FoundationMain.MODID)
+//@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = FoundationMain.MOD_ID)
 public class AllConfigs {
 
 	/** Configuration Data **/

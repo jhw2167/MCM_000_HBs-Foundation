@@ -2,7 +2,7 @@ package com.holybuckets.foundation;
 
 import net.minecraftforge.fml.common.Mod;
 
-@Mod( FoundationMain.MOD_ID )
+@Mod( FoundationMain.MOD_ID)
 public class FoundationMain {
 
     public static final String MOD_ID = "hbs_foundation";

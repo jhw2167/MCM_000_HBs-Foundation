@@ -1,4 +1,4 @@
-package com.example.examplemod.mixin;
+package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.Constants;
 import net.minecraft.client.Minecraft;

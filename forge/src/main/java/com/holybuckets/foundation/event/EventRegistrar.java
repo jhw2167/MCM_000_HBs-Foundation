@@ -30,6 +30,9 @@ public class EventRegistrar {
      * World Data
      **/
     private static EventRegistrar instance;
+    static {
+        getInstance();
+    }
 
     private final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
     private final Deque<Consumer<PlayerEvent.PlayerLoggedInEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();

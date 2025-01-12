@@ -6,11 +6,15 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.storage.LevelResource;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +37,13 @@ public class DataStore implements IStringSerializable {
         this.currentWorldId = null;
         STORE = new HashMap<>();
     }
+
+    public static void init(EventRegistrar reg) {
+        INSTANCE = new DataStore();
+        reg.registerOnServerStarted(DataStore::onServerStarted, true);
+        reg.registerOnServerStopped(DataStore::onServerStopped, false);
+    }
+
 
     private void loadData(String worldId)
     {
@@ -155,8 +166,18 @@ public class DataStore implements IStringSerializable {
         return INSTANCE;
     }
 
-    public static void onServerStopped() {
-        INSTANCE.save();
+    private static void onServerStarted(ServerStartedEvent serverStartedEvent) {
+        initDatastoreOnServerStart(serverStartedEvent);
+    }
+
+    private static void initDatastoreOnServerStart(ServerStartedEvent event) {
+        MinecraftServer s = event.getServer();
+        Path path = s.getWorldPath( LevelResource.ROOT );
+        INSTANCE.loadData( path.getFileName().toString() );
+    }
+
+    public static void onServerStopped( ServerStoppedEvent s ) {
+        INSTANCE.shutdown(s);
     }
     public static void shutdown(ServerStoppedEvent s)
     {

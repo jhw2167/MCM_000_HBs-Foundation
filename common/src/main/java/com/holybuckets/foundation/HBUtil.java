@@ -28,7 +28,6 @@ import java.util.Map;
 
 /**
 * Class: HolyBucketsUtility
-*
 * Description: This class will contain utility methods amd objects that I find myself using frequently
 *
  */
@@ -41,14 +40,12 @@ public class HBUtil {
      */
     public static final String NAME = "HBs Utility";
 
-    public static final String RESOURCE_NAMESPACE = "hb";
-
     public static class BlockUtil {
 
         /**
          * Convert a block to its string name for formatting
-         * @param blockType
-         * @return
+         * @param blockType - Block object
+         * @return String formatted like Block{minecraft:iron_ore}
          */
         public static String blockToString(Block blockType)
         {
@@ -63,8 +60,8 @@ public class HBUtil {
 
         /**
          * Convert a block name as a string to a Minecraft Block Object: eg. "minecraft:iron_ore" to Blocks.IRON_ORE
-         * @param blockName
-         * @return
+         * @param blockName - String name of the block
+         * @return Block object
          */
         public static Block blockNameToBlock(String namespace, String blockName)
         {
@@ -102,8 +99,8 @@ public class HBUtil {
 
         /**
          * Serialize a map of blocks and their positions to a string
-         * @param blocks
-         * @return
+         * @param blocks - Map of blocks and their positions
+         * @return serialized string of block, position collections
          */
         public static String serializeBlockPairs(Map<Block,List<BlockPos>> blocks)
         {
@@ -125,7 +122,7 @@ public class HBUtil {
                 for(BlockPos pos : positions)
                 {
                     TripleInt vec = new TripleInt(pos);
-                    blockStateUpdates.append("[" + vec.x + "," + vec.y + "," + vec.z + "]");
+                    blockStateUpdates.append( ("[" + vec.x + "," + vec.y + "," + vec.z + "]") );
                     blockStateUpdates.append("&");
                 }
                 blockStateUpdates.deleteCharAt(blockStateUpdates.length() - 1);
@@ -140,8 +137,8 @@ public class HBUtil {
 
         /**
          * Deserialize a string to a map of blocks and all their positions
-         * @param data
-         * @return
+         * @param data - serialized string of block, position collections
+         * @return Map of blocks and their positions
          */
         public static Map<Block,List<BlockPos>> deserializeBlockPairs(String data)
         {

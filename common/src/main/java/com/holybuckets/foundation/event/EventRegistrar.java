@@ -62,9 +62,11 @@ public class EventRegistrar {
     }
 
     public static EventRegistrar getInstance() {
-        if (instance == null)
-            return new EventRegistrar();
         return instance;
+    }
+
+    public static void init() {
+        instance = new EventRegistrar();
     }
 
     /**
@@ -248,13 +250,13 @@ public class EventRegistrar {
     }
     */
 
-    public void registerOnServerStart(Consumer<ServerStartedEvent> function) { registerOnServerStart(function, false); }
-    public void registerOnServerStart(Consumer<ServerStartedEvent> function, boolean priority) {
+    public void registerOnServerStarted(Consumer<ServerStartedEvent> function) { registerOnServerStarted(function, false); }
+    public void registerOnServerStarted(Consumer<ServerStartedEvent> function, boolean priority) {
         generalRegister(function, ON_SERVER_START, priority);
     }
 
-    public void registerOnServerStop(Consumer<ServerStoppedEvent> function) { registerOnServerStop(function, false); }
-    public void registerOnServerStop(Consumer<ServerStoppedEvent> function, boolean priority) {
+    public void registerOnServerStopped(Consumer<ServerStoppedEvent> function) { registerOnServerStopped(function, false); }
+    public void registerOnServerStopped(Consumer<ServerStoppedEvent> function, boolean priority) {
         generalRegister(function, ON_SERVER_STOP, priority);
     }
 

@@ -9,11 +9,10 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
+import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.LevelEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -72,6 +71,7 @@ public class GeneralConfig {
 
 
     /** Level Events **/
+    /*
     static {
         EventRegistrar reg = EventRegistrar.getInstance();
         reg.registerOnLevelLoad(GeneralConfig::onLoadLevel, true);
@@ -104,6 +104,7 @@ public class GeneralConfig {
     public void onUnLoadLevel(LevelEvent.Unload event)  {
         //not implemented
     }
+    */
 
     public void initPlayerConfigs(PlayerLoginEvent event)
     {

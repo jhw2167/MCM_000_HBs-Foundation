@@ -1,16 +1,12 @@
 package com.holybuckets.foundation.datastore;
 
 import com.google.gson.*;
-import com.holybuckets.foundation.FoundationMain;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerLifecycleEvent;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -31,11 +27,15 @@ public class DataStore implements IStringSerializable {
     private final Map<String, ModSaveData> STORE;
     private String currentWorldId;
 
-    private DataStore(String worldId)
-    {
+    private DataStore() {
         super();
-        this.currentWorldId = worldId;
+        this.currentWorldId = null;
         STORE = new HashMap<>();
+    }
+
+    private void loadData(String worldId)
+    {
+        this.currentWorldId = worldId;
         String json = HBUtil.FileIO.loadJsonConfigs(DATA_STORE_FILE, DATA_STORE_FILE, new DefaultDataStore());
         this.deserialize(json);
         EventRegistrar.getInstance().registerOnDataSave(this::save, false);
@@ -68,10 +68,7 @@ public class DataStore implements IStringSerializable {
         return worldData.getOrCreateLevelSaveData(level);
     }
 
-    static {
-        EventRegistrar reg = EventRegistrar.getInstance();
-        reg.registerOnModConfig(DataStore::initWorldOnConfigLoad);
-    }
+    /*
     public static void initWorldOnConfigLoad(ModConfigEvent event)
     {
         //Loading on world Start, Reloading, Unloading on World End
@@ -91,6 +88,7 @@ public class DataStore implements IStringSerializable {
         }
 
     }
+    */
 
     /**
      * Initialize a worldSaveData object on HB's Utility when a level loads
@@ -177,10 +175,7 @@ public class DataStore implements IStringSerializable {
         return INSTANCE;
     }
 
-
-    static {
-        EventRegistrar.getInstance().registerOnServerStop(DataStore::shutdown);
-    }
+    /*
     public static void shutdown(ServerLifecycleEvent s)
     {
         if (INSTANCE != null) {
@@ -205,12 +200,11 @@ public class DataStore implements IStringSerializable {
         }
     }
 
-    static {
-        EventRegistrar.getInstance().registerOnLevelUnload(DataStore::onWorldUnload, false);
-    }
     private static void onWorldUnload(LevelEvent.Unload unload) {
         //INSTANCE.save();
     }
+    */
+    
 
 
 

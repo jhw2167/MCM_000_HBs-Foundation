@@ -4,7 +4,6 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.holybuckets.foundation.database.DatabaseManager;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 

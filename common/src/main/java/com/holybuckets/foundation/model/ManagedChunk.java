@@ -23,8 +23,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.*;
-import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.event.level.LevelEvent;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -247,6 +245,7 @@ public class ManagedChunk implements IMangedChunkData {
         return getManagedChunk(level, id);
     }
 
+/*
     @Override
     public void handleChunkLoaded(ChunkEvent.Load event)
     {
@@ -266,6 +265,8 @@ public class ManagedChunk implements IMangedChunkData {
          }
         this.isLoaded = false;
     }
+    */
+
 
 
     /** STATIC UTILITY METHODS **/
@@ -309,6 +310,7 @@ public class ManagedChunk implements IMangedChunkData {
         return LOADED_CHUNKS.get(level).get(id);
     }
 
+    /*
     static {
          EventRegistrar reg = EventRegistrar.getInstance();
         reg.registerOnLevelLoad(ManagedChunk::onWorldLoad);
@@ -421,7 +423,7 @@ public class ManagedChunk implements IMangedChunkData {
             return;
         c.handleChunkUnloaded(event);
     }
-
+    */
 
     /**
      * Update the block states of a chunk. It is important that it is synchronized to prevent

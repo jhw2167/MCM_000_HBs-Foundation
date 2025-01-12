@@ -2,10 +2,8 @@ package com.holybuckets.foundation.modelInterface;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.event.level.ChunkEvent;
 
-public interface IMangedChunkData extends INBTSerializable<CompoundTag> {
+public interface IMangedChunkData  {
 
     /**
      * Initialize the ManagedChunk and underlying data from memory or
@@ -24,11 +22,17 @@ public interface IMangedChunkData extends INBTSerializable<CompoundTag> {
     /**
      * @param event
      */
-    public void handleChunkLoaded(ChunkEvent.Load event);
+    //public void handleChunkLoaded(ChunkEvent.Load event);
 
     /**
      * Fired when a chunk is unloaded from memory
      * @param chunk
      */
-    public void handleChunkUnloaded(ChunkEvent.Unload event);
+    //public void handleChunkUnloaded(ChunkEvent.Unload event);
+
+
+    public CompoundTag serializeNBT();
+
+    public void deserializeNBT(CompoundTag nbt);
+
 }

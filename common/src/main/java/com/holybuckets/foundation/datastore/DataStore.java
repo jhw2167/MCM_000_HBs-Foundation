@@ -6,6 +6,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.world.level.LevelAccessor;
 
 import javax.annotation.Nullable;
@@ -175,8 +176,11 @@ public class DataStore implements IStringSerializable {
         return INSTANCE;
     }
 
-    /*
-    public static void shutdown(ServerLifecycleEvent s)
+    public static void onServerStopped() {
+        INSTANCE.save();
+    }
+
+    public static void shutdown(ServerStoppedEvent s)
     {
         if (INSTANCE != null) {
             WorldSaveData worldData = INSTANCE.getOrCreateWorldSaveData(HBUtil.NAME);
@@ -199,12 +203,8 @@ public class DataStore implements IStringSerializable {
             INSTANCE = null;
         }
     }
-
-    private static void onWorldUnload(LevelEvent.Unload unload) {
-        //INSTANCE.save();
-    }
-    */
     
+
 
 
 

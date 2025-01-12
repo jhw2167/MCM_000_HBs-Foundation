@@ -69,27 +69,6 @@ public class DataStore implements IStringSerializable {
         return worldData.getOrCreateLevelSaveData(level);
     }
 
-    /*
-    public static void initWorldOnConfigLoad(ModConfigEvent event)
-    {
-        //Loading on world Start, Reloading, Unloading on World End
-        //if(event.getConfig().getFileName() != "hbs_utility-server.toml")
-        if( !(event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml")) )
-            return;
-
-        if( event instanceof ModConfigEvent.Unloading )
-            return;
-
-        //on new world loading, set to null
-        if( event instanceof ModConfigEvent.Loading )
-        {
-            String path = event.getConfig().getFullPath().toString();
-            String[] dirs =  path.split("\\\\");
-            INSTANCE = new DataStore( dirs[dirs.length - 3] );
-        }
-
-    }
-    */
 
     /**
      * Initialize a worldSaveData object on HB's Utility when a level loads
@@ -179,7 +158,6 @@ public class DataStore implements IStringSerializable {
     public static void onServerStopped() {
         INSTANCE.save();
     }
-
     public static void shutdown(ServerStoppedEvent s)
     {
         if (INSTANCE != null) {
@@ -203,7 +181,33 @@ public class DataStore implements IStringSerializable {
             INSTANCE = null;
         }
     }
-    
+
+    /*
+    public static void onModConfigLoad(ModConfigEvent event) {
+        if( event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml") )
+            INSTANCE = new DataStore();
+    }
+
+    public static void initWorldOnConfigLoad(ModConfigEvent event)
+    {
+        //Loading on world Start, Reloading, Unloading on World End
+        //if(event.getConfig().getFileName() != "hbs_utility-server.toml")
+        if( !(event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml")) )
+            return;
+
+        if( event instanceof ModConfigEvent.Unloading )
+            return;
+
+        //on new world loading, set to null
+        if( event instanceof ModConfigEvent.Loading )
+        {
+            String path = event.getConfig().getFullPath().toString();
+            String[] dirs =  path.split("\\\\");
+            INSTANCE = new DataStore( dirs[dirs.length - 3] );
+        }
+
+    }
+    */
 
 
 

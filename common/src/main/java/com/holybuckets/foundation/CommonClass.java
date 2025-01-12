@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.datastore.DataStore;
+import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -15,15 +16,19 @@ public class CommonClass {
         Constants.LOG.info("Hello from Common init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
         Constants.LOG.info("The ID for diamonds is {}", BuiltInRegistries.ITEM.getKey(Items.DIAMOND));
 
-        if (Services.PLATFORM.isModLoaded("examplemod")) {
+        if (Services.PLATFORM.isModLoaded(Constants.MOD_ID)) {
 
-            Constants.LOG.info("Hello to examplemod");
+            Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
 
         EventRegistrar.init();
         EventRegistrar reg = EventRegistrar.getInstance();
 
         DataStore.init(reg);
+
+
+        //Register all events
+        BalmEventRegister.registerEvents();
 
     }
 

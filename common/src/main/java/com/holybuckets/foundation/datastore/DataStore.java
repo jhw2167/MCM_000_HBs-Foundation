@@ -173,7 +173,7 @@ public class DataStore implements IStringSerializable {
     private static void initDatastoreOnServerStart(ServerStartedEvent event) {
         MinecraftServer s = event.getServer();
         Path path = s.getWorldPath( LevelResource.ROOT );
-        INSTANCE.loadData( path.getFileName().toString() );
+        INSTANCE.loadData( path.getParent().getFileName().toString() );
     }
 
     public static void onServerStopped( ServerStoppedEvent s ) {
@@ -181,7 +181,8 @@ public class DataStore implements IStringSerializable {
     }
     public static void shutdown(ServerStoppedEvent s)
     {
-        if (INSTANCE != null) {
+        if (INSTANCE != null)
+        {
             WorldSaveData worldData = INSTANCE.getOrCreateWorldSaveData(HBUtil.NAME);
             GeneralConfig config = GeneralConfig.getInstance();
 
@@ -202,33 +203,6 @@ public class DataStore implements IStringSerializable {
             INSTANCE = null;
         }
     }
-
-    /*
-    public static void onModConfigLoad(ModConfigEvent event) {
-        if( event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml") )
-            INSTANCE = new DataStore();
-    }
-
-    public static void initWorldOnConfigLoad(ModConfigEvent event)
-    {
-        //Loading on world Start, Reloading, Unloading on World End
-        //if(event.getConfig().getFileName() != "hbs_utility-server.toml")
-        if( !(event.getConfig().getFileName().equals(FoundationMain.MOD_ID + "-server.toml")) )
-            return;
-
-        if( event instanceof ModConfigEvent.Unloading )
-            return;
-
-        //on new world loading, set to null
-        if( event instanceof ModConfigEvent.Loading )
-        {
-            String path = event.getConfig().getFullPath().toString();
-            String[] dirs =  path.split("\\\\");
-            INSTANCE = new DataStore( dirs[dirs.length - 3] );
-        }
-
-    }
-    */
 
 
 

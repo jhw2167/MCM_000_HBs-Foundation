@@ -28,26 +28,26 @@ public class EventRegistrar {
      **/
     private static EventRegistrar instance;
     
-    private final Deque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
+    final Deque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
     /*
-    private final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
-    private final Deque<Consumer<LevelEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
-    private final Deque<Consumer<ChunkEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
-    private final Deque<Consumer<ChunkEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
+    final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
+    final Deque<Consumer<LevelEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
+    final Deque<Consumer<ChunkEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
+    final Deque<Consumer<ChunkEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
     */
 
-    //private final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
+    //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
         //Will have to divide up into different lifecycles
 
-    //private final Deque<Consumer<RegisterEvent>> ON_REGISTER = new ArrayDeque<>();
+    //final Deque<Consumer<RegisterEvent>> ON_REGISTER = new ArrayDeque<>();
         //Dont see it, I think this is for registering commands
 
-    //private final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
+    //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
         //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
 
-    private final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
-    private final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
-    private final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
+    final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
+    final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
+    final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
 
 
     /**

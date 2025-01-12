@@ -6,13 +6,16 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
+import net.blay09.mods.balm.api.Balm;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.blay09.mods.balm.api.BalmRegistries;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,38 +63,29 @@ public class HBUtil {
 
         /**
          * Convert a block name as a string to a Minecraft Block Object: eg. "minecraft:iron_ore" to Blocks.IRON_ORE
-         * @param blockStringName
+         * @param blockName
          * @return
          */
-        public static Block blockNameToBlock(String blockStringName)
+        public static Block blockNameToBlock(String namespace, String blockName)
         {
-            if( blockStringName == null || blockStringName.isEmpty() )
+            if( blockName == null || blockName.isEmpty() )
             {
                 LoggerBase.logError( null, "004001", "Error parsing block name as string into a Minecraft Block type, " +
                     "type provided was null or provided as empty string");
                 return null;
             }
 
-            String formattedBlockString = "Block{";
-            blockStringName = blockStringName.trim();
-            if( blockStringName.contains(":"))
-                formattedBlockString += blockStringName + "}";
-            else
-                formattedBlockString += "minecraft:" + blockStringName + "}";
+            if( namespace == null || namespace.isEmpty() )
+               namespace = "minecraft";
 
-            final String formattedBlockStringFinal = formattedBlockString;
-            Block b = null;
-            /*
-            Block b = ForgeRegistries.BLOCKS.getValues().stream()
-                .filter(block -> block.toString().equals(formattedBlockStringFinal))
-                .findFirst()
-                .orElse(null);
-             */
+            BalmRegistries registries = Balm.getRegistries();
+            ResourceLocation blockKey = new ResourceLocation(namespace, blockName);
+            Block b = registries.getBlock(blockKey);
 
             if( b == null )
             {
                 LoggerBase.logError( null, "004002", "Error parsing block name as string into a Minecraft Block type, " +
-                    "block name provided was not found in Minecraft/Forge registry: " + formattedBlockStringFinal);
+                    "block name provided was not found in Minecraft Block registry: " + blockName);
             }
 
             return b;
@@ -160,7 +154,8 @@ public class HBUtil {
                 pairs = pairs.substring(1, pairs.length() - 1);
 
                 String[] parts = pairs.split("=");
-                Block blockType = BlockUtil.blockNameToBlock(parts[0]);
+                String[] blockParts = parts[0].split(":");
+                Block blockType = BlockUtil.blockNameToBlock(blockParts[0], blockParts[1]);
 
                 blockPairs.put(blockType, new ArrayList<>());
                 String[] positions = parts[1].split("&");
@@ -325,8 +320,8 @@ public class HBUtil {
          * Returns a 3D array of all vertices within a circle of radius r.
          * The y value is always 0. If the provided radius is even, it will be incremented by 1.
          * @param radius
-         * @return null if radius is <= 0. returns 3x3 square if radius is 2 or 3. Otherwise
-         * returns all integer solutions where x^2 + z^2 <= r^2
+         * @return null if radius is less than 0. returns 3x3 square if radius is 2 or 3. Otherwise
+         * returns all integer solutions where x^2 + z^2 = r^2 or less
          */
         public static Fast3DArray getCircle(int radius)
         {
@@ -491,7 +486,7 @@ public class HBUtil {
         /**
          * - Attempts to load the HBOreClustersAndRegenConfigs.json file from the config directory
          * - Provided string may be a relative path or a full path from the root directory.
-         * - First checks if a config file exists in the <serverDirectory>/<fileName>
+         * - First checks if a config file exists in the serverDirectory/fileName
          * - returns string that can be Parsed into a json object
          * @param userConfigFile
          * @param defaultConfigFile

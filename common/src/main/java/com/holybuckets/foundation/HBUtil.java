@@ -4,10 +4,8 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.holybuckets.foundation.database.DatabaseManager;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
@@ -15,7 +13,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,10 +80,13 @@ public class HBUtil {
                 formattedBlockString += "minecraft:" + blockStringName + "}";
 
             final String formattedBlockStringFinal = formattedBlockString;
+            Block b = null;
+            /*
             Block b = ForgeRegistries.BLOCKS.getValues().stream()
                 .filter(block -> block.toString().equals(formattedBlockStringFinal))
                 .findFirst()
                 .orElse(null);
+             */
 
             if( b == null )
             {
@@ -117,7 +117,7 @@ public class HBUtil {
             for(Block block : blocks.keySet())
             {
                 blockStateUpdates.append("{");
-                String blockName = HBUtil.BlockUtil.blockToString(block);
+                String blockName = BlockUtil.blockToString(block);
                 blockStateUpdates.append(blockName);
                 blockStateUpdates.append("=");
 
@@ -130,7 +130,7 @@ public class HBUtil {
 
                 for(BlockPos pos : positions)
                 {
-                    HBUtil.TripleInt vec = new HBUtil.TripleInt(pos);
+                    TripleInt vec = new TripleInt(pos);
                     blockStateUpdates.append("[" + vec.x + "," + vec.y + "," + vec.z + "]");
                     blockStateUpdates.append("&");
                 }

@@ -2,7 +2,6 @@ package com.holybuckets.foundation.modelInterface;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.event.level.ChunkEvent;
 

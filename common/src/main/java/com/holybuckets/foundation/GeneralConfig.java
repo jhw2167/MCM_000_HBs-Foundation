@@ -5,26 +5,18 @@ package com.holybuckets.foundation;
 //Forge Imports
 
 import com.google.gson.Gson;
-import com.google.gson.JsonParser;
 import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
-import com.holybuckets.foundation.model.ManagedChunk;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 
 /**
@@ -113,7 +105,7 @@ public class GeneralConfig {
         //not implemented
     }
 
-    public void initPlayerConfigs(PlayerEvent.PlayerLoggedInEvent event)
+    public void initPlayerConfigs(PlayerLoginEvent event)
     {
         PLAYER_LOADED = true;
         LoggerBase.logDebug( null,"006001", "Player Logged In");

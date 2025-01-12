@@ -5,13 +5,10 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.LoggerBase;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerLifecycleEvent;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.fml.event.lifecycle.ModLifecycleEvent;
-import net.minecraftforge.registries.RegisterEvent;
+import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -30,22 +27,26 @@ public class EventRegistrar {
      * World Data
      **/
     private static EventRegistrar instance;
-    static {
-        getInstance();
-    }
-
+    
+    private final Deque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
+    /*
     private final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
-    private final Deque<Consumer<PlayerEvent.PlayerLoggedInEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
     private final Deque<Consumer<LevelEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
-
     private final Deque<Consumer<ChunkEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
     private final Deque<Consumer<ChunkEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
+    */
 
-    private final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
-    private final Deque<Consumer<RegisterEvent>> ON_REGISTER = new ArrayDeque<>();
-    private final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
-    private final Deque<Consumer<ServerLifecycleEvent>> ON_SERVER_START = new ArrayDeque<>();
-    private final Deque<Consumer<ServerLifecycleEvent>> ON_SERVER_STOP = new ArrayDeque<>();
+    //private final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
+        //Will have to divide up into different lifecycles
+
+    //private final Deque<Consumer<RegisterEvent>> ON_REGISTER = new ArrayDeque<>();
+        //Dont see it, I think this is for registering commands
+
+    //private final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
+        //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
+
+    private final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
+    private final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
     private final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
 
 
@@ -73,7 +74,7 @@ public class EventRegistrar {
 
     /** Level Events **/
 
-
+    /*
     public void onLoadLevel(LevelEvent.Load event)
     {
         //Call all registered functions
@@ -96,7 +97,7 @@ public class EventRegistrar {
 
 
     /** Chunk Events **/
-
+    /*
     public void onChunkLoad(final ChunkEvent.Load event)
     {
 
@@ -121,7 +122,8 @@ public class EventRegistrar {
     /** ############### **/
 
     /** Mod Events **/
-    
+
+    /*
     public void onModLifecycle(ModLifecycleEvent event) {
         for (Consumer<ModLifecycleEvent> function : ON_MOD_LIFECYCLE) {
             function.accept(event);
@@ -139,17 +141,18 @@ public class EventRegistrar {
             function.accept(event);
         }
     }
+    */
 
     /** Server Events **/
     
-    public void onServerStart(ServerLifecycleEvent event) {
-        for (Consumer<ServerLifecycleEvent> function : ON_SERVER_START) {
+    public void onServerStart(ServerStartedEvent event) {
+        for (Consumer<ServerStartedEvent> function : ON_SERVER_START) {
             function.accept(event);
         }
     }
 
-    public void onServerStop(ServerLifecycleEvent event) {
-        for (Consumer<ServerLifecycleEvent> function : ON_SERVER_STOP) {
+    public void onServerStop(ServerStoppedEvent event) {
+        for (Consumer<ServerStoppedEvent> function : ON_SERVER_STOP) {
             function.accept(event);
         }
     }
@@ -158,10 +161,10 @@ public class EventRegistrar {
 
     /** Player Events **/
 
-    public void initPlayerConfigs(PlayerEvent.PlayerLoggedInEvent event)
+    public void initPlayerConfigs(PlayerLoginEvent event)
     {
 
-        for (Consumer<PlayerEvent.PlayerLoggedInEvent> function : ON_PLAYER_LOAD) {
+        for (Consumer<PlayerLoginEvent> function : ON_PLAYER_LOAD) {
             function.accept(event);
         }
         LoggerBase.logDebug( null,"010001", "Player Logged In");
@@ -202,15 +205,17 @@ public class EventRegistrar {
             array.add(function);
     }
 
+    public void registerOnPlayerLoad(Consumer<PlayerLoginEvent> function) { registerOnPlayerLoad(function, false);}
+    public void registerOnPlayerLoad(Consumer<PlayerLoginEvent> function, boolean priority) {
+        generalRegister(function, ON_PLAYER_LOAD, priority);
+    }
+
+    /*
     public void registerOnLevelLoad(Consumer<LevelEvent.Load> function) { registerOnLevelLoad(function, false);}
     public void registerOnLevelLoad(Consumer<LevelEvent.Load> function, boolean priority) {
         generalRegister(function, ON_LEVEL_LOAD, priority);
     }
 
-    public void registerOnPlayerLoad(Consumer<PlayerEvent.PlayerLoggedInEvent> function) { registerOnPlayerLoad(function, false);}
-    public void registerOnPlayerLoad(Consumer<PlayerEvent.PlayerLoggedInEvent> function, boolean priority) {
-        generalRegister(function, ON_PLAYER_LOAD, priority);
-    }
 
     public void registerOnLevelUnload(Consumer<LevelEvent.Unload> function) { registerOnLevelUnload(function, false);}
     public void registerOnLevelUnload(Consumer<LevelEvent.Unload> function, boolean priority) {
@@ -241,14 +246,15 @@ public class EventRegistrar {
     public void registerOnModConfig(Consumer<ModConfigEvent> function, boolean priority) {
         generalRegister(function, ON_MOD_CONFIG, priority);
     }
+    */
 
-    public void registerOnServerStart(Consumer<ServerLifecycleEvent> function) { registerOnServerStart(function, false); }
-    public void registerOnServerStart(Consumer<ServerLifecycleEvent> function, boolean priority) {
+    public void registerOnServerStart(Consumer<ServerStartedEvent> function) { registerOnServerStart(function, false); }
+    public void registerOnServerStart(Consumer<ServerStartedEvent> function, boolean priority) {
         generalRegister(function, ON_SERVER_START, priority);
     }
 
-    public void registerOnServerStop(Consumer<ServerLifecycleEvent> function) { registerOnServerStop(function, false); }
-    public void registerOnServerStop(Consumer<ServerLifecycleEvent> function, boolean priority) {
+    public void registerOnServerStop(Consumer<ServerStoppedEvent> function) { registerOnServerStop(function, false); }
+    public void registerOnServerStop(Consumer<ServerStoppedEvent> function, boolean priority) {
         generalRegister(function, ON_SERVER_STOP, priority);
     }
 

@@ -50,6 +50,12 @@ subprojects {
             name = 'BlameJared Maven (JEI / CraftTweaker / Bookshelf)'
             url = 'https://maven.blamejared.com'
         }
+        maven {
+            url "https://maven.twelveiterations.com/repository/maven-public/"
+            content {
+                includeGroup "net.blay09.mods"
+            }
+        }
     }
 
     dependencies {
@@ -57,6 +63,10 @@ subprojects {
         implementation "com.google.code.gson:gson:${gson_version}"
         implementation "org.antlr:antlr4-runtime:${antlr_version}"
         implementation "org.xerial:sqlite-jdbc:${sqlite_version}"
+
+        //Common (mojmap): implementation "net.blay09.mods:balm-common:${balm_version}"
+        //Forge: implementation fg.deobf("net.blay09.mods:balm-forge:${balm_version}")
+        //Fabric: modImplementation "net.blay09.mods:balm-fabric:${balm_version}"
     }
 
     tasks.withType(JavaCompile).configureEach {

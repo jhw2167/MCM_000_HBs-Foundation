@@ -79,6 +79,8 @@ dependencies {
     compileOnly project(":common")
     annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
 
+    implementation fg.deobf("net.blay09.mods:balm-forge:${balm_version}")
+
 }
 
 tasks.withType(JavaCompile).configureEach {

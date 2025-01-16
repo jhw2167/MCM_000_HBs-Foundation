@@ -75,11 +75,14 @@ public class GeneralConfig {
         reg.registerOnLevelUnload(instance::onUnLoadLevel);
         reg.registerOnPlayerLoad(instance::initPlayerConfigs);
 
-        instance.startWatchAutoSaveThread();
     }
 
     public static GeneralConfig getInstance() {
         return instance;
+    }
+
+    public DataStore getDataStore() {
+        return dataStore;
     }
 
     /** Server Events **/
@@ -87,6 +90,7 @@ public class GeneralConfig {
     public void onServerStarted(ServerStartedEvent event) {
         this.dataStore = DataStore.init();
         this.dataStore.onServerStarted(event);
+        this.startWatchAutoSaveThread();
     }
 
     public void onServerStopped(ServerStoppedEvent event) {

@@ -322,7 +322,7 @@ public class ManagedChunk implements IMangedChunkData {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
             return;
-        DataStore ds = DataStore.getInstance();
+        DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( HBUtil.NAME, level);
 
 
@@ -507,7 +507,7 @@ public class ManagedChunk implements IMangedChunkData {
     private static void save( LevelAccessor level )
     {
         //Write out initialzed chunks to levelSaveData
-        DataStore ds = DataStore.getInstance();
+        DataStore ds = GENERAL_CONFIG.getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( HBUtil.NAME, level);
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);

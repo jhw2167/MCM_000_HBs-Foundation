@@ -4,7 +4,10 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.platform.Services;
+import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.LevelEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Items;
 
 
@@ -26,6 +29,12 @@ public class CommonClass {
 
         DataStore.init(reg);
 
+        //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
+        reg.registerOnLevelLoad(CommonClass::onLevelLoad);
+
+
+
+
 
         //Register all events
         BalmEventRegister.registerEvents();
@@ -38,6 +47,17 @@ public class CommonClass {
     public static void sample()
     {
 
+    }
+
+    public static void onChunkLoad(ChunkEvent event)
+    {
+        Constants.LOG.info("Chunk loaded: " + event.getChunkPos());
+    }
+
+    public static void onLevelLoad(LevelEvent event)
+    {
+        if( event.getLevel().isClientSide() ) return;
+        Constants.LOG.info("Level loaded: " + ( (ServerLevel) event.getLevel() ).dimensionTypeId() );
     }
 
 }

@@ -1,10 +1,8 @@
 package com.holybuckets.foundation.event;
 
 import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.BalmEvents;
-import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.*;
 
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
@@ -29,6 +27,24 @@ public class BalmEventRegister {
         //Server stopped event
         events.ON_SERVER_STOP.forEach( c -> {
             registry.onEvent( ServerStoppedEvent.class, c, p(false));
+        });
+
+        /** LEVEL & CHUNK EVENTS **/
+
+        events.ON_LEVEL_LOAD.forEach( c -> {
+            registry.onEvent( LevelEvent.Load.class, c, p(false));
+        });
+
+        events.ON_LEVEL_UNLOAD.forEach( c -> {
+            registry.onEvent( LevelEvent.Unload.class, c, p(false));
+        });
+
+        events.ON_CHUNK_LOAD.forEach( c -> {
+            registry.onEvent( ChunkEvent.Load.class, c, p(false));
+        });
+
+        events.ON_CHUNK_UNLOAD.forEach( c -> {
+            registry.onEvent( ChunkEvent.Unload.class, c, p(false));
         });
 
 

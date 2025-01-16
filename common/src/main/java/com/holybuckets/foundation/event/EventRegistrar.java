@@ -5,6 +5,8 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.LoggerBase;
+import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.LevelEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -29,12 +31,12 @@ public class EventRegistrar {
     private static EventRegistrar instance;
     
     final Deque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
-    /*
     final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
     final Deque<Consumer<LevelEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
+
+
     final Deque<Consumer<ChunkEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
     final Deque<Consumer<ChunkEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
-    */
 
     //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
         //Will have to divide up into different lifecycles
@@ -99,8 +101,8 @@ public class EventRegistrar {
 
 
     /** Chunk Events **/
-    /*
-    public void onChunkLoad(final ChunkEvent.Load event)
+
+    private void onChunkLoad(final ChunkEvent.Load event)
     {
 
         for (Consumer<ChunkEvent.Load> function : ON_CHUNK_LOAD) {
@@ -109,7 +111,7 @@ public class EventRegistrar {
 
     }
 
-    public void onChunkUnload(final ChunkEvent.Unload event)
+    private void onChunkUnload(final ChunkEvent.Unload event)
     {
 
         for (Consumer<ChunkEvent.Unload> function : ON_CHUNK_UNLOAD) {
@@ -117,7 +119,6 @@ public class EventRegistrar {
         }
 
     }
-
 
 
 
@@ -212,7 +213,7 @@ public class EventRegistrar {
         generalRegister(function, ON_PLAYER_LOAD, priority);
     }
 
-    /*
+
     public void registerOnLevelLoad(Consumer<LevelEvent.Load> function) { registerOnLevelLoad(function, false);}
     public void registerOnLevelLoad(Consumer<LevelEvent.Load> function, boolean priority) {
         generalRegister(function, ON_LEVEL_LOAD, priority);
@@ -224,6 +225,7 @@ public class EventRegistrar {
         generalRegister(function, ON_LEVEL_UNLOAD, priority);
     }
 
+
     public void registerOnChunkLoad(Consumer<ChunkEvent.Load> function) { registerOnChunkLoad(function, false);}
     public void registerOnChunkLoad(Consumer<ChunkEvent.Load> function, boolean priority) {
         generalRegister(function, ON_CHUNK_LOAD, priority);
@@ -234,6 +236,7 @@ public class EventRegistrar {
         generalRegister(function, ON_CHUNK_UNLOAD, priority);
     }
 
+    /*
     public void registerOnModLifecycle(Consumer<ModLifecycleEvent> function) { registerOnModLifecycle(function, false); }
     public void registerOnModLifecycle(Consumer<ModLifecycleEvent> function, boolean priority) {
         generalRegister(function, ON_MOD_LIFECYCLE, priority);

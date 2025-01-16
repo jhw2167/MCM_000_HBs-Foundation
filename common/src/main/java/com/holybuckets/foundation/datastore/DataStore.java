@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.datastore;
 
 import com.google.gson.*;
+import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -12,7 +13,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelResource;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -38,10 +38,9 @@ public class DataStore implements IStringSerializable {
         STORE = new HashMap<>();
     }
 
-    public static void init(EventRegistrar reg) {
+    public static DataStore init() {
         INSTANCE = new DataStore();
-        reg.registerOnServerStarted(DataStore::onServerStarted, true);
-        reg.registerOnServerStopped(DataStore::onServerStopped, false);
+        return INSTANCE;
     }
 
 
@@ -83,18 +82,23 @@ public class DataStore implements IStringSerializable {
 
     /**
      * Initialize a worldSaveData object on HB's Utility when a level loads
-     * @param config
+     * @param event - server started
      * @return true if the worldSaveData object was initialized, false if it already exists
      */
-    public boolean initWorldOnLevelLoad(GeneralConfig config)
+    public boolean initWorldDataOnServerStart(ServerStartedEvent event)
     {
-        ModSaveData modData = getOrCreateModSavedData(HBUtil.NAME);
+        ModSaveData modData = getOrCreateModSavedData(Constants.MOD_ID);
         if (modData.worldSaveData.containsKey(currentWorldId))
             return false;
 
+        GeneralConfig config = GeneralConfig.getInstance();
+        while( config == null || !config.isLevelConfigInit() ){
+            config = GeneralConfig.getInstance();
+        }
+
         WorldSaveData worldData = modData.getOrCreateWorldSaveData(currentWorldId);
-        worldData.addProperty("worldSeed", parse(config.getWORLD_SEED()) );
-        worldData.addProperty("worldSpawn", parse(config.getWORLD_SPAWN()) );
+        worldData.addProperty("worldSeed", parse(config.getWorldSeed()) );
+        worldData.addProperty("worldSpawn", parse(config.getWorldSpawn()) );
         worldData.addProperty("totalTicks", parse(Integer.valueOf(0)) );
 
         return true;
@@ -161,13 +165,12 @@ public class DataStore implements IStringSerializable {
 
 
     /** STATIC METHODS **/
-    @Nullable
-    public static DataStore getInstance() {
-        return INSTANCE;
-    }
 
-    private static void onServerStarted(ServerStartedEvent serverStartedEvent) {
+    public static void onServerStarted(ServerStartedEvent serverStartedEvent) {
         initDatastoreOnServerStart(serverStartedEvent);
+        new Thread( () -> {
+            INSTANCE.initWorldDataOnServerStart(serverStartedEvent);
+        }).start();
     }
 
     private static void initDatastoreOnServerStart(ServerStartedEvent event) {
@@ -179,29 +182,22 @@ public class DataStore implements IStringSerializable {
     public static void onServerStopped( ServerStoppedEvent s ) {
         INSTANCE.shutdown(s);
     }
-    public static void shutdown(ServerStoppedEvent s)
+    public void shutdown(ServerStoppedEvent s)
     {
-        if (INSTANCE != null)
+        WorldSaveData worldData = this.getOrCreateWorldSaveData(Constants.MOD_ID);
+        GeneralConfig config = GeneralConfig.getInstance();
+
         {
-            WorldSaveData worldData = INSTANCE.getOrCreateWorldSaveData(HBUtil.NAME);
-            GeneralConfig config = GeneralConfig.getInstance();
-
-            {
-                Long prevTicks = worldData.get("totalTicks").getAsLong();
-                Long currentTicks = Integer.toUnsignedLong( config.getSERVER().getTickCount() );
-                worldData.addProperty("totalTicks", parse(prevTicks + currentTicks) );
-            }
-
-            worldData.addProperty("worldSpawn", parse(config.getWORLD_SPAWN()) );
-
-            GeneralConfig.getInstance().shutdown();
-            INSTANCE.save();
-
-            //Clear all fields
-            //INSTANCE.currentWorldId = null;
-            //INSTANCE.STORE.clear();
-            INSTANCE = null;
+            Long prevTicks = worldData.get("totalTicks").getAsLong();
+            Long currentTicks = Integer.toUnsignedLong( config.getServer().getTickCount() );
+            worldData.addProperty("totalTicks", parse(prevTicks + currentTicks) );
         }
+
+        worldData.addProperty("worldSpawn", parse(config.getWorldSpawn()) );
+
+        GeneralConfig.getInstance().stopAutoSaveThread();
+        this.save();
+
     }
 
 

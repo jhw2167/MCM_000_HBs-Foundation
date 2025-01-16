@@ -27,12 +27,10 @@ public class CommonClass {
         EventRegistrar.init();
         EventRegistrar reg = EventRegistrar.getInstance();
 
-        DataStore.init(reg);
+        GeneralConfig.init(reg);
 
         //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
-
-
 
 
 

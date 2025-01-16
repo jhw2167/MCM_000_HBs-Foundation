@@ -71,111 +71,6 @@ public class EventRegistrar {
         instance = new EventRegistrar();
     }
 
-    /**
-     * Events
-     */
-
-
-    /** Level Events **/
-
-    /*
-    public void onLoadLevel(LevelEvent.Load event)
-    {
-        //Call all registered functions
-        for (Consumer<LevelEvent.Load> function : ON_LEVEL_LOAD) {
-            function.accept(event);
-        }
-    }
-
-
-    public void onUnLoadLevel(LevelEvent.Unload event)
-    {
-        //Call all registered functions
-        for (Consumer<LevelEvent.Unload> function : ON_LEVEL_UNLOAD) {
-            function.accept(event);
-        }
-    }
-
-    /** ############### **/
-
-
-
-    /** Chunk Events **/
-
-    private void onChunkLoad(final ChunkEvent.Load event)
-    {
-
-        for (Consumer<ChunkEvent.Load> function : ON_CHUNK_LOAD) {
-            function.accept(event);
-        }
-
-    }
-
-    private void onChunkUnload(final ChunkEvent.Unload event)
-    {
-
-        for (Consumer<ChunkEvent.Unload> function : ON_CHUNK_UNLOAD) {
-            function.accept(event);
-        }
-
-    }
-
-
-
-    /** ############### **/
-
-    /** Mod Events **/
-
-    /*
-    public void onModLifecycle(ModLifecycleEvent event) {
-        for (Consumer<ModLifecycleEvent> function : ON_MOD_LIFECYCLE) {
-            function.accept(event);
-        }
-    }
-
-    public void onRegister(RegisterEvent event) {
-        for (Consumer<RegisterEvent> function : ON_REGISTER) {
-            function.accept(event);
-        }
-    }
-
-    public void onModConfig(ModConfigEvent event) {
-        for (Consumer<ModConfigEvent> function : ON_MOD_CONFIG) {
-            function.accept(event);
-        }
-    }
-    */
-
-    /** Server Events **/
-    
-    public void onServerStart(ServerStartedEvent event) {
-        for (Consumer<ServerStartedEvent> function : ON_SERVER_START) {
-            function.accept(event);
-        }
-    }
-
-    public void onServerStop(ServerStoppedEvent event) {
-        for (Consumer<ServerStoppedEvent> function : ON_SERVER_STOP) {
-            function.accept(event);
-        }
-    }
-
-    /** ############### **/
-
-    /** Player Events **/
-
-    public void initPlayerConfigs(PlayerLoginEvent event)
-    {
-
-        for (Consumer<PlayerLoginEvent> function : ON_PLAYER_LOAD) {
-            function.accept(event);
-        }
-        LoggerBase.logDebug( null,"010001", "Player Logged In");
-    }
-
-    /** ############### **/
-
-
     /** Custom Events **/
 
     public void dataSaveEvent()
@@ -189,16 +84,6 @@ public class EventRegistrar {
 
 
 
-
-
-    /**
-     * Getters
-     */
-
-
-    /**
-     * Setters
-     */
 
     //Create public methods for pushing functions onto each function event
     public <T> void  generalRegister(Consumer<T> function, Deque<Consumer<T>> array, boolean priority) {

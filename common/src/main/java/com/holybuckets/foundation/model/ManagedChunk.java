@@ -2,12 +2,9 @@ package com.holybuckets.foundation.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
-import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.exception.InvalidId;
@@ -68,7 +65,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.pos = HBUtil.ChunkUtil.getPos(id);
         this.level = level;
 
-        this.tickLoaded = GENERAL_CONFIG.getSERVER().getTickCount();
+        this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
         this.initSubclassesFromMemory(level, id);
 
         LOADED_CHUNKS.get(this.level).put(this.id, this);
@@ -111,7 +108,7 @@ public class ManagedChunk implements IMangedChunkData {
             return null;
 
         final GeneralConfig CONFIG = GeneralConfig.getInstance();
-        final Long SEED = CONFIG.getWORLD_SEED();
+        final Long SEED = CONFIG.getWorldSeed();
 
         Double RAND = HBUtil.ChunkUtil.getChunkRandom(this.pos) *1d;
 
@@ -211,7 +208,7 @@ public class ManagedChunk implements IMangedChunkData {
              this.initSubclassesFromNbt(tag);
          }
 
-         this.tickLoaded = GENERAL_CONFIG.getSERVER().getTickCount();
+         this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
 
     }
 
@@ -538,7 +535,7 @@ public class ManagedChunk implements IMangedChunkData {
 
             details.putString("id", this.id); count++;
             details.putString("level", HBUtil.LevelUtil.toId(this.level)); count++;
-            this.tickWritten = GENERAL_CONFIG.getSERVER().getTickCount(); count++;
+            this.tickWritten = GENERAL_CONFIG.getServer().getTickCount(); count++;
             details.putInt("tickWritten", this.tickWritten); count++;
 
             for(IMangedChunkData data : managedChunkData.values())

@@ -6,10 +6,12 @@ package com.holybuckets.foundation;
 
 import com.google.gson.Gson;
 import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
+import net.blay09.mods.balm.api.event.LevelEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
@@ -33,15 +35,16 @@ public class GeneralConfig {
      * World Data
      **/
     private static GeneralConfig instance;
-    private final DataStore DATA_STORE;
+    private DataStore dataStore;
     private Thread watchThread;
     private volatile boolean running = true;
 
-    private MinecraftServer SERVER;
+    private MinecraftServer server;
     private final Map<String, LevelAccessor> LEVELS;
-    private Long WORLD_SEED;
-    private Vec3i WORLD_SPAWN;
-    private Boolean PLAYER_LOADED;
+    private Long worldSeed;
+    private Vec3i worldSpawn;
+    private boolean isLevelConfigInit;
+    private Boolean isPlayerLoaded;
 
     /**
      * Constructor
@@ -50,53 +53,67 @@ public class GeneralConfig {
     {
         super();
         LoggerBase.logInit( null, "000000", this.getClass().getName());
-        this.PLAYER_LOADED = false;
-        this.DATA_STORE = DataStore.getInstance();
+        this.isPlayerLoaded = false;
         this.LEVELS = new HashMap<>();
         this.running = true;
-        startWatchThread();
+        this.isLevelConfigInit = false;
 
         instance = this;
     }
 
+    public static void init(EventRegistrar reg)
+    {
+        if (instance != null)
+            return;
+        instance = new GeneralConfig();
+        instance.dataStore = DataStore.init();
+
+        reg.registerOnServerStarted(instance::onServerStarted);
+        reg.registerOnServerStopped(instance::onServerStopped);
+
+        reg.registerOnLevelLoad(instance::onLoadLevel);
+        reg.registerOnLevelUnload(instance::onUnLoadLevel);
+        reg.registerOnPlayerLoad(instance::initPlayerConfigs);
+
+        instance.startWatchAutoSaveThread();
+    }
+
     public static GeneralConfig getInstance() {
-        if (instance == null)
-            return new GeneralConfig();
         return instance;
     }
 
-    /**
-     * Events
-     */
+    /** Server Events **/
 
-
-    /** Level Events **/
-    /*
-    static {
-        EventRegistrar reg = EventRegistrar.getInstance();
-        reg.registerOnLevelLoad(GeneralConfig::onLoadLevel, true);
+    public void onServerStarted(ServerStartedEvent event) {
+        this.dataStore = DataStore.init();
+        this.dataStore.onServerStarted(event);
     }
 
-    public static void onLoadLevel(LevelEvent.Load event)
+    public void onServerStopped(ServerStoppedEvent event) {
+        this.dataStore.onServerStopped(event);
+        this.dataStore = null;
+    }
+
+    /** Level Events **/
+
+    public void onLoadLevel(LevelEvent.Load event)
     {
         // Capture the world seed, use logical server
         LevelAccessor level = event.getLevel();
         if( level.isClientSide() ) {
-            instance.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
+            this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
         }
         else
         {
             MinecraftServer server = level.getServer();
-            instance.WORLD_SEED = server.overworld().getSeed();
-            instance.WORLD_SPAWN = server.overworld().getSharedSpawnPos();
-            instance.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
-            instance.SERVER = level.getServer();
+            this.worldSeed = server.overworld().getSeed();
+            this.worldSpawn = server.overworld().getSharedSpawnPos();
+            this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
+            this.server = server;
 
-            initDataStore();
-            createLevelData(level);
-
-            LoggerBase.logInfo( null, "010001", "World Seed: " + instance.WORLD_SEED);
-            LoggerBase.logInfo( null, "010002", "World Spawn: " + instance.WORLD_SPAWN);
+            LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
+            LoggerBase.logInfo( null, "010002", "World Spawn: " + this.worldSpawn);
+            this.isLevelConfigInit = true;
         }
 
     }
@@ -104,11 +121,15 @@ public class GeneralConfig {
     public void onUnLoadLevel(LevelEvent.Unload event)  {
         //not implemented
     }
-    */
+
+
+    public boolean isLevelConfigInit() {
+        return this.isLevelConfigInit;
+    }
 
     public void initPlayerConfigs(PlayerLoginEvent event)
     {
-        PLAYER_LOADED = true;
+        isPlayerLoaded = true;
         LoggerBase.logDebug( null,"006001", "Player Logged In");
     }
 
@@ -126,20 +147,20 @@ public class GeneralConfig {
         return level;
     }
 
-    public Long getWORLD_SEED() {
-        return WORLD_SEED;
+    public Long getWorldSeed() {
+        return worldSeed;
     }
 
-    public Vec3i getWORLD_SPAWN() {
-        return WORLD_SPAWN;
+    public Vec3i getWorldSpawn() {
+        return worldSpawn;
     }
 
     public Boolean getIsPLAYER_LOADED() {
-        return PLAYER_LOADED;
+        return isPlayerLoaded;
     }
 
-    public MinecraftServer getSERVER() {
-        return SERVER;
+    public MinecraftServer getServer() {
+        return server;
     }
 
 
@@ -149,28 +170,11 @@ public class GeneralConfig {
 
 
 
-
-    /**
-     * Utility
-     */
-
-     private static void initDataStore()
-     {
-        DataStore.getInstance().initWorldOnLevelLoad(instance);
-     }
-
-     private static void createLevelData(LevelAccessor level)
-     {
-         WorldSaveData worldData = DataStore.getInstance().getOrCreateWorldSaveData(HBUtil.NAME);
-         worldData.getOrCreateLevelSaveData(level);
-     }
-
-
     /**
      * SAVE METHODS - register class to save method
      */
 
-    private void startWatchThread() {
+    private void startWatchAutoSaveThread() {
         watchThread = new Thread(() -> {
             while (running) {
                 try {
@@ -189,12 +193,13 @@ public class GeneralConfig {
         watchThread.start();
     }
 
-    public void shutdown() {
-        running = false;
-        if (watchThread != null) {
-            watchThread.interrupt();
+    public void stopAutoSaveThread()
+    {
+        this.running = false;
+        if (this.watchThread != null) {
+            this.watchThread.interrupt();
             try {
-                watchThread.join(1000); // Wait up to 1 second for thread to finish
+                this.watchThread.join(1000); // Wait up to 1 second for thread to finish
             } catch (InterruptedException e) {
                 // Ignore interruption during shutdown
             }

@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.modelInterface;
 
+import net.blay09.mods.balm.api.event.ChunkEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -22,13 +23,13 @@ public interface IMangedChunkData  {
     /**
      * @param event
      */
-    //public void handleChunkLoaded(ChunkEvent.Load event);
+    public void handleChunkLoaded(ChunkEvent.Load event);
 
     /**
      * Fired when a chunk is unloaded from memory
-     * @param chunk
+     * @param event
      */
-    //public void handleChunkUnloaded(ChunkEvent.Unload event);
+    public void handleChunkUnloaded(ChunkEvent.Unload event);
 
 
     public CompoundTag serializeNBT();

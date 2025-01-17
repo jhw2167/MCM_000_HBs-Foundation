@@ -3,6 +3,7 @@ package com.holybuckets.foundation.event;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 
+import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
@@ -19,12 +20,14 @@ public class BalmEventRegister {
 
         /** SERVER EVENTS **/
 
-        //Server started event
+        events.ON_BEFORE_SERVER_START.forEach( c -> {
+            registry.onEvent( ServerBeforeStartingEvent.class, c, p(false));
+        });
+
         events.ON_SERVER_START.forEach( c -> {
             registry.onEvent( ServerStartedEvent.class, c, p(false));
         });
 
-        //Server stopped event
         events.ON_SERVER_STOP.forEach( c -> {
             registry.onEvent( ServerStoppedEvent.class, c, p(false));
         });

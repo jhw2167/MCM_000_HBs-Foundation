@@ -7,6 +7,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
+import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.MinecraftServer;
@@ -85,7 +86,7 @@ public class DataStore implements IStringSerializable {
      * @param event - server started
      * @return true if the worldSaveData object was initialized, false if it already exists
      */
-    public boolean initWorldDataOnServerStart(ServerStartedEvent event)
+    public boolean initWorldDataOnServerStart(ServerBeforeStartingEvent event)
     {
         ModSaveData modData = getOrCreateModSavedData(Constants.MOD_ID);
         if (modData.worldSaveData.containsKey(currentWorldId))
@@ -140,7 +141,7 @@ public class DataStore implements IStringSerializable {
 
         if( malformedJson != null)
         {
-            ModSaveData utilData = STORE.get(HBUtil.NAME);
+            ModSaveData utilData = STORE.get(Constants.MOD_ID);
             String asString = malformedJson.replace('"','\'' ).replaceAll("\r\n", "");
             utilData.addProperty("malformedJson",parse( asString ) );
             this.save();
@@ -166,21 +167,21 @@ public class DataStore implements IStringSerializable {
 
     /** STATIC METHODS **/
 
-    public static void onServerStarted(ServerStartedEvent serverStartedEvent) {
-        initDatastoreOnServerStart(serverStartedEvent);
+    public void onBeforeServerStarted(ServerBeforeStartingEvent serverStartedEvent) {
+        this.initDatastoreOnServerStart(serverStartedEvent);
         new Thread( () -> {
-            INSTANCE.initWorldDataOnServerStart(serverStartedEvent);
+            this.initWorldDataOnServerStart(serverStartedEvent);
         }).start();
     }
 
-    private static void initDatastoreOnServerStart(ServerStartedEvent event) {
+    private void initDatastoreOnServerStart(ServerBeforeStartingEvent event) {
         MinecraftServer s = event.getServer();
         Path path = s.getWorldPath( LevelResource.ROOT );
-        INSTANCE.loadData( path.getParent().getFileName().toString() );
+        this.loadData( path.getParent().getFileName().toString() );
     }
 
-    public static void onServerStopped( ServerStoppedEvent s ) {
-        INSTANCE.shutdown(s);
+    public void onServerStopped( ServerStoppedEvent s ) {
+        this.shutdown(s);
     }
     public void shutdown(ServerStoppedEvent s)
     {
@@ -207,7 +208,7 @@ public class DataStore implements IStringSerializable {
     /** SUBCLASSES **/
 
     private class DefaultDataStore extends DataStore implements IStringSerializable {
-        public static final ModSaveData DATA = new ModSaveData(HBUtil.NAME);
+        public static final ModSaveData DATA = new ModSaveData(Constants.MOD_ID);
         static {
             DATA.setComment("The purpose of this JSON file is to store data at the world save file level for supporting HB" +
              " Utility Foundation mods. This data is not intended to be modified by the user.");

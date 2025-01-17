@@ -8,6 +8,7 @@ import com.holybuckets.foundation.LoggerBase;
 import net.blay09.mods.balm.api.event.ChunkEvent;
 import net.blay09.mods.balm.api.event.LevelEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
@@ -47,6 +48,7 @@ public class EventRegistrar {
     //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
         //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
 
+    final Deque<Consumer<ServerBeforeStartingEvent>> ON_BEFORE_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
     final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
@@ -137,6 +139,12 @@ public class EventRegistrar {
         generalRegister(function, ON_MOD_CONFIG, priority);
     }
     */
+
+    public void registerOnBeforeServerStarted(Consumer<ServerBeforeStartingEvent> function) { registerOnBeforeServerStarted(function, false); }
+    public void registerOnBeforeServerStarted(Consumer<ServerBeforeStartingEvent> function, boolean priority) {
+        generalRegister(function, ON_BEFORE_SERVER_START, priority);
+    }
+
 
     public void registerOnServerStarted(Consumer<ServerStartedEvent> function) { registerOnServerStarted(function, false); }
     public void registerOnServerStarted(Consumer<ServerStartedEvent> function, boolean priority) {

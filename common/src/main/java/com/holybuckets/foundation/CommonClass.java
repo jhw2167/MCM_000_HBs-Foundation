@@ -3,6 +3,7 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.ChunkEvent;
 import net.blay09.mods.balm.api.event.LevelEvent;
@@ -28,6 +29,7 @@ public class CommonClass {
         EventRegistrar reg = EventRegistrar.getInstance();
 
         GeneralConfig.init(reg);
+        ManagedChunk.init(reg);
 
         //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);

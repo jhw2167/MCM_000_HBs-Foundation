@@ -10,6 +10,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import net.blay09.mods.balm.api.event.LevelEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.Vec3i;
@@ -68,12 +69,13 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
-        reg.registerOnServerStarted(instance::onServerStarted);
-        reg.registerOnServerStopped(instance::onServerStopped);
+        reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, true);
+        reg.registerOnServerStopped(instance::onServerStopped, false);
 
-        reg.registerOnLevelLoad(instance::onLoadLevel);
-        reg.registerOnLevelUnload(instance::onUnLoadLevel);
-        reg.registerOnPlayerLoad(instance::initPlayerConfigs);
+        reg.registerOnLevelLoad(instance::onLoadLevel, true);
+        reg.registerOnLevelUnload(instance::onUnLoadLevel, false);
+
+        reg.registerOnPlayerLoad(instance::initPlayerConfigs, true);
 
     }
 
@@ -87,9 +89,9 @@ public class GeneralConfig {
 
     /** Server Events **/
 
-    public void onServerStarted(ServerStartedEvent event) {
+    public void onBeforeServerStarted(ServerBeforeStartingEvent event) {
         this.dataStore = DataStore.init();
-        this.dataStore.onServerStarted(event);
+        this.dataStore.onBeforeServerStarted(event);
         this.startWatchAutoSaveThread();
     }
 

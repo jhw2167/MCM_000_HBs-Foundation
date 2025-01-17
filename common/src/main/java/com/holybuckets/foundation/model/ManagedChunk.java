@@ -2,14 +2,20 @@ package com.holybuckets.foundation.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
+import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.LevelEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -58,7 +64,7 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKS.get(this.level).put(this.id, this);
     }
 
-    public ManagedChunk(LevelAccessor level, String id, LevelChunk chunk)
+    public ManagedChunk(LevelAccessor level, String id )
     {
         this();
         this.id = id;
@@ -242,7 +248,7 @@ public class ManagedChunk implements IMangedChunkData {
         return getManagedChunk(level, id);
     }
 
-/*
+
     @Override
     public void handleChunkLoaded(ChunkEvent.Load event)
     {
@@ -262,7 +268,7 @@ public class ManagedChunk implements IMangedChunkData {
          }
         this.isLoaded = false;
     }
-    */
+
 
 
 
@@ -286,6 +292,7 @@ public class ManagedChunk implements IMangedChunkData {
         return HBUtil.ChunkUtil.getLevelChunk(level, p.x, p.z, forceLoad);
     }
 
+    /*
     public static void forceUnloadChunk(LevelAccessor level, String chunkId)
     {
         ManagedChunk c = getManagedChunk(level, chunkId);
@@ -297,7 +304,7 @@ public class ManagedChunk implements IMangedChunkData {
         if( level instanceof ServerLevel )
             ((ServerLevel) level).unload( chunk );
     }
-
+    */
 
     public static ManagedChunk getManagedChunk(LevelAccessor level, String id) throws NullPointerException
     {
@@ -307,9 +314,10 @@ public class ManagedChunk implements IMangedChunkData {
         return LOADED_CHUNKS.get(level).get(id);
     }
 
-    /*
-    static {
-         EventRegistrar reg = EventRegistrar.getInstance();
+
+    public static void init( EventRegistrar reg )
+    {
+        EventRegistrar.getInstance();
         reg.registerOnLevelLoad(ManagedChunk::onWorldLoad);
         reg.registerOnLevelUnload(ManagedChunk::onWorldUnload);
 
@@ -323,7 +331,7 @@ public class ManagedChunk implements IMangedChunkData {
         if(level.isClientSide())
             return;
         DataStore ds = GeneralConfig.getInstance().getDataStore();
-        LevelSaveData levelData = ds.getOrCreateLevelSaveData( HBUtil.NAME, level);
+        LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
 
         if(LOADED_CHUNKS.get(level) == null)
@@ -363,45 +371,14 @@ public class ManagedChunk implements IMangedChunkData {
         if(level.isClientSide())
             return;
 
+        //Chunks not seeming to load for Fabric. only get clientSide...
         String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
-        LevelChunk levelChunk = ManagedChunk.getChunk(level, chunkId, false);
-
-        //Should never be null
-        if( levelChunk == null)
-         return;
-
         ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
-        if(  loadedChunk != null )
-        {
-            LoggerBase.logDebug(null, "003008.1", "ManagedChunk already loaded with id: " + chunkId);
-        }
-        else if (INITIALIZED_CHUNKS.get(level).contains(chunkId))
-        {
-            LoggerBase.logDebug(null, "003008.2", "Skipping for initialized Managed Chunk: " + chunkId);
-            //Block until chunk arrives in loaded chunks, timeout after 30s, report error
-            int sleepTime = 0;
-            while (LOADED_CHUNKS.get(level).get(chunkId) == null)
-            {
-                try {
-                    Thread.sleep(10);
-                    sleepTime += 10;
-                } catch (InterruptedException e) {
-                    LoggerBase.logError(null, "003009", "Error waiting for chunk to load: " + chunkId);
-                }
 
-                if(sleepTime > 30000)
-                {
-                    LoggerBase.logError(null, "003010", "Timeout waiting for chunk to load: " + chunkId);
-                    return;
-                }
-
-            }
-        }
-        else
+         if(loadedChunk == null)
         {
-            //brand new chunk, create ManagedChunk
-            LoggerBase.logDebug(null, "003008.3", "Creating new managed Chunk: " + chunkId);
-            loadedChunk = new ManagedChunk(level, chunkId, levelChunk);
+            LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
+            loadedChunk = new ManagedChunk(level, chunkId);
         }
 
         loadedChunk.handleChunkLoaded(event);
@@ -420,7 +397,6 @@ public class ManagedChunk implements IMangedChunkData {
             return;
         c.handleChunkUnloaded(event);
     }
-    */
 
     /**
      * Update the block states of a chunk. It is important that it is synchronized to prevent
@@ -508,7 +484,7 @@ public class ManagedChunk implements IMangedChunkData {
     {
         //Write out initialzed chunks to levelSaveData
         DataStore ds = GENERAL_CONFIG.getDataStore();
-        LevelSaveData levelData = ds.getOrCreateLevelSaveData( HBUtil.NAME, level);
+        LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
         String[] chunkIds = initChunks.toArray(new String[0]);

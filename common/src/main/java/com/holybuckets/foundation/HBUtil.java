@@ -35,11 +35,6 @@ public class HBUtil {
 
     public static final String CLASS_ID = "004";
 
-    /*
-    * General variables
-     */
-    public static final String NAME = "HBs Utility";
-
     public static class BlockUtil {
 
         /**

@@ -35,7 +35,6 @@ public class CommonClass {
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
 
 
-
         //Register all events
         BalmEventRegister.registerEvents();
 

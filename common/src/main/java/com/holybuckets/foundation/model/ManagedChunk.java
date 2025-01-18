@@ -64,11 +64,11 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKS.get(this.level).put(this.id, this);
     }
 
-    public ManagedChunk(LevelAccessor level, String id )
+    public ManagedChunk(LevelAccessor level, ChunkPos pos )
     {
         this();
-        this.id = id;
-        this.pos = HBUtil.ChunkUtil.getPos(id);
+        this.id = HBUtil.ChunkUtil.getId(pos);
+        this.pos = pos;
         this.level = level;
 
         this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
@@ -378,7 +378,7 @@ public class ManagedChunk implements IMangedChunkData {
          if(loadedChunk == null)
         {
             LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
-            loadedChunk = new ManagedChunk(level, chunkId);
+            loadedChunk = new ManagedChunk(level, event.getChunkPos());
         }
 
         loadedChunk.handleChunkLoaded(event);

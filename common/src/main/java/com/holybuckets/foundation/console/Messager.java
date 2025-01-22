@@ -1,4 +1,4 @@
-package com.holybuckets.foundation.client;
+package com.holybuckets.foundation.console;
 
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.OutgoingChatMessage;

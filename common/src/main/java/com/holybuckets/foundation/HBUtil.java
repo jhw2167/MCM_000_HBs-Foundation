@@ -13,6 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
@@ -55,7 +56,21 @@ public class HBUtil {
          * @param blockName - String name of the block
          * @return Block object
          */
-        public static Block blockNameToBlock(String blockName) {
+        public static Block blockNameToBlock(String blockName)
+        {
+            if( blockName == null || blockName.isEmpty() )
+            {
+                LoggerBase.logError( null, "004001", "Error parsing block name as string into a Minecraft Block type, " +
+                    "type provided was null or provided as empty string");
+                return Blocks.AIR;
+            }
+
+            if( blockName.contains(":") )
+            {
+                String[] parts = blockName.split(":");
+                return blockNameToBlock(parts[0], parts[1]);
+            }
+
             return blockNameToBlock("minecraft", blockName);
         }
 
@@ -78,7 +93,7 @@ public class HBUtil {
                namespace = "minecraft";
 
             BalmRegistries registries = Balm.getRegistries();
-            ResourceLocation blockKey = new ResourceLocation(namespace, blockName);
+            ResourceLocation blockKey = new ResourceLocation(namespace.trim(), blockName.trim());
             Block b = registries.getBlock(blockKey);
 
             if( b == null )

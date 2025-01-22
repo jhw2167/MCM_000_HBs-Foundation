@@ -1,0 +1,27 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :common
+SpongePowered Vanilla 'GRADLE' Toolset Version '0.2.1-SNAPSHOT'
+Targeting Minecraft '1.20.1' on a 'JOINED' platform
+
+> Configure project :fabric
+Fabric Loom: 1.7.4
+
+> Configure project :forge
+MixinGradle is skipping eclipse integration, extension not found
+
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:jar
+> Task :common:javadoc UP-TO-DATE
+> Task :common:javadocJar UP-TO-DATE
+> Task :common:sourcesJar UP-TO-DATE
+> Task :common:generateMetadataFileForMavenJavaPublication
+> Task :common:generatePomFileForMavenJavaPublication
+> Task :common:publishMavenJavaPublicationToMavenLocal
+> Task :common:publishToMavenLocal
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources FAILED
+13 actionable tasks: 7 executed, 6 up-to-date

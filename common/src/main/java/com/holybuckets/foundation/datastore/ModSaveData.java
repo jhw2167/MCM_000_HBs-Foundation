@@ -37,7 +37,7 @@ public class ModSaveData {
         this.worldSaveData.put(w.getWorldId(), w);
     }
 
-   /** GETTERS & SETTERS **/
+   /** GETTERS and SETTERS **/
 
     public String getModId() {
         return MOD_ID;

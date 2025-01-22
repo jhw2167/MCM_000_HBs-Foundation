@@ -58,6 +58,16 @@ public class HBUtil {
          * @param blockName - String name of the block
          * @return Block object
          */
+        public static Block blockNameToBlock(String blockName) {
+            return blockNameToBlock("minecraft", blockName);
+        }
+
+        /**
+         * Convert a block name as a string to a Minecraft Block Object: eg. "minecraft:iron_ore" to Blocks.IRON_ORE
+         * @param blockName - String name of the block
+         * @param namespace - Namespace of the block
+         * @return Block object
+         */
         public static Block blockNameToBlock(String namespace, String blockName)
         {
             if( blockName == null || blockName.isEmpty() )
@@ -691,11 +701,84 @@ public class HBUtil {
     //END WORLD POS
 
 
+    public static class Validator
+    {
+
+        public class ConfigNumber<T extends Number & Comparable<T>>
+        {
+            private final String name;
+            private final T min;
+            private final T max;
+            private T current;
+            private final String[] comment;
+
+            public ConfigNumber(String name, T current, T min, T max, String... comment) {
+                if (min.compareTo(max) > 0) {
+                    throw new IllegalArgumentException("Min value cannot be greater than max value.");
+                }
+                if (current.compareTo(min) < 0 || current.compareTo(max) > 0) {
+                    throw new IllegalArgumentException("Current value must be within the range of min and max.");
+                }
+                this.name = name;
+                this.min = min;
+                this.max = max;
+                this.current = current;
+                this.comment = comment;
+            }
+
+            public T get() {
+                return current;
+            }
+
+            public void set(T value) {
+                if (test(value)) {
+                    this.current = value;
+                } else {
+                    throw new IllegalArgumentException("Value is out of range: " + value);
+                }
+            }
+
+            public boolean test(T value) {
+                return value.compareTo(min) >= 0 && value.compareTo(max) <= 0;
+            }
+
+            @Override
+            public String toString() {
+                return "ConfigNumber{" +
+                    "name='" + name + '\'' +
+                    ", min=" + min +
+                    ", max=" + max +
+                    ", current=" + current +
+                    '}';
+            }
+        }
+
+        public static boolean validateNumber(Number value, ConfigNumber n, String element) {
+            StringBuilder error = new StringBuilder();
+            error.append("Error setting ");
+            error.append(n.name);
+            error.append(element);
+            error.append(" using default value of ");
+            error.append(n.current + " instead");
+
+            if( value.doubleValue() >= n.min.doubleValue() && value.doubleValue() <= n.max.doubleValue() )
+                return true;
+            else {
+                LoggerBase.logWarning( null, "001002",error.toString());
+                return false;
+            }
+        }
+
+
+
+    }
+    //END VALIDATOR
+
 
 
     /**
     * Class: Fast3DArray
-    * Description: A 3D array that is optimized for fast access by avoiding new calls
+    * Description: A 3D array that is optimized for fast access by avoiding NEW calls
      */
     public static class Fast3DArray {
 

@@ -85,7 +85,7 @@ public class ManagedChunk implements IMangedChunkData {
     }
 
 
-    /** GETTERS & SETTERS **/
+    /** GETTERS and SETTERS **/
     public IMangedChunkData getSubclass(Class<? extends IMangedChunkData> classObject) {
         return managedChunkData.get(classObject);
     }

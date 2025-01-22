@@ -21,10 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
 * Class: HolyBucketsUtility
@@ -704,15 +701,14 @@ public class HBUtil {
     public static class Validator
     {
 
-        public class ConfigNumber<T extends Number & Comparable<T>>
+        public static class ConfigNumber<T extends Number & Comparable<T>>
         {
             private final String name;
             private final T min;
             private final T max;
             private T current;
-            private final String[] comment;
 
-            public ConfigNumber(String name, T current, T min, T max, String... comment) {
+            public ConfigNumber(String name, T current, T min, T max) {
                 if (min.compareTo(max) > 0) {
                     throw new IllegalArgumentException("Min value cannot be greater than max value.");
                 }
@@ -723,7 +719,6 @@ public class HBUtil {
                 this.min = min;
                 this.max = max;
                 this.current = current;
-                this.comment = comment;
             }
 
             public T get() {
@@ -769,7 +764,10 @@ public class HBUtil {
             }
         }
 
-
+        private static final HashSet<String> ACCEPTED_STRING_BOOLEAN_TRUE = new HashSet<>(Arrays.asList("TRUE", "true", "yes", "1"));
+        public static Boolean parseBoolean(String value) {
+            return ACCEPTED_STRING_BOOLEAN_TRUE.contains(value);
+        }
 
     }
     //END VALIDATOR

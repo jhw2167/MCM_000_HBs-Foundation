@@ -103,20 +103,18 @@ public class ManagedChunk implements IMangedChunkData {
         return this.id;
     }
 
+
     /**
      * Get a new instance of random object unique to this chunks coordinates
      * and the Minecraft world seed value
      * @return
      */
-    public Random getChunkRandom()
+    public static Random getChunkRandom(ChunkPos pos)
     {
-        if( this.id == null || this.pos == null )
-            return null;
-
         final GeneralConfig CONFIG = GeneralConfig.getInstance();
         final Long SEED = CONFIG.getWorldSeed();
 
-        Double RAND = HBUtil.ChunkUtil.getChunkRandom(this.pos) *1d;
+        Double RAND = HBUtil.ChunkUtil.getChunkRandom(pos) *1d;
 
         if( RAND.equals( 0d ) )
             return new Random( SEED );

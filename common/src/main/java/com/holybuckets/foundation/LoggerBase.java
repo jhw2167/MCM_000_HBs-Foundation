@@ -22,14 +22,14 @@ public class LoggerBase {
 
     // Log entry class to store log information
     protected static class LogEntry {
-        String type;
-        String id;
-        String prefix;
-        String message;
-        Float sampleRate;
-        long timestamp;
+        public String type;
+        public String id;
+        public String prefix;
+        public String message;
+        public Float sampleRate;
+        public long timestamp;
 
-        LogEntry(String type, String id, String prefix, String message, Float sampleRate)
+        public LogEntry(String type, String id, String prefix, String message, Float sampleRate)
         {
             super();
             this.type = type;
@@ -40,7 +40,7 @@ public class LoggerBase {
             this.timestamp = System.currentTimeMillis();
         }
 
-        LogEntry(String type, String id, String prefix, String message) {
+        public LogEntry(String type, String id, String prefix, String message) {
             this(type, id, prefix, message, null);
         }
     }
@@ -241,7 +241,7 @@ public class LoggerBase {
         if( prefix == null)
             prefix = PREFIX;
 
-        LogEntry entry = new LogEntry("ERROR", logId, PREFIX, string);
+        LogEntry entry = new LogEntry("ERROR", logId, prefix, string);
         if (shouldPrintLog(entry)) {
             addToHistory(entry);
             LOGGER.error(buildBaseConsoleMessage(entry));
@@ -251,7 +251,7 @@ public class LoggerBase {
     public static void logDebug(String prefix, String logId, String string)
     {
         if (DEBUG_MODE) {
-            LogEntry entry = new LogEntry("DEBUG", logId, PREFIX, string);
+            LogEntry entry = new LogEntry("DEBUG", logId, prefix, string);
             if (shouldPrintLog(entry)) {
                 addToHistory(entry);
                 LOGGER.info(buildBaseConsoleMessage(entry));

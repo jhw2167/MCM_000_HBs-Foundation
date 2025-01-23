@@ -14,11 +14,14 @@ import net.minecraft.world.item.Items;
 
 public class CommonClass {
 
+    public static boolean isInitialized = false;
     public static void init()
     {
+        //Initialize Foundations
+        if (isInitialized)
+            return;
 
-        Constants.LOG.info("Hello from Common init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
-        Constants.LOG.info("The ID for diamonds is {}", BuiltInRegistries.ITEM.getKey(Items.DIAMOND));
+        Constants.LOG.info("Loaded {} mod on {}! we are currently in a {} environment!", Constants.MOD_NAME, Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
 
         if (Services.PLATFORM.isModLoaded(Constants.MOD_ID)) {
 
@@ -34,10 +37,10 @@ public class CommonClass {
         //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
 
-
         //Register all events
         BalmEventRegister.registerEvents();
 
+        isInitialized = true;
     }
 
     /**

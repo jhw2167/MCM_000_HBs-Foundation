@@ -104,22 +104,27 @@ public class GeneralConfig {
 
     public void onLoadLevel(LevelEvent.Load event)
     {
-        // Capture the world seed, use logical server
         LevelAccessor level = event.getLevel();
-        if( level.isClientSide() ) {
-            this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
-        }
-        else
+        this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
+
+        if( level.isClientSide() )
+            return;
+
+        if( this.server == null )
+            this.server = level.getServer();
+
+        if( !this.isLevelConfigInit )
         {
-            MinecraftServer server = level.getServer();
+
             this.worldSeed = server.overworld().getSeed();
             this.worldSpawn = server.overworld().getSharedSpawnPos();
-            this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
-            this.server = server;
 
-            LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
-            LoggerBase.logInfo( null, "010002", "World Spawn: " + this.worldSpawn);
-            this.isLevelConfigInit = true;
+            if( this.worldSeed != null && this.worldSpawn != null ) {
+                this.isLevelConfigInit = true;
+                LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
+                LoggerBase.logInfo( null, "010002", "World Spawn: " + this.worldSpawn);
+            }
+
         }
 
     }

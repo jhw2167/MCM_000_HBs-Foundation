@@ -193,7 +193,7 @@ public class ManagedChunk implements IMangedChunkData {
         //print tag as string, info
         this.id = tag.getString("id");
 
-        this.level = HBUtil.LevelUtil.toLevel(tag.getString("level"));
+        this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
         this.tickWritten = tag.getInt("tickWritten");
 
         /** If tickWritten is < tickLoaded, then this data

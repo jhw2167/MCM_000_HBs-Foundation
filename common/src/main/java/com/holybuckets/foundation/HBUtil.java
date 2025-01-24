@@ -18,6 +18,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -198,14 +199,32 @@ public class HBUtil {
 
     public static class LevelUtil {
 
-        public static LevelAccessor toLevel(String id) throws InvalidId {
+        public static enum LevelNameSpace {
+            CLIENT,
+            SERVER
+        }
+        @Nullable
+        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String id) throws InvalidId
+        {
+            String levelId = id;
+            if( nameSpace == LevelNameSpace.CLIENT ) {
+                levelId = "CLIENT:" + id;
+            } else if( nameSpace == LevelNameSpace.SERVER ) {
+                levelId = "SERVER:" + id;
+            }
             return GeneralConfig.getInstance().getLevel(id);
         }
 
-        public static String toId(LevelAccessor level) {
-            if(level.isClientSide())
-                return "CLIENT";
-            return level.dimensionType().effectsLocation().toString();
+        public static String toId(LevelAccessor level)
+        {
+            if (level == null)
+                return null;
+            String levelName = level.dimensionType().effectsLocation().toString();
+            if(level.isClientSide()) {
+                return "CLIENT:" + levelName;
+            } else {
+                return "SERVER:" + levelName;
+            }
         }
     }
 

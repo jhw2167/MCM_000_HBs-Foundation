@@ -96,6 +96,7 @@ public class GeneralConfig {
     }
 
     public void onServerStopped(ServerStoppedEvent event) {
+        if( this.dataStore == null) return;
         this.dataStore.onServerStopped(event);
         this.dataStore = null;
     }

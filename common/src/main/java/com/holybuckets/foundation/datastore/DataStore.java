@@ -7,7 +7,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
-import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.MinecraftServer;
@@ -86,7 +86,7 @@ public class DataStore implements IStringSerializable {
      * @param event - server started
      * @return true if the worldSaveData object was initialized, false if it already exists
      */
-    public boolean initWorldDataOnServerStart(ServerBeforeStartingEvent event)
+    public boolean initWorldDataOnServerStart(ServerStartingEvent event)
     {
         ModSaveData modData = getOrCreateModSavedData(Constants.MOD_ID);
         if (modData.worldSaveData.containsKey(currentWorldId))
@@ -167,14 +167,14 @@ public class DataStore implements IStringSerializable {
 
     /** STATIC METHODS **/
 
-    public void onBeforeServerStarted(ServerBeforeStartingEvent serverStartedEvent) {
+    public void onBeforeServerStarted(ServerStartingEvent serverStartedEvent) {
         this.initDatastoreOnServerStart(serverStartedEvent);
         new Thread( () -> {
             this.initWorldDataOnServerStart(serverStartedEvent);
         }).start();
     }
 
-    private void initDatastoreOnServerStart(ServerBeforeStartingEvent event) {
+    private void initDatastoreOnServerStart(ServerStartingEvent event) {
         MinecraftServer s = event.getServer();
         Path path = s.getWorldPath( LevelResource.ROOT );
         this.loadData( path.getParent().getFileName().toString() );

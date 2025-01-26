@@ -5,8 +5,8 @@ import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.platform.Services;
-import net.blay09.mods.balm.api.event.ChunkEvent;
-import net.blay09.mods.balm.api.event.LevelEvent;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Items;
@@ -51,12 +51,12 @@ public class CommonClass {
 
     }
 
-    public static void onChunkLoad(ChunkEvent event)
+    public static void onChunkLoad(ChunkLoadingEvent event)
     {
         Constants.LOG.info("Chunk loaded: " + event.getChunkPos());
     }
 
-    public static void onLevelLoad(LevelEvent event)
+    public static void onLevelLoad(LevelLoadingEvent event)
     {
         if( event.getLevel().isClientSide() ) return;
         Constants.LOG.info("Level loaded: " + ( (ServerLevel) event.getLevel() ).dimensionTypeId() );

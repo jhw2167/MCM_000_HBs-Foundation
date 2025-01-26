@@ -2,3 +2,46 @@ Requirements
 ---
 
 
+1. Understand Balm client Bound messaging, especially in the case of sending updated block states to the client
+---
+
+Key Methods:
+
+BalmNetworking.sendTo(Player p, T Message)
+ - gets a message registration type of type T 
+ - Gets its ResourceLocation identifier
+ - Gets it custom encodeFunctions
+ - Uses modloader specific function to send item wrapped ina byte buffer
+
+BalmNetworking.sendToTracking
+	- Send to a certain Serverlevel and Blockpos, forwards message to relevant players
+
+
+
+BalmNetworking.registerClientboundPacket - registers the Client bound messages
+	- ResourceLoacation
+	- Class
+	- Encode and Decode functions
+	- BiConsumer that takes the player and an object of type T, handles arrived packets
+
+
+...registerSERVERBOUNDpackets
+	- same thing with serverbound packets
+networking.registerServerboundPacket(id("edit_waystone"), EditWaystoneMessage.class, EditWaystoneMessage::encode, EditWaystoneMessage::decode, EditWaystoneMessage::handle);
+
+initializeClientHandlers
+	- registers all client handlers
+
+Objective:
+1. Send BlockStateUpdates to the client so blocks can be updated in real time
+
+
+Steps:
+1. Create Messaging Object that exists on both client and server
+	- Maybe we want a messaging hub in foundations to collect all packets
+2. Create general encode and decode functions
+3. Register messaging packets with object type alone
+4. Add call to send message from releveant ManagedChunk calls
+
+5. Need static entry call for batching
+6. Need static handling call on clientSide

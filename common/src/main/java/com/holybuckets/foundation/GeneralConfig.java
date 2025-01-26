@@ -7,16 +7,15 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.exception.InvalidId;
-import net.blay09.mods.balm.api.event.LevelEvent;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -89,7 +88,7 @@ public class GeneralConfig {
 
     /** Server Events **/
 
-    public void onBeforeServerStarted(ServerBeforeStartingEvent event) {
+    public void onBeforeServerStarted(ServerStartingEvent event) {
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
         this.startWatchAutoSaveThread();
@@ -103,10 +102,10 @@ public class GeneralConfig {
 
     /** Level Events **/
 
-    public void onLoadLevel(LevelEvent.Load event)
+    public void onLoadLevel(LevelLoadingEvent.Load event)
     {
         LevelAccessor level = event.getLevel();
-        this.LEVELS.put(HBUtil.LevelUtil.toId(level), level);
+        this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
 
         if( level.isClientSide() )
             return;
@@ -130,7 +129,7 @@ public class GeneralConfig {
 
     }
 
-    public void onUnLoadLevel(LevelEvent.Unload event)  {
+    public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
         //not implemented
     }
 
@@ -148,14 +147,18 @@ public class GeneralConfig {
     /**
      * Getters
      */
-    public LevelAccessor getLevel(String id) throws InvalidId
-    {
-        if(LEVELS == null)
-            throw new InvalidId("LEVELS is null");
 
+    /**
+     * Get Level by from levelId - package private, user should user HBUtil.LevelUtil to access
+     * @param id
+     * @return LevelAccessor either serverLevel or clientLevel
+     */
+     @Nullable
+    LevelAccessor getLevel(String id)
+    {
+        if(LEVELS == null) return null;
         LevelAccessor level = LEVELS.get(id);
-        if( level == null)
-            throw new InvalidId("Level ID not found in GeneralConfig.LEVELS: " + id);
+        if( level == null) return null;
         return level;
     }
 

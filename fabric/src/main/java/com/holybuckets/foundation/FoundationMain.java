@@ -7,7 +7,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.BalmEvents;
-import net.blay09.mods.balm.api.event.ChunkEvent;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -34,7 +34,7 @@ public class FoundationMain implements ModInitializer {
 
         // Register the attachment type
         BalmEvents events = Balm.getEvents();
-        events.onEvent(ChunkEvent.Load.class, this::onChunkLoadRegisterAttachment);
+        events.onEvent(ChunkLoadingEvent.Load.class, this::onChunkLoadRegisterAttachment);
     }
 
     final AttachmentType<ManagedChunk> MANAGED_CHUNK_ATTACHMENT =  AttachmentRegistry.createPersistent(
@@ -60,7 +60,7 @@ public class FoundationMain implements ModInitializer {
             return DataResult.error(() -> "Not an NBT tag");
         }
     });
-    private void onChunkLoadRegisterAttachment(ChunkEvent.Load event) {
+    private void onChunkLoadRegisterAttachment(ChunkLoadingEvent.Load event) {
         if(event.getLevel().isClientSide()) return;
         ChunkAccess chunk = event.getChunk();
 

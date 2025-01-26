@@ -31,7 +31,7 @@ public class LevelSaveData {
         if(level == null)
             throw new IllegalArgumentException("Level cannot be null");
         this.level = level;
-        this.levelId = LevelUtil.toId(level);
+        this.levelId = LevelUtil.toLevelId(level);
         this.properties = new ConcurrentHashMap<>();
 
     }

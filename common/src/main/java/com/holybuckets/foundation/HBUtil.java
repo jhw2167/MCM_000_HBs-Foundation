@@ -4,7 +4,6 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
 import net.minecraft.core.BlockPos;
@@ -204,7 +203,7 @@ public class HBUtil {
             SERVER
         }
         @Nullable
-        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String id) throws InvalidId
+        public static LevelAccessor getLevelById(LevelNameSpace nameSpace, String id)
         {
             String levelId = id;
             if( nameSpace == LevelNameSpace.CLIENT ) {
@@ -212,10 +211,10 @@ public class HBUtil {
             } else if( nameSpace == LevelNameSpace.SERVER ) {
                 levelId = "SERVER:" + id;
             }
-            return GeneralConfig.getInstance().getLevel(id);
+            return GeneralConfig.getInstance().getLevel(levelId);
         }
 
-        public static String toId(LevelAccessor level)
+        public static String toLevelId(LevelAccessor level)
         {
             if (level == null)
                 return null;

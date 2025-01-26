@@ -374,9 +374,7 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
-        if(event == null)
-            return;
-            
+
         LevelAccessor level = event.getLevel();
         if(level == null || level.isClientSide())
             return;

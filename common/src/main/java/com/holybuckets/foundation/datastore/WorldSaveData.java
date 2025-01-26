@@ -56,14 +56,14 @@ public class WorldSaveData {
      * @return LevelSaveData object
      */
     public LevelSaveData getOrCreateLevelSaveData(LevelAccessor level) {
-        String id = LevelUtil.toId(level);
+        String id = LevelUtil.toLevelId(level);
         LevelSaveData data = levelData.getOrDefault(id, new LevelSaveData(level));
         levelData.put(id, data);
         return data;
     }
 
     public void removeLevelSaveData(LevelAccessor level) {
-        levelData.remove(LevelUtil.toId(level));
+        levelData.remove(LevelUtil.toLevelId(level));
     }
 
     public void createLevelSaveData(JsonElement json) {

@@ -5,10 +5,10 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.LoggerBase;
-import net.blay09.mods.balm.api.event.ChunkEvent;
-import net.blay09.mods.balm.api.event.LevelEvent;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.server.ServerBeforeStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
@@ -32,12 +32,12 @@ public class EventRegistrar {
     private static EventRegistrar instance;
     
     final Deque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<LevelEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<LevelEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
+    final Deque<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
+    final Deque<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
 
 
-    final Deque<Consumer<ChunkEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<ChunkEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
+    final Deque<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
+    final Deque<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
 
     //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
         //Will have to divide up into different lifecycles
@@ -48,7 +48,7 @@ public class EventRegistrar {
     //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
         //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
 
-    final Deque<Consumer<ServerBeforeStartingEvent>> ON_BEFORE_SERVER_START = new ArrayDeque<>();
+    final Deque<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
     final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
@@ -101,25 +101,25 @@ public class EventRegistrar {
     }
 
 
-    public void registerOnLevelLoad(Consumer<LevelEvent.Load> function) { registerOnLevelLoad(function, false);}
-    public void registerOnLevelLoad(Consumer<LevelEvent.Load> function, boolean priority) {
+    public void registerOnLevelLoad(Consumer<LevelLoadingEvent.Load> function) { registerOnLevelLoad(function, false);}
+    public void registerOnLevelLoad(Consumer<LevelLoadingEvent.Load> function, boolean priority) {
         generalRegister(function, ON_LEVEL_LOAD, priority);
     }
 
 
-    public void registerOnLevelUnload(Consumer<LevelEvent.Unload> function) { registerOnLevelUnload(function, false);}
-    public void registerOnLevelUnload(Consumer<LevelEvent.Unload> function, boolean priority) {
+    public void registerOnLevelUnload(Consumer<LevelLoadingEvent.Unload> function) { registerOnLevelUnload(function, false);}
+    public void registerOnLevelUnload(Consumer<LevelLoadingEvent.Unload> function, boolean priority) {
         generalRegister(function, ON_LEVEL_UNLOAD, priority);
     }
 
 
-    public void registerOnChunkLoad(Consumer<ChunkEvent.Load> function) { registerOnChunkLoad(function, false);}
-    public void registerOnChunkLoad(Consumer<ChunkEvent.Load> function, boolean priority) {
+    public void registerOnChunkLoad(Consumer<ChunkLoadingEvent.Load> function) { registerOnChunkLoad(function, false);}
+    public void registerOnChunkLoad(Consumer<ChunkLoadingEvent.Load> function, boolean priority) {
         generalRegister(function, ON_CHUNK_LOAD, priority);
     }
 
-    public void registerOnChunkUnload(Consumer<ChunkEvent.Unload> function) { registerOnChunkUnload(function, false);}
-    public void registerOnChunkUnload(Consumer<ChunkEvent.Unload> function, boolean priority) {
+    public void registerOnChunkUnload(Consumer<ChunkLoadingEvent.Unload> function) { registerOnChunkUnload(function, false);}
+    public void registerOnChunkUnload(Consumer<ChunkLoadingEvent.Unload> function, boolean priority) {
         generalRegister(function, ON_CHUNK_UNLOAD, priority);
     }
 
@@ -140,8 +140,8 @@ public class EventRegistrar {
     }
     */
 
-    public void registerOnBeforeServerStarted(Consumer<ServerBeforeStartingEvent> function) { registerOnBeforeServerStarted(function, false); }
-    public void registerOnBeforeServerStarted(Consumer<ServerBeforeStartingEvent> function, boolean priority) {
+    public void registerOnBeforeServerStarted(Consumer<ServerStartingEvent> function) { registerOnBeforeServerStarted(function, false); }
+    public void registerOnBeforeServerStarted(Consumer<ServerStartingEvent> function, boolean priority) {
         generalRegister(function, ON_BEFORE_SERVER_START, priority);
     }
 

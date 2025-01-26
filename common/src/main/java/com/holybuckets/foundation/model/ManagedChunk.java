@@ -14,12 +14,10 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import net.blay09.mods.balm.api.event.ChunkEvent;
-import net.blay09.mods.balm.api.event.LevelEvent;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -193,7 +191,7 @@ public class ManagedChunk implements IMangedChunkData {
         //print tag as string, info
         this.id = tag.getString("id");
 
-        this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
+        this.level = HBUtil.LevelUtil.getLevelById( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
         this.tickWritten = tag.getInt("tickWritten");
 
         /** If tickWritten is < tickLoaded, then this data
@@ -248,7 +246,7 @@ public class ManagedChunk implements IMangedChunkData {
 
 
     @Override
-    public void handleChunkLoaded(ChunkEvent.Load event)
+    public void handleChunkLoaded(ChunkLoadingEvent.Load event)
     {
         LoggerBase.logInfo(null, "003005", "Loading ManagedChunk with id: " + this.id);
 
@@ -259,7 +257,7 @@ public class ManagedChunk implements IMangedChunkData {
     }
 
     @Override
-    public void handleChunkUnloaded(ChunkEvent.Unload event)
+    public void handleChunkUnloaded(ChunkLoadingEvent.Unload event)
     {
         for(IMangedChunkData data : managedChunkData.values()) {
              data.handleChunkUnloaded(event);
@@ -280,6 +278,12 @@ public class ManagedChunk implements IMangedChunkData {
      */
     public static LevelChunk getChunk(LevelAccessor level, String chunkId, boolean forceLoad)
     {
+        if(level == null || chunkId == null)
+            return null;
+
+        if(LOADED_CHUNKS.get(level) == null)
+            return null;
+
         if(!forceLoad)
         {
             if( !LOADED_CHUNKS.get(level).containsKey(chunkId) )
@@ -304,9 +308,12 @@ public class ManagedChunk implements IMangedChunkData {
     }
     */
 
-    public static ManagedChunk getManagedChunk(LevelAccessor level, String id) throws NullPointerException
+    public static ManagedChunk getManagedChunk(LevelAccessor level, String id)
     {
         if(level == null || id == null)
+            return null;
+
+        if(LOADED_CHUNKS.get(level) == null)
             return null;
 
         return LOADED_CHUNKS.get(level).get(id);
@@ -323,7 +330,7 @@ public class ManagedChunk implements IMangedChunkData {
         reg.registerOnChunkUnload(ManagedChunk::onChunkUnload);
     }
 
-    public static void onWorldLoad( final LevelEvent.Load event )
+    public static void onWorldLoad( final LevelLoadingEvent.Load event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -354,7 +361,7 @@ public class ManagedChunk implements IMangedChunkData {
         EventRegistrar.getInstance().registerOnDataSave(() -> save(level), true);
     }
 
-    public static void onWorldUnload( final LevelEvent.Unload event )
+    public static void onWorldUnload( final LevelLoadingEvent.Unload event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -363,7 +370,7 @@ public class ManagedChunk implements IMangedChunkData {
         save(level);
     }
 
-    public static void onChunkLoad( final ChunkEvent.Load event )
+    public static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -382,7 +389,7 @@ public class ManagedChunk implements IMangedChunkData {
         loadedChunk.handleChunkLoaded(event);
     }
 
-    public static void onChunkUnload( final ChunkEvent.Unload event )
+    public static void onChunkUnload( final ChunkLoadingEvent.Unload event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -419,7 +426,6 @@ public class ManagedChunk implements IMangedChunkData {
 
         try
         {
-            ClientLevel clientLevel = (ClientLevel) GeneralConfig.getInstance().getLevel("CLIENT");
             Level level = chunk.getLevel();
 
             for(Pair<BlockState, BlockPos> update : updates)
@@ -508,7 +514,7 @@ public class ManagedChunk implements IMangedChunkData {
         try {
 
             details.putString("id", this.id); count++;
-            details.putString("level", HBUtil.LevelUtil.toId(this.level)); count++;
+            details.putString("level", HBUtil.LevelUtil.toLevelId(this.level)); count++;
             this.tickWritten = GENERAL_CONFIG.getServer().getTickCount(); count++;
             details.putInt("tickWritten", this.tickWritten); count++;
 

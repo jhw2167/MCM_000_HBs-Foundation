@@ -281,16 +281,17 @@ public class ManagedChunk implements IMangedChunkData {
         if(level == null || chunkId == null)
             return null;
 
-        if(LOADED_CHUNKS.get(level) == null)
+        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
+        if(chunks == null)
             return null;
 
-        if(!forceLoad)
-        {
-            if( !LOADED_CHUNKS.get(level).containsKey(chunkId) )
-                return null;
-        }
+        if(!forceLoad && !chunks.containsKey(chunkId))
+            return null;
 
         ChunkPos p = HBUtil.ChunkUtil.getPos(chunkId);
+        if(p == null)
+            return null;
+            
         return HBUtil.ChunkUtil.getLevelChunk(level, p.x, p.z, forceLoad);
     }
 
@@ -313,10 +314,11 @@ public class ManagedChunk implements IMangedChunkData {
         if(level == null || id == null)
             return null;
 
-        if(LOADED_CHUNKS.get(level) == null)
+        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
+        if(chunks == null)
             return null;
 
-        return LOADED_CHUNKS.get(level).get(id);
+        return chunks.getOrDefault(id, null);
     }
 
 
@@ -372,35 +374,66 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
+        if(event == null)
+            return;
+            
         LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
+        if(level == null || level.isClientSide())
             return;
 
-        //Chunks not seeming to load for Fabric. only get clientSide...
-        String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
-        ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
+        ChunkAccess chunk = event.getChunk();
+        if(chunk == null)
+            return;
 
-         if(loadedChunk == null)
+        String chunkId = HBUtil.ChunkUtil.getId(chunk);
+        if(chunkId == null)
+            return;
+
+        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
+        if(chunks == null)
+            return;
+
+        ManagedChunk loadedChunk = chunks.get(chunkId);
+        if(loadedChunk == null)
         {
+            ChunkPos pos = event.getChunkPos();
+            if(pos == null)
+                return;
+                
             LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
-            loadedChunk = new ManagedChunk(level, event.getChunkPos());
+            loadedChunk = new ManagedChunk(level, pos);
         }
 
-        loadedChunk.handleChunkLoaded(event);
+        if(loadedChunk != null) {
+            loadedChunk.handleChunkLoaded(event);
+        }
     }
 
     public static void onChunkUnload( final ChunkLoadingEvent.Unload event )
     {
+        if(event == null)
+            return;
+            
         LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
+        if(level == null || level.isClientSide())
             return;
 
         ChunkAccess chunk = event.getChunk();
-        String id = HBUtil.ChunkUtil.getId(chunk);
-        ManagedChunk c = LOADED_CHUNKS.get(level).remove(id);
-        if( c == null )
+        if(chunk == null)
             return;
-        c.handleChunkUnloaded(event);
+
+        String id = HBUtil.ChunkUtil.getId(chunk);
+        if(id == null)
+            return;
+
+        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
+        if(chunks == null)
+            return;
+
+        ManagedChunk c = chunks.remove(id);
+        if(c != null) {
+            c.handleChunkUnloaded(event);
+        }
     }
 
     /**

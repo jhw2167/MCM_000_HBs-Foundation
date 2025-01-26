@@ -79,6 +79,10 @@ public class ManagedChunk implements IMangedChunkData {
     public static boolean isLoaded(LevelAccessor level, String id) {
         if(level == null || id == null)
             return false;
+
+        if(LOADED_CHUNKS.get(level) == null)
+            return false;
+
         return LOADED_CHUNKS.get(level).containsKey(id);
     }
 
@@ -198,26 +202,26 @@ public class ManagedChunk implements IMangedChunkData {
          * was written previously and removed from memory. Replace the dummy
          * with serialized data.
          */
-         //if( this.tickWritten < this.tickLoaded )
-         if( this.isLoaded )
-         {
-             LoggerBase.logInfo(null, "003007", "Init from nbt id: " + this.id);
-             this.initSubclassesFromMemory(level, id);
-         }
-         else
-         {
-             LoggerBase.logInfo(null, "003006", "Init from memory id: " + this.id);
-             this.initSubclassesFromNbt(tag);
-         }
+        //if( this.tickWritten < this.tickLoaded )
+        if( this.isLoaded )
+        {
+            LoggerBase.logInfo(null, "003007", "Init from nbt id: " + this.id);
+            this.initSubclassesFromMemory(level, id);
+        }
+        else
+        {
+            LoggerBase.logInfo(null, "003006", "Init from memory id: " + this.id);
+            this.initSubclassesFromNbt(tag);
+        }
 
-         this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
+        this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
 
     }
 
     /**
-    * Check if all subclasses are not null and initialized successfully
-    * @return boolean
-    */
+     * Check if all subclasses are not null and initialized successfully
+     * @return boolean
+     */
     @Override
     public boolean isInit(String subClass) {
         for(IMangedChunkData data : managedChunkData.values())
@@ -260,8 +264,8 @@ public class ManagedChunk implements IMangedChunkData {
     public void handleChunkUnloaded(ChunkLoadingEvent.Unload event)
     {
         for(IMangedChunkData data : managedChunkData.values()) {
-             data.handleChunkUnloaded(event);
-         }
+            data.handleChunkUnloaded(event);
+        }
         this.isLoaded = false;
     }
 
@@ -281,17 +285,16 @@ public class ManagedChunk implements IMangedChunkData {
         if(level == null || chunkId == null)
             return null;
 
-        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
-        if(chunks == null)
+        if(LOADED_CHUNKS.get(level) == null)
             return null;
 
-        if(!forceLoad && !chunks.containsKey(chunkId))
-            return null;
+        if(!forceLoad)
+        {
+            if( !LOADED_CHUNKS.get(level).containsKey(chunkId) )
+                return null;
+        }
 
         ChunkPos p = HBUtil.ChunkUtil.getPos(chunkId);
-        if(p == null)
-            return null;
-            
         return HBUtil.ChunkUtil.getLevelChunk(level, p.x, p.z, forceLoad);
     }
 
@@ -314,11 +317,10 @@ public class ManagedChunk implements IMangedChunkData {
         if(level == null || id == null)
             return null;
 
-        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
-        if(chunks == null)
+        if(LOADED_CHUNKS.get(level) == null)
             return null;
 
-        return chunks.getOrDefault(id, null);
+        return LOADED_CHUNKS.get(level).get(id);
     }
 
 
@@ -374,64 +376,34 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
-
         LevelAccessor level = event.getLevel();
-        if(level == null || level.isClientSide())
+        if(level.isClientSide())
             return;
 
-        ChunkAccess chunk = event.getChunk();
-        if(chunk == null)
-            return;
+        String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
+        ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
 
-        String chunkId = HBUtil.ChunkUtil.getId(chunk);
-        if(chunkId == null)
-            return;
-
-        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
-        if(chunks == null)
-            return;
-
-        ManagedChunk loadedChunk = chunks.get(chunkId);
         if(loadedChunk == null)
         {
-            ChunkPos pos = event.getChunkPos();
-            if(pos == null)
-                return;
-                
             LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
-            loadedChunk = new ManagedChunk(level, pos);
+            loadedChunk = new ManagedChunk(level, event.getChunkPos());
         }
 
-        if(loadedChunk != null) {
-            loadedChunk.handleChunkLoaded(event);
-        }
+        loadedChunk.handleChunkLoaded(event);
     }
 
     public static void onChunkUnload( final ChunkLoadingEvent.Unload event )
     {
-        if(event == null)
-            return;
-            
         LevelAccessor level = event.getLevel();
-        if(level == null || level.isClientSide())
+        if(level.isClientSide())
             return;
 
         ChunkAccess chunk = event.getChunk();
-        if(chunk == null)
-            return;
-
         String id = HBUtil.ChunkUtil.getId(chunk);
-        if(id == null)
+        ManagedChunk c = LOADED_CHUNKS.get(level).remove(id);
+        if( c == null )
             return;
-
-        Map<String, ManagedChunk> chunks = LOADED_CHUNKS.get(level);
-        if(chunks == null)
-            return;
-
-        ManagedChunk c = chunks.remove(id);
-        if(c != null) {
-            c.handleChunkUnloaded(event);
-        }
+        c.handleChunkUnloaded(event);
     }
 
     /**
@@ -474,7 +446,7 @@ public class ManagedChunk implements IMangedChunkData {
         catch (IllegalStateException e)
         {
             LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-             "updating chunk block states. Updates may be replayed later. At Chunk: " + HBUtil.ChunkUtil.getId( chunk));
+                "updating chunk block states. Updates may be replayed later. At Chunk: " + HBUtil.ChunkUtil.getId( chunk));
             return false;
         }
         catch (Exception e)
@@ -522,6 +494,8 @@ public class ManagedChunk implements IMangedChunkData {
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
+        if(initChunks == null) return;
+
         String[] chunkIds = initChunks.toArray(new String[0]);
         levelData.addProperty("chunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
 

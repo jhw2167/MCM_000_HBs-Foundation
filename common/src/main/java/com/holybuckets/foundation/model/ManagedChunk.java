@@ -14,12 +14,12 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
+import com.holybuckets.foundation.networking.MessageBlockStateUpdates;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -195,7 +195,7 @@ public class ManagedChunk implements IMangedChunkData {
         //print tag as string, info
         this.id = tag.getString("id");
 
-        this.level = HBUtil.LevelUtil.getLevelById( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
+        this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
         this.tickWritten = tag.getInt("tickWritten");
 
         /** If tickWritten is < tickLoaded, then this data
@@ -406,54 +406,70 @@ public class ManagedChunk implements IMangedChunkData {
         c.handleChunkUnloaded(event);
     }
 
+    public static synchronized boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates)
+    {
+        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
+        for(Map.Entry<BlockState, List<BlockPos>> update : updates.entrySet()) {
+            for(BlockPos pos : update.getValue()) {
+                blockStates.add( Pair.of(update.getKey(), pos) );
+            }
+        }
+
+        return updateChunkBlockStates(level, blockStates);
+    }
+
+    /**
+     * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
+     * @param level
+     * @param updates
+     * @return
+     */
+    public static synchronized boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates)
+    {
+        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
+        for(Pair<Block, BlockPos> update : updates) {
+            blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
+        }
+
+        return updateChunkBlockStates(level, blockStates);
+    }
+
     /**
      * Update the block states of a chunk. It is important that it is synchronized to prevent
      * concurrent modifications to the chunk. The block at the given position is updated to the requisite
      * block state.
-     * @param chunk
+     * @param level
      * @param updates
      * @return true if successful, false if some element was null
      */
-    public static synchronized boolean updateChunkBlockStates(LevelChunk chunk, Queue<Pair<BlockState, BlockPos>> updates)
+    public static synchronized boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
     {
-        if( chunk == null || updates == null || updates.size() == 0 )
-            return false;
-
-        if( chunk.getLevel().isClientSide() )
-            return false;
-
-        if( chunk.getStatus() != ChunkStatus.FULL )
+        if( level == null || updates == null || updates.size() == 0 )
             return false;
 
         //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
 
         try
         {
-            Level level = chunk.getLevel();
-
             for(Pair<BlockState, BlockPos> update : updates)
             {
                 BlockPos bPos = update.getRight();
-                //level.setBlockAndUpdate(bPos, update.getLeft());
                 level.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
-                //clientLevel.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
             }
-            //level.getChunkSource().updateChunkForced(chunk.getPos(), false);
-            //Attempt to force update on client
-            //clientLevel.getChunkSource().updateChunkForced(chunk.getPos(), false);
-
+            Map<BlockState, List<BlockPos>> blockStates = HBUtil.BlockUtil.condenseBlockStates(updates);
+            MessageBlockStateUpdates.createAndFire(level, blockStates);
         }
         catch (IllegalStateException e)
         {
             LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At Chunk: " + HBUtil.ChunkUtil.getId( chunk));
+                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(level) );
             return false;
         }
         catch (Exception e)
         {
             StringBuilder error = new StringBuilder();
-            error.append("Error updating chunk block states. At Chunk: ");
-            error.append(HBUtil.ChunkUtil.getId( chunk));
+            error.append("Error updating chunk block states. At level: ");
+            error.append( HBUtil.LevelUtil.toLevelId(level) );
             error.append("\n");
             error.append("Corresponding exception message: \n");
             error.append(e.getMessage());
@@ -466,21 +482,6 @@ public class ManagedChunk implements IMangedChunkData {
         return true;
     }
 
-    /**
-     * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
-     * @param chunk
-     * @param updates
-     * @return
-     */
-    public static synchronized boolean updateChunkBlocks(LevelChunk chunk, Queue<Pair<Block, BlockPos>> updates)
-    {
-        Queue<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
-        for(Pair<Block, BlockPos> update : updates) {
-            blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
-        }
-
-        return updateChunkBlockStates(chunk, blockStates);
-    }
 
     public static void registerManagedChunkData(Class<? extends IMangedChunkData> classObject, Supplier<IMangedChunkData> data)
     {

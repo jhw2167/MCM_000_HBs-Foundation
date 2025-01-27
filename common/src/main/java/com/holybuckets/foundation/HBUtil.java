@@ -6,16 +6,20 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -32,6 +36,7 @@ import java.util.*;
 public class HBUtil {
 
     public static final String CLASS_ID = "004";
+
 
     public static class BlockUtil {
 
@@ -113,19 +118,41 @@ public class HBUtil {
         }
 
 
+        public static Map<BlockState, List<BlockPos>> condenseBlockStates(List<Pair<BlockState,BlockPos>> blockStates)
+        {
+            Map<BlockState, List<BlockPos>> blocks = new HashMap<>();
+            for(Pair<BlockState, BlockPos> pair : blockStates)
+            {
+                blocks.putIfAbsent(pair.getLeft(), new ArrayList<>()).add(pair.getRight());
+            }
+            return blocks;
+        }
+
+        public static List<Pair<BlockState, BlockPos>> expandBlockStates(Map<BlockState, List<BlockPos>> blocks)
+        {
+            List<Pair<BlockState, BlockPos>> blockStates = new ArrayList<>();
+            for(BlockState block : blocks.keySet())
+            {
+                for(BlockPos pos : blocks.get(block))
+                {
+                    blockStates.add(Pair.of(block, pos));
+                }
+            }
+            return blockStates;
+        }
 
         /**
          * Serialize a map of blocks and their positions to a string
          * @param blocks - Map of blocks and their positions
          * @return serialized string of block, position collections
          */
-        public static String serializeBlockPairs(Map<Block,List<BlockPos>> blocks)
+        public static String serializeBlockPairs(Map<BlockState, List<BlockPos>> blocks)
         {
             StringBuilder blockStateUpdates = new StringBuilder();
-            for(Block block : blocks.keySet())
+            for(BlockState block : blocks.keySet())
             {
                 blockStateUpdates.append("{");
-                String blockName = BlockUtil.blockToString(block);
+                String blockName = BlockUtil.blockToString(block.getBlock());
                 blockStateUpdates.append(blockName);
                 blockStateUpdates.append("=");
 
@@ -157,9 +184,9 @@ public class HBUtil {
          * @param data - serialized string of block, position collections
          * @return Map of blocks and their positions
          */
-        public static Map<Block,List<BlockPos>> deserializeBlockPairs(String data)
+        public static Map<BlockState, List<BlockPos>> deserializeBlockPairs(String data)
         {
-            Map<Block,List<BlockPos>> blockPairs = new HashMap<>();
+            Map<BlockState, List<BlockPos>> blockPairs = new HashMap<>();
             String[] blocks = data.split(", ");
 
             for (String pairs : blocks)
@@ -169,7 +196,7 @@ public class HBUtil {
 
                 String[] parts = pairs.split("=");
                 String[] blockParts = parts[0].split(":");
-                Block blockType = BlockUtil.blockNameToBlock(blockParts[0], blockParts[1]);
+                BlockState blockType = BlockUtil.blockNameToBlock(blockParts[0], blockParts[1]).defaultBlockState();
 
                 blockPairs.put(blockType, new ArrayList<>());
                 String[] positions = parts[1].split("&");
@@ -198,12 +225,12 @@ public class HBUtil {
 
     public static class LevelUtil {
 
-        public static enum LevelNameSpace {
+        public enum LevelNameSpace {
             CLIENT,
             SERVER
         }
         @Nullable
-        public static LevelAccessor getLevelById(LevelNameSpace nameSpace, String id)
+        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String id)
         {
             String levelId = id;
             if( nameSpace == LevelNameSpace.CLIENT ) {
@@ -518,6 +545,20 @@ public class HBUtil {
 
     }
     //END SHAPEUTIL
+
+    public static class NetworkUtil {
+
+        public static <T> void sendToAllPlayers(T message) {
+            BalmNetworking networking = Balm.getNetworking();
+            networking.sendToAll(GeneralConfig.getInstance().getServer(), message);
+        }
+
+        //create a new method that sends a message to a specific player
+        public static <T> void sendToPlayer(Player player, T message) {
+            BalmNetworking networking = Balm.getNetworking();
+            networking.sendTo(player, message);
+        }
+    }
 
     public static class FileIO {
 

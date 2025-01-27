@@ -98,6 +98,7 @@ public class GeneralConfig {
         if( this.dataStore == null) return;
         this.dataStore.onServerStopped(event);
         this.dataStore = null;
+        this.server = null;
     }
 
     /** Level Events **/

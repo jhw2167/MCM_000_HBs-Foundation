@@ -17,14 +17,17 @@ import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.foundation.networking.MessageBlockStateUpdates;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.core.jmx.Server;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -414,8 +417,7 @@ public class ManagedChunk implements IMangedChunkData {
                 blockStates.add( Pair.of(update.getKey(), pos) );
             }
         }
-
-        return updateChunkBlockStates(level, blockStates);
+        return updateChunkBlockStatesAndCast(level, blockStates);
     }
 
     /**
@@ -431,49 +433,57 @@ public class ManagedChunk implements IMangedChunkData {
             blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
         }
 
-        return updateChunkBlockStates(level, blockStates);
+        return updateChunkBlockStatesAndCast(level, blockStates);
+    }
+
+    private static synchronized boolean updateChunkBlockStatesAndCast(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
+    {
+        if( level instanceof ServerLevel )
+            return updateChunkBlockStates((ServerLevel) level, updates);
+        else if( level instanceof ClientLevel )
+            return updateChunkBlockStates((ClientLevel) level, updates);
+        else
+            return false;
     }
 
     /**
-     * Update the block states of a chunk. It is important that it is synchronized to prevent
+     * Update the block states of a chunk on a ServerLevel. It is important that it is synchronized to prevent
      * concurrent modifications to the chunk. The block at the given position is updated to the requisite
      * block state.
-     * @param level
+     * @param serverLevel
      * @param updates
      * @return true if successful, false if some element was null
      */
-    public static synchronized boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
+    public static synchronized boolean updateChunkBlockStates(final ServerLevel serverLevel, List<Pair<BlockState, BlockPos>> updates)
     {
-        if( level == null || updates == null || updates.size() == 0 )
+        if( serverLevel == null || updates == null || updates.size() == 0 )
             return false;
-
         //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
 
         try
         {
-            for(Pair<BlockState, BlockPos> update : updates)
-            {
+            if( !updates.stream().allMatch( update -> serverLevel.isLoaded( update.getRight() ) ) )
+                return false;
+
+            for(Pair<BlockState, BlockPos> update : updates) {
                 BlockPos bPos = update.getRight();
-                level.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
+                serverLevel.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE);
             }
 
-            if( level.isClientSide() )
-                return true;
-
             Map<BlockState, List<BlockPos>> blockStates = HBUtil.BlockUtil.condenseBlockStates(updates);
-            MessageBlockStateUpdates.createAndFire(level, blockStates);
+            MessageBlockStateUpdates.createAndFire(serverLevel, blockStates);
         }
         catch (IllegalStateException e)
         {
             LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(level) );
+                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(serverLevel) );
             return false;
         }
         catch (Exception e)
         {
             StringBuilder error = new StringBuilder();
             error.append("Error updating chunk block states. At level: ");
-            error.append( HBUtil.LevelUtil.toLevelId(level) );
+            error.append( HBUtil.LevelUtil.toLevelId(serverLevel) );
             error.append("\n");
             error.append("Corresponding exception message: \n");
             error.append(e.getMessage());
@@ -484,6 +494,56 @@ public class ManagedChunk implements IMangedChunkData {
         }
 
         return true;
+    }
+
+    /**
+     * Update the block states of a chunk on a ServerLevel. It is important that it is synchronized to prevent
+     * concurrent modifications to the chunk. The block at the given position is updated to the requisite
+     * block state.
+     * @param clientLevel
+     * @param updates
+     * @return true if successful, false if some element was null
+     */
+    public static synchronized boolean updateChunkBlockStates(final ClientLevel clientLevel, List<Pair<BlockState, BlockPos>> updates)
+    {
+        if( clientLevel == null || updates == null || updates.size() == 0 )
+            return false;
+        //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
+
+        try
+        {
+            //use stream to check if all BlockPos are loaded in clientLevel
+            if( !updates.stream().allMatch( update -> clientLevel.isLoaded( update.getRight() ) ) )
+                return false;
+
+            boolean isSuccessful = true;
+            for(Pair<BlockState, BlockPos> update : updates)
+            {
+                BlockPos bPos = update.getRight();
+                isSuccessful = isSuccessful && clientLevel.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
+                Thread.currentThread().sleep(5); // 1 per tick
+            }
+            return isSuccessful;
+        }
+        catch (IllegalStateException e)
+        {
+            LoggerBase.logWarning(null, "003023", "Illegal state exception " +
+                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(clientLevel) );
+            return false;
+        }
+        catch (Exception e)
+        {
+            StringBuilder error = new StringBuilder();
+            error.append("Error updating chunk block states. At level: ");
+            error.append( HBUtil.LevelUtil.toLevelId(clientLevel) );
+            error.append("\n");
+            error.append("Corresponding exception message: \n");
+            error.append(e.getMessage());
+
+            LoggerBase.logError(null, "003024", error.toString());
+
+            return false;
+        }
     }
 
 

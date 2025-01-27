@@ -147,37 +147,37 @@ public class HBUtil {
          * @param blocks - Map of blocks and their positions
          * @return serialized string of block, position collections
          */
-        public static String serializeBlockPairs(Map<BlockState, List<BlockPos>> blocks)
+        public static String serializeBlockPairs(Map<Block, List<BlockPos>> blocks)
         {
-            StringBuilder blockStateUpdates = new StringBuilder();
-            for(BlockState block : blocks.keySet())
+            StringBuilder blockUpdates = new StringBuilder();
+            for(Block block : blocks.keySet())
             {
-                blockStateUpdates.append("{");
-                String blockName = BlockUtil.blockToString(block.getBlock());
-                blockStateUpdates.append(blockName);
-                blockStateUpdates.append("=");
+                blockUpdates.append("{");
+                String blockName = BlockUtil.blockToString(block);
+                blockUpdates.append(blockName);
+                blockUpdates.append("=");
 
                 List<BlockPos> positions = blocks.get(block);
                 if( positions.isEmpty() )
                 {
-                    blockStateUpdates.append("[]}, ");
+                    blockUpdates.append("[]}, ");
                     continue;
                 }
 
                 for(BlockPos pos : positions)
                 {
                     TripleInt vec = new TripleInt(pos);
-                    blockStateUpdates.append( ("[" + vec.x + "," + vec.y + "," + vec.z + "]") );
-                    blockStateUpdates.append("&");
+                    blockUpdates.append( ("[" + vec.x + "," + vec.y + "," + vec.z + "]") );
+                    blockUpdates.append("&");
                 }
-                blockStateUpdates.deleteCharAt(blockStateUpdates.length() - 1);
-                blockStateUpdates.append("}, ");
+                blockUpdates.deleteCharAt(blockUpdates.length() - 1);
+                blockUpdates.append("}, ");
             }
             //remove trailing comma and space
-            blockStateUpdates.deleteCharAt(blockStateUpdates.length() - 1);
-            blockStateUpdates.deleteCharAt(blockStateUpdates.length() - 1);
+            blockUpdates.deleteCharAt(blockUpdates.length() - 1);
+            blockUpdates.deleteCharAt(blockUpdates.length() - 1);
 
-            return blockStateUpdates.toString();
+            return blockUpdates.toString();
         }
 
         /**
@@ -185,9 +185,9 @@ public class HBUtil {
          * @param data - serialized string of block, position collections
          * @return Map of blocks and their positions
          */
-        public static Map<BlockState, List<BlockPos>> deserializeBlockPairs(String data)
+        public static Map<Block, List<BlockPos>> deserializeBlockPairs(String data)
         {
-            Map<BlockState, List<BlockPos>> blockPairs = new HashMap<>();
+            Map<Block, List<BlockPos>> blockPairs = new HashMap<>();
             String[] blocks = data.split(", ");
 
             for (String pairs : blocks)
@@ -197,7 +197,7 @@ public class HBUtil {
 
                 String[] parts = pairs.split("=");
                 String[] blockParts = parts[0].split(":");
-                BlockState blockType = BlockUtil.blockNameToBlock(blockParts[0], blockParts[1]).defaultBlockState();
+                Block blockType = BlockUtil.blockNameToBlock(blockParts[0], blockParts[1]);
 
                 blockPairs.put(blockType, new ArrayList<>());
                 String[] positions = parts[1].split("&");
@@ -220,6 +220,23 @@ public class HBUtil {
             return blockPairs;
         }
 
+        public static String serializeBlockStatePairs(Map<BlockState, List<BlockPos>> blocks) {
+            //Create Map<Block, List<BlockPos>> from Map<BlockState, List<BlockPos>>
+            Map<Block, List<BlockPos>> blockMap = new HashMap<>();
+            for(BlockState state : blocks.keySet()) {
+                blockMap.put(state.getBlock(), blocks.get(state));
+            }
+            return serializeBlockPairs(blockMap);
+        }
+
+        public static Map<BlockState, List<BlockPos>> deserializeBlockStatePairs(String data) {
+            Map<Block, List<BlockPos>> blockMap = deserializeBlockPairs(data);
+            Map<BlockState, List<BlockPos>> stateMap = new HashMap<>();
+            for(Block block : blockMap.keySet()) {
+                stateMap.put(block.defaultBlockState(), blockMap.get(block));
+            }
+            return stateMap;
+        }
 
     }
     //END BLOCK UTIL

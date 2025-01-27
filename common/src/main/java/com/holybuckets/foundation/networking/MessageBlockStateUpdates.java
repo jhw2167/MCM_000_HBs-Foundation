@@ -3,6 +3,7 @@ package com.holybuckets.foundation.networking;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.HBUtil.LevelUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.model.ManagedChunk;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -82,7 +83,21 @@ public class MessageBlockStateUpdates {
 
     public static void handle(Player player, MessageBlockStateUpdates message) {
         if(player.level() != message.world) return;
-        new Thread(() -> threadUpdateChunkBlocks(message.world, message.blocks)).start();
+        new Thread(() -> threadHandle(player, message)).start();
+    }
+
+    public static void threadHandle(Player player, MessageBlockStateUpdates message)
+    {
+        if(player.level() != message.world) return;
+        Thread t = new Thread(() -> threadUpdateChunkBlocks(message.world, message.blocks));
+        t.start();
+        try {
+            Thread.currentThread().sleep(30000);
+            if(t.isAlive()) t.interrupt();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public static void threadUpdateChunkBlocks( LevelAccessor world, Map<BlockState, List<BlockPos>> blocks) {
@@ -93,9 +108,13 @@ public class MessageBlockStateUpdates {
                 madeUpdates = ManagedChunk.updateChunkBlocks(world, blocks);
                 sleep(10);
             }
-        } catch (InterruptedException e) {
+            LoggerBase.logInfo(null, "011000", "Updated chunk blocks on client");
+        } catch (Exception e) {
             e.printStackTrace();
+            LoggerBase.logError(null, "011001", "Error updating chunk blocks on client: " + e.getMessage());
         }
+
+
     }
 
 }

@@ -289,13 +289,19 @@ public class HBUtil {
         }
 
 
+        /*
         public static String readNBT(ChunkAccess chunk, String property) {
+
             return "";
         }
 
-        public static String writeNBT(ChunkAccess chunk, String property, String value) {
+
+
+        //public static String writeNBT(ChunkAccess chunk, String property, String value) {
             return "";
         }
+        */
+
 
         /**
          * Loads the targeted chunk, forceloading if necessary. Force loading may

@@ -39,7 +39,10 @@ public class CommonClass {
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
 
-        sample(EventRegistrar.getInstance());
+        EventRegistrar.init();
+        GeneralConfig.init(EventRegistrar.getInstance());
+        //sample(EventRegistrar.getInstance());
+
         FoundationInitializers.init();
 
         isInitialized = true;
@@ -55,16 +58,23 @@ public class CommonClass {
         reg.registerOnPlayerLoad(CommonClass::onPlayerLoad);
     }
 
-    private static void onPlayerLoad(PlayerLoginEvent event) {
-        //Set some blockStateUpdates
+    private static void onPlayerLoad(PlayerLoginEvent event)
+    {
         try {
-            Thread.currentThread().sleep(5000);
+            Thread.currentThread().sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        final BlockState GOLD = Blocks.GOLD_BLOCK.defaultBlockState();
+        final BlockState GOLD = Blocks.DIAMOND_BLOCK.defaultBlockState();
         List<Pair<BlockState, BlockPos>> blocks = new ArrayList<>();
-        blocks.add(Pair.of(GOLD, new BlockPos(0, 128, 0)));
+
+        for(int x = -4; x < 4; x++)
+        {
+            for(int z = -4; z < 4; z++)
+            {
+                blocks.add(Pair.of(GOLD, new BlockPos(x*16, 128, z*16)));
+            }
+        }
 
         ManagedChunk.updateChunkBlockStates( event.getPlayer().level(), blocks);
     }

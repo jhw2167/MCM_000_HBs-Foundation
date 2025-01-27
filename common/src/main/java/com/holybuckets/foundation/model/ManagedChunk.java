@@ -456,6 +456,10 @@ public class ManagedChunk implements IMangedChunkData {
                 BlockPos bPos = update.getRight();
                 level.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
             }
+
+            if( level.isClientSide() )
+                return true;
+
             Map<BlockState, List<BlockPos>> blockStates = HBUtil.BlockUtil.condenseBlockStates(updates);
             MessageBlockStateUpdates.createAndFire(level, blockStates);
         }

@@ -2,13 +2,11 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.HBUtil.LevelUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -22,7 +20,7 @@ import static java.lang.Thread.sleep;
  */
 public class MessageBlockStateUpdates {
 
-    public static final String LOCATION = "blockStateUpdates";
+    public static final String LOCATION = "block_state_updates";
     private static final Integer BLOCKPOS_SIZE = 48;    //16 bytes per number x3 = 48 bytes
     LevelAccessor world;
     Map<BlockState, List<BlockPos>> blocks;
@@ -66,7 +64,8 @@ public class MessageBlockStateUpdates {
                 if(current == null)
                     break;
 
-                List<BlockPos> positions = blockStateUpdates.putIfAbsent(current.getLeft(), new ArrayList<>());
+                blockStateUpdates.putIfAbsent(current.getLeft(), new ArrayList<>());
+                List<BlockPos> positions = blockStateUpdates.get(current.getLeft());
                 positions.add(current.getRight().next());
             }
 
@@ -80,7 +79,9 @@ public class MessageBlockStateUpdates {
 
     }
 
+
     public static void handle(Player player, MessageBlockStateUpdates message) {
+        if(player.level() != message.world) return;
         new Thread(() -> threadUpdateChunkBlocks(message.world, message.blocks)).start();
     }
 

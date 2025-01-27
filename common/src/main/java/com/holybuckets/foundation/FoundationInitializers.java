@@ -14,18 +14,13 @@ public class FoundationInitializers {
     public static void init()
     {
         initEvents();
+        initNetworking();
     }
 
 
     public static void initEvents()
     {
-        EventRegistrar.init();
-        EventRegistrar reg = EventRegistrar.getInstance();
-
-        GeneralConfig.init(reg);
-        ManagedChunk.init(reg);
-
-        //Register all events
+        ManagedChunk.init(EventRegistrar.getInstance());
         BalmEventRegister.registerEvents();
     }
 

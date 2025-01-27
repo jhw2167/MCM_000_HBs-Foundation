@@ -123,7 +123,8 @@ public class HBUtil {
             Map<BlockState, List<BlockPos>> blocks = new HashMap<>();
             for(Pair<BlockState, BlockPos> pair : blockStates)
             {
-                blocks.putIfAbsent(pair.getLeft(), new ArrayList<>()).add(pair.getRight());
+                blocks.putIfAbsent(pair.getLeft(), new ArrayList<>());
+                blocks.get(pair.getLeft()).add(pair.getRight());
             }
             return blocks;
         }
@@ -230,15 +231,18 @@ public class HBUtil {
             SERVER
         }
         @Nullable
-        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String id)
+        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String dimensionId)
         {
-            String levelId = id;
+            String levelId = dimensionId.replace("CLIENT:", "").replace("SERVER:", "");
             if( nameSpace == LevelNameSpace.CLIENT ) {
-                levelId = "CLIENT:" + id;
+                levelId = "CLIENT:" + levelId;
             } else if( nameSpace == LevelNameSpace.SERVER ) {
-                levelId = "SERVER:" + id;
+                levelId = "SERVER:" + levelId;
             }
-            return GeneralConfig.getInstance().getLevel(levelId);
+            return toLevel(levelId);
+        }
+        public static LevelAccessor toLevel(String id) {
+            return GeneralConfig.getInstance().getLevel(id);
         }
 
         public static String toLevelId(LevelAccessor level)

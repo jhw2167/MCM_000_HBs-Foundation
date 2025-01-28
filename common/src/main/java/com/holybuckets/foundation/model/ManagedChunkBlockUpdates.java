@@ -1,7 +1,11 @@
 package com.holybuckets.foundation.model;
 
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentCircularList;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -66,43 +70,45 @@ public class ManagedChunkBlockUpdates {
 
     private void updateBlockStates()
     {
-        if( UPDATES.isEmpty() ) return;
 
-        if( !writeMonitor.canWrite() ) {
-            //if( monitor.canWriteNextTick() )
-                //monitor.lock.lock();
-            return;
+        try {
+
+            if( !writeMonitor.tryLockMainThread() )
+                return;
+
+            if( UPDATES.isEmpty() ) return;
+
+            if (this.NEXT_UPDATE == null)
+                this.NEXT_UPDATE = UPDATES.iterator();
+
+            for (int i = 0; i < writeMonitor.writesPerTick; i++) {
+
+                if (!NEXT_UPDATE.hasNext()) {
+                    NEXT_UPDATE = UPDATES.iterator();
+                    break;
+                }
+
+                Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
+                if (update == null) continue;
+
+                if (updateBlockState(update))
+                {
+                    NEXT_UPDATE.remove();
+                    PENDING.remove(update.hashCode());
+                    SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));
+                } else if (PENDING.get(update.hashCode()) < MAX_ATTEMPTS) {
+                    PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
+                } else {
+                    NEXT_UPDATE.remove();
+                    PENDING.remove(update.hashCode());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            writeMonitor.unlock();
         }
 
-        if(this.NEXT_UPDATE == null)
-            this.NEXT_UPDATE = UPDATES.iterator();
-
-        for(int i = 0; i < writeMonitor.writesPerTick; i++)
-        {
-
-            if( !NEXT_UPDATE.hasNext() ) {
-                NEXT_UPDATE = UPDATES.iterator();
-                break;
-            }
-
-            Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
-            if( update == null ) continue;
-
-            if( updateBlockState(update) )
-            {
-                PENDING.remove(update.hashCode());
-                SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));
-            }
-            else if( PENDING.get(update.hashCode()) < MAX_ATTEMPTS )
-            {
-                PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
-            }
-            else {
-                PENDING.remove(update.hashCode());
-            }
-        }
-
-        //monitor.lock.unlock();
     }
 
     private boolean updateBlockState(Pair<BlockState, BlockPos> update) {
@@ -137,12 +143,37 @@ public class ManagedChunkBlockUpdates {
         return updateChunkBlockStates(level, blockStates);
     }
 
-    static boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
+    static synchronized boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
     {
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return false;
 
-        updates.forEach(manager::addUpdate);
+        try {
+            if( !manager.writeMonitor.tryLockWorkerThread() )
+                return false;
+            updates.forEach(manager::addUpdate);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            manager.writeMonitor.unlock();
+        }
+
+        if( !level.isClientSide() )
+            return sendChunkBlockStatesToClient(level, updates);
+
+        return true;
+    }
+
+    static boolean sendChunkBlockStatesToClient(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
+    {
+        try {
+            Map<BlockState, List<BlockPos>> blockStateData = HBUtil.BlockUtil.condenseBlockStates(updates);
+            BlockStateUpdatesMessage.createAndFire(level, blockStateData);
+        } catch (Exception e) {
+            LoggerBase.logError(null,"013001", "Failed to send block state updates to client");
+            return false;
+        }
         return true;
     }
 
@@ -183,9 +214,9 @@ public class ManagedChunkBlockUpdates {
         private long writesPerSecond;
         long writesPerTick;
         private final long MODULO_COUNT = 4;
-        private long tickCount;
+        private volatile long tickCount;
 
-        final ReentrantLock lock = new ReentrantLock();
+        final ReentrantLock lock = new ReentrantLock(false);
 
         public WriteMonitor(long writesPerSecond)
         {
@@ -199,8 +230,26 @@ public class ManagedChunkBlockUpdates {
             this.tickCount = 0;
         }
 
+        boolean tryLockMainThread() {
+            if( canWrite() ) {
+                return lock.tryLock();
+            }
+            return false;
+        }
 
-        public boolean canWrite()
+        boolean tryLockWorkerThread() {
+            while( softLock() || lock.isLocked() )
+            {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return lock.tryLock();
+        }
+
+        private boolean canWrite()
         {
             if( tickCount % MODULO_COUNT == 0 )
             {
@@ -211,10 +260,14 @@ public class ManagedChunkBlockUpdates {
             return false;
         }
 
-        public boolean canWriteNextTick() {
+        private boolean softLock() {
             return tickCount % MODULO_COUNT == 0;
         }
 
+        public synchronized void unlock() {
+            if( lock.isLocked() && lock.isHeldByCurrentThread() )
+                lock.unlock();
+        }
     }
 
 }

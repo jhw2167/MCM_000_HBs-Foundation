@@ -63,7 +63,9 @@ public class ConcurrentCircularList<E> implements List<E> {
         return new Iterator<E>() {
             private Node<E> current = head;
             private Node<E> last = null;
+            private Node<E> prev = null;
             private boolean started = false;
+            private boolean lastRemoved = false;
 
             @Override
             public boolean hasNext() {
@@ -83,11 +85,43 @@ public class ConcurrentCircularList<E> implements List<E> {
                         throw new NoSuchElementException();
                     }
                     started = true;
+                    prev = last;
                     last = current;
                     current = current.next;
+                    lastRemoved = false;
                     return last.element;
                 } finally {
                     lock.readLock().unlock();
+                }
+            }
+
+            @Override
+            public void remove() {
+                lock.writeLock().lock();
+                try {
+                    if (last == null || lastRemoved) {
+                        throw new IllegalStateException();
+                    }
+                    
+                    if (size == 1) {
+                        head = null;
+                    } else {
+                        if (last == head) {
+                            head = current;
+                            // Find the last node to update its next pointer
+                            Node<E> temp = head;
+                            while (temp.next != last) {
+                                temp = temp.next;
+                            }
+                            temp.next = head;
+                        } else {
+                            prev.next = current;
+                        }
+                    }
+                    size--;
+                    lastRemoved = true;
+                } finally {
+                    lock.writeLock().unlock();
                 }
             }
         };

@@ -16,7 +16,9 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -249,7 +251,7 @@ public class ManagedChunk implements IMangedChunkData {
         ManagedChunkBlockUpdates.init(reg);
     }
 
-    public static void onWorldLoad( final LevelLoadingEvent.Load event )
+    private static void onWorldLoad( final LevelLoadingEvent.Load event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -280,7 +282,7 @@ public class ManagedChunk implements IMangedChunkData {
         EventRegistrar.getInstance().registerOnDataSave(() -> save(level), true);
     }
 
-    public static void onWorldUnload( final LevelLoadingEvent.Unload event )
+    private static void onWorldUnload( final LevelLoadingEvent.Unload event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -289,7 +291,7 @@ public class ManagedChunk implements IMangedChunkData {
         save(level);
     }
 
-    public static void onChunkLoad( final ChunkLoadingEvent.Load event )
+    private static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -307,7 +309,7 @@ public class ManagedChunk implements IMangedChunkData {
         loadedChunk.handleChunkLoaded(event);
     }
 
-    public static void onChunkUnload( final ChunkLoadingEvent.Unload event )
+    private static void onChunkUnload( final ChunkLoadingEvent.Unload event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide())
@@ -320,6 +322,11 @@ public class ManagedChunk implements IMangedChunkData {
             return;
         c.handleChunkUnloaded(event);
     }
+
+    public static void onWorldTickStart(Level level) {
+        ManagedChunkBlockUpdates.onWorldTick(level);
+    }
+
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
@@ -340,7 +347,6 @@ public class ManagedChunk implements IMangedChunkData {
     public static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates) {
         return ManagedChunkBlockUpdates.updateChunkBlocks(level, updates);
     }
-
 
     /**
      * Update the block states of in world on a Client or ServerLevel. These results are added to a queue and

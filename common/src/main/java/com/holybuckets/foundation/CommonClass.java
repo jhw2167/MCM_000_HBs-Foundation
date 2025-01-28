@@ -75,7 +75,8 @@ public class CommonClass {
         if( event.getLevel().isClientSide() ) return;
         POOL.submit(() -> threadAddChunkBlock(event));
         //Log the total tasks and total completed tasks:
-        LoggerBase.logInfo(null, "000000", "TASKS: " + POOL.getTaskCount() + " COMPLETED: " + POOL.getCompletedTaskCount());
+        if( POOL.getTaskCount() % 16 == 0)
+            LoggerBase.logInfo(null, "000000", "TASKS: " + POOL.getTaskCount() + " COMPLETED: " + POOL.getCompletedTaskCount());
     }
 
     public static void threadAddChunkBlock(ChunkLoadingEvent.Load event)
@@ -89,7 +90,7 @@ public class CommonClass {
         //Use MangedChunk.loadedChunks to determine when chunk is loaded
         while( !ManagedChunkUtilityAccessor.isLoaded(level, c) ) {}
 
-        final int RANGE = 8;
+        final int RANGE = 1;
         //final int Y = new Random(p.getX()*p.getZ()).nextInt(128);
         final int Y = 128;
         BlockPos pos = null;
@@ -105,7 +106,7 @@ public class CommonClass {
         boolean succeeded = false;
         succeeded = ManagedChunk.updateChunkBlockStates( (ServerLevel) level, blocks);
         //LoggerBase.logInfo(null, "000000", "2) REMOVE: " + pos + " TIME: " + (endTime - startTime) + "ms " + " THREADS RUNNING: " + POOL.getTaskCount());
-        LoggerBase.logInfo(null, "000001", "2) CHUNK: " + pos + " SUCCEEDED: " + succeeded);
+        //LoggerBase.logInfo(null, "000001", "2) CHUNK: " + pos + " SUCCEEDED: " + succeeded);
 
 
     }

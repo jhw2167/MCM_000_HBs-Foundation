@@ -3,7 +3,7 @@ package com.holybuckets.foundation.datastructure;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class SynchronizedCircularList<E> implements List<E> {
+public class ConcurrentCircularList<E> implements List<E> {
     private Node<E> head;
     private int size;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -17,7 +17,7 @@ public class SynchronizedCircularList<E> implements List<E> {
         }
     }
 
-    public SynchronizedCircularList() {
+    public ConcurrentCircularList() {
         head = null;
         size = 0;
     }

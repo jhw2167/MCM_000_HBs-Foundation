@@ -2,9 +2,9 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.HBUtil.LevelUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Thread.sleep;
 
@@ -19,17 +20,7 @@ import static java.lang.Thread.sleep;
  * Description: MessageUpdateBlockStates
  * Packet data for block state updates from server to client
  */
-public class MessageBlockStateUpdates {
-
-    public static final String LOCATION = "block_state_updates";
-    private static final Integer BLOCKPOS_SIZE = 48;    //16 bytes per number x3 = 48 bytes
-    LevelAccessor world;
-    Map<BlockState, List<BlockPos>> blocks;
-
-    MessageBlockStateUpdates(LevelAccessor level, Map<BlockState, List<BlockPos>> blocks) {
-        this.world = level;
-        this.blocks = blocks;
-    }
+public class BlockStateUpdatesMessageHandler {
 
     /**
      * Create and fire the packet. There is an upper limit of 32KB per pack sent enforced by Minecraft.
@@ -38,7 +29,7 @@ public class MessageBlockStateUpdates {
      * @param updates
      * @return
      */
-    public static void createAndFire(LevelAccessor world, Map<BlockState, List<BlockPos>> updates)
+    static void createAndFire(LevelAccessor world, Map<BlockState, List<BlockPos>> updates)
     {
         //1. Create new instances of updates
         List< Map<BlockState, List<BlockPos>> > messages = new ArrayList<>();
@@ -74,21 +65,27 @@ public class MessageBlockStateUpdates {
         }
 
         for(Map<BlockState, List<BlockPos>> message : messages) {
-            MessageBlockStateUpdates packet = new MessageBlockStateUpdates(world, message);
+            BlockStateUpdatesMessage packet = new BlockStateUpdatesMessage(world, message);
             HBUtil.NetworkUtil.sendToAllPlayers(packet);
         }
 
     }
 
 
-    public static void handle(Player player, MessageBlockStateUpdates message) {
+    public static ThreadPoolExecutor POOL = new ThreadPoolExecutor(4, 4, 60L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
+    public static void handle(Player player, BlockStateUpdatesMessage message) {
         if(player.level() != message.world) return;
-        new Thread(() -> threadHandle(player, message)).start();
+        POOL.submit(() -> threadHandle(player, message));
+        //LoggerBase.logInfo(null, "000001"," CLIENT Total TASKS submitted: " + POOL.getTaskCount() );
+        LoggerBase.logInfo(null, "000002"," CLIENT Total TASKS pending: " + POOL.getQueue().size() );
+
     }
 
-    public static void threadHandle(Player player, MessageBlockStateUpdates message)
+    public static void threadHandle(Player player, BlockStateUpdatesMessage message)
     {
         if(player.level() != message.world) return;
+        threadUpdateChunkBlocks(message.world, message.blocks);
+        /*
         Thread t = new Thread(() -> threadUpdateChunkBlocks(message.world, message.blocks));
         t.start();
         try {
@@ -97,21 +94,26 @@ public class MessageBlockStateUpdates {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        */
 
     }
 
     public static void threadUpdateChunkBlocks( LevelAccessor world, Map<BlockState, List<BlockPos>> blocks) {
         boolean madeUpdates = false;
+        BlockPos coords = blocks.values().stream().findFirst().get().get(0);
+        int startTime = (int) System.currentTimeMillis();
         try {
             while (!madeUpdates) {
                 if (GeneralConfig.getInstance().getServer() == null) return;
                 madeUpdates = ManagedChunk.updateChunkBlocks(world, blocks);
                 sleep(10);
             }
-            LoggerBase.logInfo(null, "011000", "Updated chunk blocks on client");
+            int endTime = (int) System.currentTimeMillis();
+            //LoggerBase.logInfo(null, "011000", "Updated chunk blocks on client " +  coords + " TIME: " + (endTime - startTime) + "ms");
+            LoggerBase.logInfo(null, "000003"," CLIENT Total Executed: " + POOL.getCompletedTaskCount());
         } catch (Exception e) {
             e.printStackTrace();
-            LoggerBase.logError(null, "011001", "Error updating chunk blocks on client: " + e.getMessage());
+            LoggerBase.logError(null, "011001", "Error updating chunk blocks on client: " + coords );
         }
 
 

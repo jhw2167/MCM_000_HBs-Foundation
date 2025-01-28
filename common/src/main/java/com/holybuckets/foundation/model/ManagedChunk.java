@@ -14,7 +14,8 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import com.holybuckets.foundation.networking.MessageBlockStateUpdates;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -27,7 +28,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.*;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.core.jmx.Server;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,11 +38,11 @@ public class ManagedChunk implements IMangedChunkData {
     public static final String CLASS_ID = "003";
     //public static final String NBT_KEY_HEADER = "managedChunk";
 
-    public static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
-    public static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
-    public static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
-    public static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
-    public static final Gson GSON_BUILDER = new GsonBuilder().serializeNulls().create();
+    static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
+    static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, ManagedChunkBlockUpdates> LEVELBLOCK_UPDATES = new ConcurrentHashMap<>();
 
     private String id;
     private ChunkPos pos;
@@ -79,16 +79,6 @@ public class ManagedChunk implements IMangedChunkData {
         INITIALIZED_CHUNKS.get(this.level).add(this.id);
     }
 
-    public static boolean isLoaded(LevelAccessor level, String id) {
-        if(level == null || id == null)
-            return false;
-
-        if(LOADED_CHUNKS.get(level) == null)
-            return false;
-
-        return LOADED_CHUNKS.get(level).containsKey(id);
-    }
-
 
     /** GETTERS and SETTERS **/
     public IMangedChunkData getSubclass(Class<? extends IMangedChunkData> classObject) {
@@ -97,7 +87,7 @@ public class ManagedChunk implements IMangedChunkData {
 
     //set chunk to null on chunkUnload
     public LevelChunk getChunk(boolean forceLoad) {
-        return ManagedChunk.getChunk(this.level, this.id, forceLoad);
+        return ManagedChunkUtilityAccessor.getChunk(this.level, this.id, forceLoad);
     }
 
     public LevelAccessor getLevel() {
@@ -109,28 +99,6 @@ public class ManagedChunk implements IMangedChunkData {
     }
 
 
-    /**
-     * Get a new instance of random object unique to this chunks coordinates
-     * and the Minecraft world seed value
-     * @return
-     */
-    public static Random getChunkRandom(ChunkPos pos)
-    {
-        final GeneralConfig CONFIG = GeneralConfig.getInstance();
-        final Long SEED = CONFIG.getWorldSeed();
-
-        Double RAND = HBUtil.ChunkUtil.getChunkRandom(pos) *1d;
-
-        if( RAND.equals( 0d ) )
-            return new Random( SEED );
-
-        RAND = SEED / RAND;
-
-        if( RAND < 1d && RAND > -1d)
-            RAND = 1d / RAND;
-
-        return new Random( RAND.intValue() );
-    }
 
     /**
      * Set a managed chunk data subclass
@@ -248,7 +216,7 @@ public class ManagedChunk implements IMangedChunkData {
      */
     @Override
     public IMangedChunkData getStaticInstance(LevelAccessor level, String id) {
-        return getManagedChunk(level, id);
+        return ManagedChunkUtilityAccessor.getManagedChunk(level, id);
     }
 
 
@@ -276,56 +244,6 @@ public class ManagedChunk implements IMangedChunkData {
 
 
     /** STATIC UTILITY METHODS **/
-
-    /**
-     * Get a chunk from a level using a chunk id
-     * @param level
-     * @param chunkId
-     * @return
-     */
-    public static LevelChunk getChunk(LevelAccessor level, String chunkId, boolean forceLoad)
-    {
-        if(level == null || chunkId == null)
-            return null;
-
-        if(LOADED_CHUNKS.get(level) == null)
-            return null;
-
-        if(!forceLoad)
-        {
-            if( !LOADED_CHUNKS.get(level).containsKey(chunkId) )
-                return null;
-        }
-
-        ChunkPos p = HBUtil.ChunkUtil.getPos(chunkId);
-        return HBUtil.ChunkUtil.getLevelChunk(level, p.x, p.z, forceLoad);
-    }
-
-    /*
-    public static void forceUnloadChunk(LevelAccessor level, String chunkId)
-    {
-        ManagedChunk c = getManagedChunk(level, chunkId);
-        LevelChunk chunk = c.getChunk(false);
-
-        if( chunk == null )
-            return;
-
-        if( level instanceof ServerLevel )
-            ((ServerLevel) level).unload( chunk );
-    }
-    */
-
-    public static ManagedChunk getManagedChunk(LevelAccessor level, String id)
-    {
-        if(level == null || id == null)
-            return null;
-
-        if(LOADED_CHUNKS.get(level) == null)
-            return null;
-
-        return LOADED_CHUNKS.get(level).get(id);
-    }
-
 
     public static void init( EventRegistrar reg )
     {
@@ -409,142 +327,38 @@ public class ManagedChunk implements IMangedChunkData {
         c.handleChunkUnloaded(event);
     }
 
-    public static synchronized boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates)
-    {
-        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
-        for(Map.Entry<BlockState, List<BlockPos>> update : updates.entrySet()) {
-            for(BlockPos pos : update.getValue()) {
-                blockStates.add( Pair.of(update.getKey(), pos) );
-            }
-        }
-        return updateChunkBlockStatesAndCast(level, blockStates);
+    /**
+     * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
+     * @param level
+     * @param updates
+     * @return true if all updates were successful, false otherwise
+     */
+    public static boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates) {
+        return ManagedChunkUtilityAccessor.updateChunkBlocks(level, updates);
     }
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
      * @param level
      * @param updates
-     * @return
+     * @return true if all updates were successful, false otherwise
      */
-    public static synchronized boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates)
-    {
-        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
-        for(Pair<Block, BlockPos> update : updates) {
-            blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
-        }
-
-        return updateChunkBlockStatesAndCast(level, blockStates);
+    public static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates) {
+        return ManagedChunkUtilityAccessor.updateChunkBlocks(level, updates);
     }
 
-    private static synchronized boolean updateChunkBlockStatesAndCast(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
-    {
-        if( level instanceof ServerLevel )
-            return updateChunkBlockStates((ServerLevel) level, updates);
-        else if( level instanceof ClientLevel )
-            return updateChunkBlockStates((ClientLevel) level, updates);
-        else
-            return false;
-    }
 
     /**
-     * Update the block states of a chunk on a ServerLevel. It is important that it is synchronized to prevent
-     * concurrent modifications to the chunk. The block at the given position is updated to the requisite
-     * block state.
+     * Update the block states of in world on a Client or ServerLevel. These results are added to a queue and
+     * processed in the next tick where setBlock can run on the main thread.
      * @param serverLevel
      * @param updates
      * @return true if successful, false if some element was null
      */
-    public static synchronized boolean updateChunkBlockStates(final ServerLevel serverLevel, List<Pair<BlockState, BlockPos>> updates)
-    {
-        if( serverLevel == null || updates == null || updates.size() == 0 )
-            return false;
-        //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
-
-        try
-        {
-            if( !updates.stream().allMatch( update -> serverLevel.isLoaded( update.getRight() ) ) )
-                return false;
-
-            for(Pair<BlockState, BlockPos> update : updates) {
-                BlockPos bPos = update.getRight();
-                serverLevel.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE);
-            }
-
-            Map<BlockState, List<BlockPos>> blockStates = HBUtil.BlockUtil.condenseBlockStates(updates);
-            MessageBlockStateUpdates.createAndFire(serverLevel, blockStates);
-        }
-        catch (IllegalStateException e)
-        {
-            LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(serverLevel) );
-            return false;
-        }
-        catch (Exception e)
-        {
-            StringBuilder error = new StringBuilder();
-            error.append("Error updating chunk block states. At level: ");
-            error.append( HBUtil.LevelUtil.toLevelId(serverLevel) );
-            error.append("\n");
-            error.append("Corresponding exception message: \n");
-            error.append(e.getMessage());
-
-            LoggerBase.logError(null, "003024", error.toString());
-
-            return false;
-        }
-
-        return true;
+    public static boolean updateChunkBlockStates(final LevelAccessor serverLevel, List<Pair<BlockState, BlockPos>> updates) {
+        return ManagedChunkUtilityAccessor.updateChunkBlockStatesAndCast(serverLevel, updates);
     }
 
-    /**
-     * Update the block states of a chunk on a ServerLevel. It is important that it is synchronized to prevent
-     * concurrent modifications to the chunk. The block at the given position is updated to the requisite
-     * block state.
-     * @param clientLevel
-     * @param updates
-     * @return true if successful, false if some element was null
-     */
-    public static synchronized boolean updateChunkBlockStates(final ClientLevel clientLevel, List<Pair<BlockState, BlockPos>> updates)
-    {
-        if( clientLevel == null || updates == null || updates.size() == 0 )
-            return false;
-        //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
-
-        try
-        {
-            //use stream to check if all BlockPos are loaded in clientLevel
-            if( !updates.stream().allMatch( update -> clientLevel.isLoaded( update.getRight() ) ) )
-                return false;
-
-            boolean isSuccessful = true;
-            for(Pair<BlockState, BlockPos> update : updates)
-            {
-                BlockPos bPos = update.getRight();
-                isSuccessful = isSuccessful && clientLevel.setBlock(bPos, update.getLeft(), Block.UPDATE_IMMEDIATE );
-                Thread.currentThread().sleep(5); // 1 per tick
-            }
-            return isSuccessful;
-        }
-        catch (IllegalStateException e)
-        {
-            LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(clientLevel) );
-            return false;
-        }
-        catch (Exception e)
-        {
-            StringBuilder error = new StringBuilder();
-            error.append("Error updating chunk block states. At level: ");
-            error.append( HBUtil.LevelUtil.toLevelId(clientLevel) );
-            error.append("\n");
-            error.append("Corresponding exception message: \n");
-            error.append(e.getMessage());
-
-            LoggerBase.logError(null, "003024", error.toString());
-
-            return false;
-        }
-    }
 
 
     public static void registerManagedChunkData(Class<? extends IMangedChunkData> classObject, Supplier<IMangedChunkData> data)

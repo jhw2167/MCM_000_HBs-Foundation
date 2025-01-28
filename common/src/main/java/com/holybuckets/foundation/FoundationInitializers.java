@@ -3,8 +3,9 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import com.holybuckets.foundation.networking.Codecs;
-import com.holybuckets.foundation.networking.MessageBlockStateUpdates;
+import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.resources.ResourceLocation;
@@ -27,7 +28,7 @@ public class FoundationInitializers {
     public static void initNetworking()
     {
         BalmNetworking networking = Balm.getNetworking();
-        networking.registerClientboundPacket(id(MessageBlockStateUpdates.LOCATION), MessageBlockStateUpdates.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, MessageBlockStateUpdates::handle);
+        networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, BlockStateUpdatesMessageHandler::handle);
     }
 
     public static ResourceLocation id(String location) {

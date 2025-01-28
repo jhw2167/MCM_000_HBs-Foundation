@@ -1,7 +1,5 @@
 package com.holybuckets.foundation.model;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
@@ -14,14 +12,10 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -356,9 +350,18 @@ public class ManagedChunk implements IMangedChunkData {
      * @return true if successful, false if some element was null
      */
     public static boolean updateChunkBlockStates(final LevelAccessor level, List<Pair<BlockState, BlockPos>> updates) {
-        return ManagedChunkBlockUpdates.updateChunkBlockStatesAndCast(level, updates);
+        return ManagedChunkBlockUpdates.updateChunkBlockStates(level, updates);
     }
 
+    /**
+     * Check if the update has succeeded and removes it.
+     * @param level - LevelAccessor
+     * @param update - Pair object with the same hashcode as requested update
+     * @return true if the update has succeeded
+     */
+    public static boolean checkUpdateBlockStateSucceeded(LevelAccessor level, Pair<BlockState, BlockPos> update) {
+        return ManagedChunkBlockUpdates.checkUpdateBlockStateSucceeded(level, update);
+    }
 
     public static void registerManagedChunkData(Class<? extends IMangedChunkData> classObject, Supplier<IMangedChunkData> data)
     {

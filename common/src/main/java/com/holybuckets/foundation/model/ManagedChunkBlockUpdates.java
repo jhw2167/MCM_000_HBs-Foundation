@@ -13,6 +13,7 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.tuple.Pair;
+import java.lang.ref.WeakReference;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,10 +21,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ManagedChunkBlockUpdates {
 
     private static final String CLASS_ID = "013";
+    private static final int MAX_ATTEMPTS = 5;
 
      private LevelAccessor level;
-     private Set<Integer> PENDING;
+
+
      private List<Pair<BlockState, BlockPos>> UPDATES;
+     private Map<Integer, Integer> PENDING;
+    private Map<Integer, WeakReference<Pair<BlockState, BlockPos>>> SUCCEEDED;
 
      private WriteMonitor monitor = new WriteMonitor(10);
 
@@ -33,105 +38,27 @@ public class ManagedChunkBlockUpdates {
         public ManagedChunkBlockUpdates(LevelAccessor level)
         {
             this.level = level;
-            this.PENDING = new HashSet<>();
+            this.PENDING = new ConcurrentHashMap<>();
             this.UPDATES = new ConcurrentCircularList<>();
         }
 
 
-    //** UPDATING CHUNK BLOCKS **//
+    private void addUpdate(Pair<BlockState, BlockPos> update) {
 
-    public static boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates)
-    {
-        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
-        for(Map.Entry<BlockState, List<BlockPos>> update : updates.entrySet()) {
-            for(BlockPos pos : update.getValue()) {
-                blockStates.add( Pair.of(update.getKey(), pos) );
-            }
-        }
-        return updateChunkBlockStatesAndCast(level, blockStates);
-    }
+        if( update == null || PENDING.containsKey(update.hashCode()) )
+            return;
 
-
-    public static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates)
-    {
-        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
-        for(Pair<Block, BlockPos> update : updates) {
-            blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
-        }
-
-        return updateChunkBlockStatesAndCast(level, blockStates);
-    }
-
-    static boolean updateChunkBlockStatesAndCast(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
-    {
-        if( level instanceof ServerLevel)
-            return updateChunkBlockStates((ServerLevel) level, updates);
-        else if( level instanceof ClientLevel)
-            return updateChunkBlockStates((ClientLevel) level, updates);
-        else
-            return false;
+        PENDING.put(update.hashCode(), 0);
+        UPDATES.add(update);
     }
 
     /**
-     * Update the block states of a chunk on a ServerLevel. It is important that it is synchronized to prevent
-     * concurrent modifications to the chunk. The block at the given position is updated to the requisite
-     * block state.
-     * @param serverLevel
-     * @param updates
-     * @return true if successful, false if some element was null
+     * Check if the update has succeeded and removes it.
+     * @param hashCode
+     * @return true if the update has succeeded
      */
-    public static boolean updateChunkBlockStates(final ServerLevel serverLevel, List<Pair<BlockState, BlockPos>> updates)
-    {
-        if( serverLevel == null || updates == null || updates.size() == 0 )
-            return false;
-        //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
-
-        boolean succeeded = false;
-        ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(serverLevel);
-        try
-        {
-            for(Pair<BlockState, BlockPos> update : updates)
-            {
-                if( !serverLevel.isLoaded( update.getRight() ) ) {
-                    succeeded = false;
-                    continue;
-                }
-                manager.addUpdate(update);
-            }
-
-            Map<BlockState, List<BlockPos>> blockStates = HBUtil.BlockUtil.condenseBlockStates(updates);
-            BlockStateUpdatesMessage.createAndFire(serverLevel, blockStates);
-        }
-        catch (IllegalStateException e)
-        {
-            LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(serverLevel) );
-            return false;
-        }
-        catch (Exception e)
-        {
-            StringBuilder error = new StringBuilder();
-            error.append("Error updating chunk block states. At level: ");
-            error.append( HBUtil.LevelUtil.toLevelId(serverLevel) );
-            error.append("\n");
-            error.append("Corresponding exception message: \n");
-            error.append(e.getMessage());
-
-            LoggerBase.logError(null, "003024", error.toString());
-
-            return false;
-        }
-
-        return true;
-    }
-
-    private void addUpdate(Pair<BlockState, BlockPos> update) {
-
-        if( update == null || PENDING.contains(update.hashCode()) )
-            return;
-
-        PENDING.add(update.hashCode());
-        UPDATES.add(update);
+    boolean checkSucceeded(int hashCode) {
+        return SUCCEEDED.remove(hashCode) != null;
     }
 
     private void clear() {
@@ -139,60 +66,44 @@ public class ManagedChunkBlockUpdates {
         UPDATES.clear();
     }
 
-    /**
-     * Update the block states of a chunk on a ClientLevel. It is important that it is synchronized to prevent
-     * concurrent modifications to the chunk. The block at the given position is updated to the requisite
-     * block state.
-     * @param clientLevel
-     * @param updates
-     * @return true if successful, false if some element was null
-     */
-    public static boolean updateChunkBlockStates(final ClientLevel clientLevel, List<Pair<BlockState, BlockPos>> updates)
+
+    //** UPDATING CHUNK BLOCKS **//
+
+    static boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates)
     {
-        if( clientLevel == null || updates == null || updates.size() == 0 )
-            return false;
-        //LoggerBase.logDebug(null, "003022", "Updating chunk block states: " + HolyBucketsUtility.ChunkUtil.getId( chunk));
-
-        try
-        {
-            ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(clientLevel);
-            boolean isSuccessful = true;
-            for(Pair<BlockState, BlockPos> update : updates)
-            {
-                if( !clientLevel.isLoaded( update.getRight() ) ) {
-                    isSuccessful = false;
-                    continue;
-                }
-                manager.addUpdate(update);
+        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
+        for(Map.Entry<BlockState, List<BlockPos>> update : updates.entrySet()) {
+            for(BlockPos pos : update.getValue()) {
+                blockStates.add( Pair.of(update.getKey(), pos) );
             }
-
-            return isSuccessful;
         }
-        catch (IllegalStateException e)
-        {
-            LoggerBase.logWarning(null, "003023", "Illegal state exception " +
-                "updating chunk block states. Updates may be replayed later. At level: " + HBUtil.LevelUtil.toLevelId(clientLevel) );
-            return false;
-        }
-        catch (Exception e)
-        {
-            StringBuilder error = new StringBuilder();
-            error.append("Error updating chunk block states. At level: ");
-            error.append( HBUtil.LevelUtil.toLevelId(clientLevel) );
-            error.append("\n");
-            error.append("Corresponding exception message: \n");
-            error.append(e.getMessage());
-
-            LoggerBase.logError(null, "003024", error.toString());
-
-            return false;
-        }
+        return updateChunkBlockStates(level, blockStates);
     }
 
-    //## END UPDATING CHUNK BLOCKS ##//
 
-    //## ######################## ##//
+    static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates)
+    {
+        List<Pair<BlockState, BlockPos>> blockStates = new LinkedList<>();
+        for(Pair<Block, BlockPos> update : updates) {
+            blockStates.add( Pair.of(update.getLeft().defaultBlockState(), update.getRight()) );
+        }
 
+        return updateChunkBlockStates(level, blockStates);
+    }
+
+    static boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates) {
+        ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
+        if( manager == null ) return false;
+        updates.forEach(manager::addUpdate);
+
+        return true;
+    }
+
+    static boolean checkUpdateBlockStateSucceeded(LevelAccessor level, Pair<BlockState, BlockPos> update) {
+        ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
+        if( manager == null ) return false;
+        return manager.checkSucceeded(update.hashCode());
+    }
 
     //** EVENTS **//
 

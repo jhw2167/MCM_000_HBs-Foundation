@@ -42,7 +42,6 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
-    static final Map<LevelAccessor, ManagedChunkBlockUpdates> LEVELBLOCK_UPDATES = new ConcurrentHashMap<>();
 
     private String id;
     private ChunkPos pos;
@@ -247,12 +246,13 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void init( EventRegistrar reg )
     {
-        EventRegistrar.getInstance();
         reg.registerOnLevelLoad(ManagedChunk::onWorldLoad);
         reg.registerOnLevelUnload(ManagedChunk::onWorldUnload);
 
         reg.registerOnChunkLoad(ManagedChunk::onChunkLoad);
         reg.registerOnChunkUnload(ManagedChunk::onChunkUnload);
+
+        ManagedChunkBlockUpdates.init(reg);
     }
 
     public static void onWorldLoad( final LevelLoadingEvent.Load event )
@@ -334,7 +334,7 @@ public class ManagedChunk implements IMangedChunkData {
      * @return true if all updates were successful, false otherwise
      */
     public static boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates) {
-        return ManagedChunkUtilityAccessor.updateChunkBlocks(level, updates);
+        return ManagedChunkBlockUpdates.updateChunkBlocks(level, updates);
     }
 
     /**
@@ -344,21 +344,20 @@ public class ManagedChunk implements IMangedChunkData {
      * @return true if all updates were successful, false otherwise
      */
     public static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates) {
-        return ManagedChunkUtilityAccessor.updateChunkBlocks(level, updates);
+        return ManagedChunkBlockUpdates.updateChunkBlocks(level, updates);
     }
 
 
     /**
      * Update the block states of in world on a Client or ServerLevel. These results are added to a queue and
      * processed in the next tick where setBlock can run on the main thread.
-     * @param serverLevel
+     * @param level
      * @param updates
      * @return true if successful, false if some element was null
      */
-    public static boolean updateChunkBlockStates(final LevelAccessor serverLevel, List<Pair<BlockState, BlockPos>> updates) {
-        return ManagedChunkUtilityAccessor.updateChunkBlockStatesAndCast(serverLevel, updates);
+    public static boolean updateChunkBlockStates(final LevelAccessor level, List<Pair<BlockState, BlockPos>> updates) {
+        return ManagedChunkBlockUpdates.updateChunkBlockStatesAndCast(level, updates);
     }
-
 
 
     public static void registerManagedChunkData(Class<? extends IMangedChunkData> classObject, Supplier<IMangedChunkData> data)

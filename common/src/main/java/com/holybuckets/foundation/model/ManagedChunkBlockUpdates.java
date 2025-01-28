@@ -78,21 +78,16 @@ public class ManagedChunkBlockUpdates {
 
             if( UPDATES.isEmpty() ) return;
 
-            if (this.NEXT_UPDATE == null)
+            if (this.NEXT_UPDATE == null || !this.NEXT_UPDATE.hasNext()) {
                 this.NEXT_UPDATE = UPDATES.iterator();
+                if (!this.NEXT_UPDATE.hasNext()) return; // No updates to process
+            }
 
-            for (int i = 0; i < writeMonitor.writesPerTick; i++) {
-
-                if (!NEXT_UPDATE.hasNext()) {
-                    NEXT_UPDATE = UPDATES.iterator();
-                    break;
-                }
-
+            for (int i = 0; i < writeMonitor.writesPerTick && NEXT_UPDATE.hasNext(); i++) {
                 Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
                 if (update == null) continue;
 
-                if (updateBlockState(update))
-                {
+                if (updateBlockState(update)) {
                     NEXT_UPDATE.remove();
                     PENDING.remove(update.hashCode());
                     SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));

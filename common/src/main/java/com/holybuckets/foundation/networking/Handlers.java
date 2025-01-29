@@ -19,7 +19,7 @@ public class Handlers {
         RECEIVED++;
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));
         if( POOL.getTaskCount() % 16 == 0) {
-            BlockPos pos = m.blockStates.get(0).get(0);
+            BlockPos pos = m.blockStates.values().toArray(new BlockPos[0])[0];
             ChunkPos chunkPos = m.world.getChunk(pos).getPos();
             LoggerBase.logInfo(null, "014000"," CLIENT Total TASKS pending: " + POOL.getQueue().size() + "Chunk pos: " + chunkPos );
         }

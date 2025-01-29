@@ -69,6 +69,8 @@ public class ManagedChunk implements IMangedChunkData {
         this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
         this.initSubclassesFromMemory(level, id);
 
+        LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
+        INITIALIZED_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
         INITIALIZED_CHUNKS.get(this.level).add(this.id);
     }

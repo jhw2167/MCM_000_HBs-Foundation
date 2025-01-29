@@ -20,14 +20,13 @@ public class ManagedChunkCapabilityProvider implements ICapabilityProvider, INBT
     public static final String CLASS_ID = "005";
     public static Capability<ManagedChunk> MANAGED_CHUNK = CapabilityManager.get(new CapabilityToken<>() { });
 
-    private ManagedChunk managedChunk = null;
+    private ManagedChunk managedChunk;
     private final LazyOptional<ManagedChunk> optional = LazyOptional.of(this::getManagedChunk);
 
     public ManagedChunkCapabilityProvider(LevelChunk chunk)
     {
         super();
-        if(this.managedChunk == null)
-            this.managedChunk = new ManagedChunk(chunk.getLevel(), chunk.getPos());
+        this.managedChunk = new ManagedChunk(chunk.getLevel(), chunk.getPos());
     }
 
 

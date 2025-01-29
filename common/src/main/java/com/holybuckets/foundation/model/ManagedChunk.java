@@ -16,7 +16,6 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -218,21 +217,21 @@ public class ManagedChunk implements IMangedChunkData {
     @Override
     public void handleChunkLoaded(ChunkLoadingEvent.Load event)
     {
-        LoggerBase.logInfo(null, "003005", "Loading ManagedChunk with id: " + this.id);
-
+        this.isLoaded = true;
+        if(this.level.isClientSide()) return;
         for(IMangedChunkData data : managedChunkData.values()) {
             data.handleChunkLoaded(event);
         }
-        this.isLoaded = true;
     }
 
     @Override
     public void handleChunkUnloaded(ChunkLoadingEvent.Unload event)
     {
+        this.isLoaded = false;
+        if(this.level.isClientSide()) return;
         for(IMangedChunkData data : managedChunkData.values()) {
             data.handleChunkUnloaded(event);
         }
-        this.isLoaded = false;
     }
 
 
@@ -242,91 +241,9 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void init( EventRegistrar reg )
     {
-        reg.registerOnLevelLoad(ManagedChunk::onWorldLoad);
-        reg.registerOnLevelUnload(ManagedChunk::onWorldUnload);
-
-        reg.registerOnChunkLoad(ManagedChunk::onChunkLoad);
-        reg.registerOnChunkUnload(ManagedChunk::onChunkUnload);
-
+        ManagedChunkEvents.init(reg);
         ManagedChunkBlockUpdates.init(reg);
     }
-
-    private static void onWorldLoad( final LevelLoadingEvent.Load event )
-    {
-        LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
-            return;
-        DataStore ds = GeneralConfig.getInstance().getDataStore();
-        LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
-
-
-        if(LOADED_CHUNKS.get(level) == null)
-        {
-            LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
-            INITIALIZED_CHUNKS.put(level,  new ConcurrentSet<>());
-        }
-
-        JsonElement chunksIds = levelData.get("chunkIds");
-        if( chunksIds == null )
-        {
-            String[] ids = new String[0];
-            levelData.addProperty("chunkIds", HBUtil.FileIO.arrayToJson(ids));
-            chunksIds = levelData.get("chunkIds");
-        }
-
-        Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
-        chunksIds.getAsJsonArray().forEach( chunkId -> {
-            initChunks.add(chunkId.getAsString());
-        });
-
-        EventRegistrar.getInstance().registerOnDataSave(() -> save(level), true);
-    }
-
-    private static void onWorldUnload( final LevelLoadingEvent.Unload event )
-    {
-        LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
-            return;
-
-        save(level);
-    }
-
-    private static void onChunkLoad( final ChunkLoadingEvent.Load event )
-    {
-        LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
-            return;
-
-        String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
-        ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
-
-        if(loadedChunk == null)
-        {
-            LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
-            loadedChunk = new ManagedChunk(level, event.getChunkPos());
-        }
-
-        loadedChunk.handleChunkLoaded(event);
-    }
-
-    private static void onChunkUnload( final ChunkLoadingEvent.Unload event )
-    {
-        LevelAccessor level = event.getLevel();
-        if(level.isClientSide())
-            return;
-
-        ChunkAccess chunk = event.getChunk();
-        String id = HBUtil.ChunkUtil.getId(chunk);
-        ManagedChunk c = LOADED_CHUNKS.get(level).remove(id);
-        if( c == null )
-            return;
-        c.handleChunkUnloaded(event);
-    }
-
-    public static void onWorldTickStart(Level level) {
-        ManagedChunkBlockUpdates.onWorldTick(level);
-    }
-
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
@@ -334,7 +251,7 @@ public class ManagedChunk implements IMangedChunkData {
      * @param updates
      * @return true if all updates were successful, false otherwise
      */
-    public static boolean updateChunkBlocks(LevelAccessor level, Map<BlockState, List<BlockPos>> updates) {
+    public static boolean updateChunkBlockStates(LevelAccessor level, Map<BlockState, List<BlockPos>> updates) {
         return ManagedChunkBlockUpdates.updateChunkBlocks(level, updates);
     }
 
@@ -374,7 +291,7 @@ public class ManagedChunk implements IMangedChunkData {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
 
-    private static void save( LevelAccessor level )
+    static void save(LevelAccessor level)
     {
         //Write out initialzed chunks to levelSaveData
         DataStore ds = GENERAL_CONFIG.getDataStore();

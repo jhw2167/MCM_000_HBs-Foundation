@@ -87,15 +87,18 @@ public class ManagedChunkBlockUpdates {
                 Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
                 if (update == null) continue;
 
+                if(!ableToUpdateBlock(update))
+                    continue;
+
                 if (updateBlockState(update)) {
                     NEXT_UPDATE.remove();
-                    PENDING.remove(update.hashCode());
+                    //PENDING.remove(update.hashCode());
                     SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));
                 } else if (PENDING.get(update.hashCode()) < MAX_ATTEMPTS) {
                     PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
                 } else {
                     NEXT_UPDATE.remove();
-                    PENDING.remove(update.hashCode());
+                    //PENDING.remove(update.hashCode());
                 }
             }
         } catch (Exception e) {
@@ -112,6 +115,10 @@ public class ManagedChunkBlockUpdates {
         int tag = Block.UPDATE_IMMEDIATE;
 
         return level.setBlock(pos, state, tag);
+    }
+
+    private boolean ableToUpdateBlock(Pair<BlockState, BlockPos> update) {
+        return ManagedChunkUtilityAccessor.isLoaded(level, update.getRight());
     }
 
     //** UPDATING CHUNK BLOCKS **//

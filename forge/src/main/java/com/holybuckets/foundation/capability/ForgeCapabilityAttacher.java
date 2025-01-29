@@ -23,8 +23,7 @@ public class ForgeCapabilityAttacher {
     {
         if (event.getObject() instanceof LevelChunk) {
             LevelChunk chunk = event.getObject();
-            if (chunk.getLevel().isClientSide())
-                return;
+
             //LoggerBase.logDebug("002001", "Attaching Capabilities to MOD EVENT:  ");
             if (!event.getObject().getCapability(ManagedChunkCapabilityProvider.MANAGED_CHUNK).isPresent()) {
                 event.addCapability(new ResourceLocation(Constants.MOD_ID, "managed_chunk"),

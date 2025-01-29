@@ -1,33 +1,13 @@
 package com.holybuckets.foundation.model;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.foundation.datastore.LevelSaveData;
-import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.exception.InvalidId;
-import com.holybuckets.foundation.modelInterface.IMangedChunkData;
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import org.apache.commons.lang3.tuple.Pair;
-
 import static com.holybuckets.foundation.model.ManagedChunk.GENERAL_CONFIG;
 import static com.holybuckets.foundation.model.ManagedChunk.MANAGED_SUBCLASSES;
 import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
@@ -44,6 +24,10 @@ public class ManagedChunkUtilityAccessor {
 
 
     //** CHUNK STATUS **//
+    public static boolean isLoaded(LevelAccessor level, BlockPos p) {
+        Level levelType = (Level) level;
+        return levelType.isLoaded(p) && isLoaded(level, levelType.getChunk(p) );
+    }
 
     public static boolean isLoaded(LevelAccessor level, ChunkAccess c) {
         return isLoaded(level , c.getPos());

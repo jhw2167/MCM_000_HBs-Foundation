@@ -569,12 +569,16 @@ public class HBUtil {
 
     public static class NetworkUtil {
 
+        private static int SENT = 0;
+
         public static <T> void sendToAllPlayers(T message) {
-            new Thread(() -> threadedSendToAllPlayers(message)).start();
+            //new Thread(() -> threadedSendToAllPlayers(message)).start();
+            threadedSendToAllPlayers(message);
         }
             private static <T> void threadedSendToAllPlayers( T message) {
                 BalmNetworking networking = Balm.getNetworking();
                 networking.sendToAll(GeneralConfig.getInstance().getServer(), message);
+                SENT++;
             }
 
         //create a new method that sends a message to a specific player

@@ -4,7 +4,6 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
@@ -12,7 +11,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Thread.sleep;
 
@@ -61,7 +59,8 @@ public class BlockStateUpdatesMessageHandler {
                 positions.add(current.getRight().next());
             }
 
-            messages.add(blockStateUpdates);
+            if(blockStateUpdates.size() > 0)
+                messages.add(blockStateUpdates);
         }
 
         for(Map<BlockState, List<BlockPos>> message : messages) {
@@ -72,40 +71,21 @@ public class BlockStateUpdatesMessageHandler {
     }
 
 
-    public static ThreadPoolExecutor POOL = new ThreadPoolExecutor(4, 4, 60L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
-    public static void handle(Player player, BlockStateUpdatesMessage message) {
+    private static HashSet<Integer> collisionChecker = new HashSet<>();
+    static void handle(Player player, BlockStateUpdatesMessage message) {
         if(player.level() != message.world) return;
-        POOL.submit(() -> threadHandle(player, message));
-        //LoggerBase.logInfo(null, "000001"," CLIENT Total TASKS submitted: " + POOL.getTaskCount() );
-        LoggerBase.logInfo(null, "000002"," CLIENT Total TASKS pending: " + POOL.getQueue().size() );
-
+        ManagedChunk.updateChunkBlockStates(message.world, message.blockStates);
     }
 
-    public static void threadHandle(Player player, BlockStateUpdatesMessage message)
-    {
-        if(player.level() != message.world) return;
-        threadUpdateChunkBlocks(message.world, message.blocks);
-        /*
-        Thread t = new Thread(() -> threadUpdateChunkBlocks(message.world, message.blocks));
-        t.start();
-        try {
-            Thread.currentThread().sleep(30000);
-            if(t.isAlive()) t.interrupt();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        */
-
-    }
-
-    public static void threadUpdateChunkBlocks( LevelAccessor world, Map<BlockState, List<BlockPos>> blocks) {
+    /*
+    private static void threadUpdateChunkBlocks( LevelAccessor world, Map<BlockState, List<BlockPos>> blocks) {
         boolean madeUpdates = false;
         BlockPos coords = blocks.values().stream().findFirst().get().get(0);
         int startTime = (int) System.currentTimeMillis();
         try {
             while (!madeUpdates) {
                 if (GeneralConfig.getInstance().getServer() == null) return;
-                madeUpdates = ManagedChunk.updateChunkBlocks(world, blocks);
+                madeUpdates = ManagedChunk.updateChunkBlockStates(world, blocks);
                 sleep(10);
             }
             int endTime = (int) System.currentTimeMillis();
@@ -118,5 +98,7 @@ public class BlockStateUpdatesMessageHandler {
 
 
     }
+
+     */
 
 }

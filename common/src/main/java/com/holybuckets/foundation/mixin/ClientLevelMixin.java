@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkEvents;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,7 +18,7 @@ public class ClientLevelMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     private void onClientTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         ClientLevel clientLevel = (ClientLevel) (Object) this;
-        ManagedChunk.onWorldTickStart(clientLevel);
+        ManagedChunkEvents.onWorldTickStart(clientLevel);
     }
 
  /*

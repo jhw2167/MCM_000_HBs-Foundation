@@ -1,23 +1,15 @@
 package com.holybuckets.foundation;
 
-import com.holybuckets.foundation.datastore.DataStore;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.platform.Services;
-import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -104,7 +96,7 @@ public class CommonClass {
 
         int startTime = (int) System.currentTimeMillis();
         boolean succeeded = false;
-        succeeded = ManagedChunk.updateChunkBlockStates( (ServerLevel) level, blocks);
+        succeeded = ManagedChunk.updateChunkBlockStates( level, blocks);
         //LoggerBase.logInfo(null, "000000", "2) REMOVE: " + pos + " TIME: " + (endTime - startTime) + "ms " + " THREADS RUNNING: " + POOL.getTaskCount());
         //LoggerBase.logInfo(null, "000001", "2) CHUNK: " + pos + " SUCCEEDED: " + succeeded);
 

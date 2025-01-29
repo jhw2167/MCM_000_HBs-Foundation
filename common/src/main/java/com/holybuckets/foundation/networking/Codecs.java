@@ -14,7 +14,7 @@ public class Codecs {
     //ManagedChunk
     public static final FriendlyByteBuf encodeBlockStateUpdates(BlockStateUpdatesMessage object, FriendlyByteBuf buf) {
         buf.writeUtf(HBUtil.LevelUtil.toLevelId(object.world));
-        buf.writeUtf(HBUtil.BlockUtil.serializeBlockStatePairs(object.blocks));
+        buf.writeUtf(HBUtil.BlockUtil.serializeBlockStatePairs(object.blockStates));
         return buf;
     }
 

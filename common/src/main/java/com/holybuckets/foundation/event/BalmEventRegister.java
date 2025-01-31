@@ -3,6 +3,7 @@ package com.holybuckets.foundation.event;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 
+import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -25,7 +26,14 @@ public class BalmEventRegister {
         BalmEvents registry = Balm.getEvents();
         EventRegistrar events = EventRegistrar.getInstance();
 
-        /** SERVER EVENTS **/
+        //** CLIENT EVENTS **/
+
+        events.ON_CLIENT_STARTED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
+            registry.onEvent( ClientStartedEvent.class, c, p(false));
+            registeredEvents.add(c.hashCode());
+        });
+
+        //** SERVER EVENTS **/
 
         events.ON_BEFORE_SERVER_START.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
             registry.onEvent( ServerStartingEvent.class, c, p(false));

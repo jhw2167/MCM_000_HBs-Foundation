@@ -2,9 +2,12 @@ package com.holybuckets.foundation.model;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.HBUtil.BlockUtil;
+import com.mojang.realmsclient.util.LevelType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -24,12 +27,28 @@ public class ManagedChunkUtilityAccessor {
 
 
     //** CHUNK STATUS **//
+    public static boolean isLoadedAndEditable(LevelAccessor level, BlockPos p) {
+        Level levelType = (Level) level;
+        if( !levelType.isLoaded(p) ) return false;
+
+        ChunkAccess chunk = levelType.getChunk(p);
+        if( chunk == null || !isChunkStatusFull(chunk) ) return false;
+
+        return isLoaded(level, chunk);
+    }
+
+    public static boolean isChunkStatusFull(ChunkAccess c) {
+        return (c.getStatus() == ChunkStatus.FULL);
+    }
+
     public static boolean isLoaded(LevelAccessor level, BlockPos p) {
         Level levelType = (Level) level;
         return levelType.isLoaded(p) && isLoaded(level, levelType.getChunk(p) );
     }
 
     public static boolean isLoaded(LevelAccessor level, ChunkAccess c) {
+        if( c == null ) return false;
+        if( !isChunkStatusFull(c) ) return false;
         return isLoaded(level , c.getPos());
     }
 

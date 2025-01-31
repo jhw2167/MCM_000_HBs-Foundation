@@ -4,9 +4,16 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +34,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
 * Class: HolyBucketsUtility
@@ -117,6 +126,47 @@ public class HBUtil {
             return "[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "]";
         }
 
+        /**
+         * If one or more coordinates are specified as null, any will match
+         * @param all
+         * @param x
+         * @param y
+         * @param z
+         * @return
+         */
+        public static List<Pair<BlockState, BlockPos>> findBlockPos(List<Pair<BlockState, BlockPos>> all, Integer x, Integer y, Integer z) {
+            List<Pair<BlockState, BlockPos>> found = new ArrayList<>();
+            for(Pair<BlockState, BlockPos> p : all) {
+                if( (x == null || p.getRight().getX() == x) &&
+                    (y == null || p.getRight().getY() == y) &&
+                    (z == null || p.getRight().getZ() == z) )
+                {
+                    found.add(p);
+                }
+            }
+            return found;
+        }
+
+        /**
+         * Returns true if the given pair is within the interger block range
+         * @param p
+         * @param center
+         * @param radius
+         * @return
+         */
+        public static boolean inRange(Pair<BlockState, BlockPos> p, BlockPos center,  int radius) {
+            return inRange(p.getRight(), center, radius);
+        }
+
+        public static boolean inRange(BlockPos p, BlockPos center,  int radius) {
+            if( p == null ) return false;
+            if( center == null ) center = new BlockPos(0, 0, 0);
+            return p.distSqr(center) <= radius * radius;
+        }
+
+        public static int distanceSqr(BlockPos p1, BlockPos p2) {
+            return (int) p1.distSqr(p2);
+        }
 
         public static Map<BlockState, List<BlockPos>> condenseBlockStates(List<Pair<BlockState,BlockPos>> blockStates)
         {
@@ -570,13 +620,19 @@ public class HBUtil {
     public static class NetworkUtil {
 
         private static int SENT = 0;
+        private static boolean CLIENT_STARTED = false;
+        private static BalmNetworking networking = Balm.getNetworking();
 
-        public static <T> void sendToAllPlayers(T message) {
-            //new Thread(() -> threadedSendToAllPlayers(message)).start();
-            threadedSendToAllPlayers(message);
+        private static final Queue<Runnable> PENDING_TASKS = new LinkedBlockingQueue<>();
+        public static final ThreadPoolExecutor POOL = new ThreadPoolExecutor(1, 1, 60L, java.util.concurrent.TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+
+        public static <T> void serverSendToAllPlayers(T message) {
+            if( CLIENT_STARTED )
+                POOL.submit(() -> threadedSendToAllPlayers(message));
+            else
+                PENDING_TASKS.add(() -> threadedSendToAllPlayers(message));
         }
             private static <T> void threadedSendToAllPlayers( T message) {
-                BalmNetworking networking = Balm.getNetworking();
                 networking.sendToAll(GeneralConfig.getInstance().getServer(), message);
                 SENT++;
             }
@@ -585,6 +641,26 @@ public class HBUtil {
         public static <T> void sendToPlayer(Player player, T message) {
             BalmNetworking networking = Balm.getNetworking();
             networking.sendTo(player, message);
+        }
+
+        public static void init(EventRegistrar reg) {
+            reg.registerOnServerStarted(NetworkUtil::onServerStart);
+            reg.registerOnPlayerLoad(NetworkUtil::onPlayerConnectedEvent);
+        }
+
+        private static void onServerStart(ServerStartedEvent event) {
+            if( event.getServer().isDedicatedServer() )
+                CLIENT_STARTED = true;
+        }
+
+        private static void onPlayerConnectedEvent(PlayerLoginEvent event)
+        {
+            CLIENT_STARTED = true;
+
+            Runnable task;
+            while ((task = PENDING_TASKS.poll()) != null) {
+                POOL.submit(task);
+            }
         }
     }
 

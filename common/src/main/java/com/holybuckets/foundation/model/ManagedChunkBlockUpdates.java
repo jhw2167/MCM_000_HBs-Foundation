@@ -2,10 +2,8 @@ package com.holybuckets.foundation.model;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastructure.ConcurrentCircularList;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -17,6 +15,8 @@ import java.lang.ref.WeakReference;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ManagedChunkBlockUpdates {
@@ -26,13 +26,12 @@ public class ManagedChunkBlockUpdates {
 
      private LevelAccessor level;
 
-
-     private List<Pair<BlockState, BlockPos>> UPDATES;
+     private Queue<Pair<BlockState, BlockPos>> UPDATES;
      private Iterator<Pair<BlockState, BlockPos>> NEXT_UPDATE;
      private Map<Integer, Integer> PENDING;
      private Map<Integer, WeakReference<Pair<BlockState, BlockPos>>> SUCCEEDED;
 
-     private WriteMonitor writeMonitor = new WriteMonitor(100);
+     private WriteMonitor writeMonitor = new WriteMonitor(400);
 
     static final Map<LevelAccessor, ManagedChunkBlockUpdates> LEVEL_UPDATES = new ConcurrentHashMap<>();
 
@@ -41,7 +40,7 @@ public class ManagedChunkBlockUpdates {
         {
             this.level = level;
             this.PENDING = new ConcurrentHashMap<>();
-            this.UPDATES = new ConcurrentCircularList<>();
+            this.UPDATES = new ConcurrentLinkedQueue<>();
             this.SUCCEEDED = new ConcurrentHashMap<>();
         }
 
@@ -73,32 +72,45 @@ public class ManagedChunkBlockUpdates {
 
         try {
 
-            if( !writeMonitor.tryLockMainThread() )
-                return;
+            if( !writeMonitor.tryLockMainThread() ) return;
 
             if( UPDATES.isEmpty() ) return;
 
-            if (this.NEXT_UPDATE == null || !this.NEXT_UPDATE.hasNext()) {
+            if (this.NEXT_UPDATE == null || !this.NEXT_UPDATE.hasNext())
+            {
                 this.NEXT_UPDATE = UPDATES.iterator();
-                if (!this.NEXT_UPDATE.hasNext()) return; // No updates to process
+                if (!this.NEXT_UPDATE.hasNext())
+                    return; // No updates to process
             }
 
-            for (int i = 0; i < writeMonitor.writesPerTick && NEXT_UPDATE.hasNext(); i++) {
+            for (int i = 0; i < writeMonitor.writesPerTick && NEXT_UPDATE.hasNext(); i++)
+            {
                 Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
                 if (update == null) continue;
-
-                if(!ableToUpdateBlock(update))
-                    continue;
-
-                if (updateBlockState(update)) {
+                if( PENDING.get(update.hashCode()) == null )  {
+                    LoggerBase.logInfo(null, "013000", "Duplicate update found:" + update.getRight());
                     NEXT_UPDATE.remove();
-                    //PENDING.remove(update.hashCode());
+                    continue;
+                }
+
+                if(!ableToUpdateBlock(update)) continue;
+
+                int q = 0;
+                if(level.isClientSide())
+                    q = 1;
+                else
+                    q = 2;
+
+                if (updateBlockState(update))
+                {
                     SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));
+                    PENDING.remove(update.hashCode());
+                    NEXT_UPDATE.remove();
                 } else if (PENDING.get(update.hashCode()) < MAX_ATTEMPTS) {
                     PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
                 } else {
+                    PENDING.remove(update.hashCode());
                     NEXT_UPDATE.remove();
-                    //PENDING.remove(update.hashCode());
                 }
             }
         } catch (Exception e) {
@@ -114,11 +126,15 @@ public class ManagedChunkBlockUpdates {
         BlockPos pos = update.getRight();
         int tag = Block.UPDATE_IMMEDIATE;
 
-        return level.setBlock(pos, state, tag);
+        boolean succeeded = level.setBlock(pos, state, tag);
+        if(succeeded)
+            level.getChunk(pos).setUnsaved(true);
+
+        return succeeded;
     }
 
     private boolean ableToUpdateBlock(Pair<BlockState, BlockPos> update) {
-        return ManagedChunkUtilityAccessor.isLoaded(level, update.getRight());
+        return ManagedChunkUtilityAccessor.isLoadedAndEditable(level, update.getRight());
     }
 
     //** UPDATING CHUNK BLOCKS **//

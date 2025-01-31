@@ -13,18 +13,11 @@ public class Handlers {
     public static String CLASS_ID = "014";
 
     private static int RECEIVED = 0;
-    private static ThreadPoolExecutor POOL = new ThreadPoolExecutor(2, 4, 60L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
+    private static ThreadPoolExecutor POOL = new ThreadPoolExecutor(2, 2, 60L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
 
     public static void handleBlockStateUpdates(Player p, BlockStateUpdatesMessage m) {
         RECEIVED++;
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));
-        if( POOL.getTaskCount() % 16 == 0) {
-            BlockPos pos = m.blockStates.values().toArray(new BlockPos[0])[0];
-            ChunkPos chunkPos = m.world.getChunk(pos).getPos();
-            LoggerBase.logInfo(null, "014000"," CLIENT Total TASKS pending: " + POOL.getQueue().size() + "Chunk pos: " + chunkPos );
-        }
-
-
     }
 
 

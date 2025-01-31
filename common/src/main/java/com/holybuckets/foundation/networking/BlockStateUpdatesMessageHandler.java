@@ -1,8 +1,6 @@
 package com.holybuckets.foundation.networking;
 
-import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.model.ManagedChunk;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -65,7 +63,7 @@ public class BlockStateUpdatesMessageHandler {
 
         for(Map<BlockState, List<BlockPos>> message : messages) {
             BlockStateUpdatesMessage packet = new BlockStateUpdatesMessage(world, message);
-            HBUtil.NetworkUtil.sendToAllPlayers(packet);
+            HBUtil.NetworkUtil.serverSendToAllPlayers(packet);
         }
 
     }

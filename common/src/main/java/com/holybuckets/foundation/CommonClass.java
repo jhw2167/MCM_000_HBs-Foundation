@@ -37,6 +37,7 @@ public class CommonClass {
         }
 
         EventRegistrar.init();
+        HBUtil.NetworkUtil.init(EventRegistrar.getInstance());
         GeneralConfig.init(EventRegistrar.getInstance());
         sample(EventRegistrar.getInstance());
 
@@ -63,12 +64,8 @@ public class CommonClass {
     //Create a threadpool to add blocks to a chunk, max 16 threads, store in queue
     public static final ThreadPoolExecutor POOL = new ThreadPoolExecutor(2, 2, 10L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
     public static void onChunkLoad(ChunkLoadingEvent.Load event) {
-        //Constants.LOG.info("Chunk loaded: " + event.getChunkPos());
         if( event.getLevel().isClientSide() ) return;
         POOL.submit(() -> threadAddChunkBlock(event));
-        //Log the total tasks and total completed tasks:
-        if( POOL.getTaskCount() % 16 == 0)
-            LoggerBase.logInfo(null, "000000", "TASKS: " + POOL.getTaskCount() + " COMPLETED: " + POOL.getCompletedTaskCount());
     }
 
     public static void threadAddChunkBlock(ChunkLoadingEvent.Load event)

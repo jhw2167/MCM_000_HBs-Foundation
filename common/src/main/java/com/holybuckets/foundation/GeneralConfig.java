@@ -5,6 +5,7 @@ package com.holybuckets.foundation;
 //Forge Imports
 
 import com.google.gson.Gson;
+import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -45,6 +46,7 @@ public class GeneralConfig {
     private Vec3i worldSpawn;
     private boolean isLevelConfigInit;
     private Boolean isPlayerLoaded;
+    private PerformanceImpactConfig performanceImpactConfig;
 
     /**
      * Constructor
@@ -78,6 +80,11 @@ public class GeneralConfig {
 
     }
 
+    private void initPerformanceConfig() {
+        this.performanceImpactConfig = new PerformanceImpactConfig();
+    }
+
+
     public static GeneralConfig getInstance() {
         return instance;
     }
@@ -89,6 +96,7 @@ public class GeneralConfig {
     /** Server Events **/
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
+        this.initPerformanceConfig();
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
         this.startWatchAutoSaveThread();
@@ -179,6 +187,9 @@ public class GeneralConfig {
         return server;
     }
 
+    public PerformanceImpactConfig getPerformanceImpactConfig() {
+        return performanceImpactConfig;
+    }
 
     /**
      * Setters

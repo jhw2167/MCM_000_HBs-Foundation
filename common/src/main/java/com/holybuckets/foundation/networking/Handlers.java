@@ -15,6 +15,10 @@ public class Handlers {
     private static int RECEIVED = 0;
     private static ThreadPoolExecutor POOL = new ThreadPoolExecutor(2, 2, 60L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
 
+    public static void init() {
+        //Initializing class
+    }
+
     public static void handleBlockStateUpdates(Player p, BlockStateUpdatesMessage m) {
         RECEIVED++;
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));

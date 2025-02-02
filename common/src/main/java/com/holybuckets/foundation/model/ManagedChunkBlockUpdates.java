@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.model;
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -17,6 +18,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ManagedChunkBlockUpdates {
@@ -31,7 +33,7 @@ public class ManagedChunkBlockUpdates {
      private Map<Integer, Integer> PENDING;
      private Map<Integer, WeakReference<Pair<BlockState, BlockPos>>> SUCCEEDED;
 
-     private WriteMonitor writeMonitor = new WriteMonitor(400);
+     private WriteMonitor writeMonitor = new WriteMonitor();
 
     static final Map<LevelAccessor, ManagedChunkBlockUpdates> LEVEL_UPDATES = new ConcurrentHashMap<>();
 
@@ -83,17 +85,19 @@ public class ManagedChunkBlockUpdates {
                     return; // No updates to process
             }
 
-            for (int i = 0; i < writeMonitor.writesPerTick && NEXT_UPDATE.hasNext(); i++)
+            int writesPerTick = writeMonitor.getWritePerTick();
+            for (int i = 0; i < writesPerTick && NEXT_UPDATE.hasNext(); i++)
             {
                 Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
                 if (update == null) continue;
-                if( PENDING.get(update.hashCode()) == null )  {
-                    LoggerBase.logInfo(null, "013000", "Duplicate update found:" + update.getRight());
-                    NEXT_UPDATE.remove();
+
+                /*
+                if(!ableToUpdateBlock(update)) {
+                    PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
+                    i--;
                     continue;
                 }
-
-                if(!ableToUpdateBlock(update)) continue;
+                 */
 
                 int q = 0;
                 if(level.isClientSide())
@@ -108,9 +112,11 @@ public class ManagedChunkBlockUpdates {
                     NEXT_UPDATE.remove();
                 } else if (PENDING.get(update.hashCode()) < MAX_ATTEMPTS) {
                     PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
+                    i--;
                 } else {
                     PENDING.remove(update.hashCode());
                     NEXT_UPDATE.remove();
+                    i--;
                 }
             }
         } catch (Exception e) {
@@ -163,8 +169,17 @@ public class ManagedChunkBlockUpdates {
 
     static synchronized boolean updateChunkBlockStates(LevelAccessor level, List<Pair<BlockState, BlockPos>> updates)
     {
+        if( updates == null || updates.isEmpty() )
+            return false;
+
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return false;
+
+        //If any are unloaded or not editable, return false
+        if( !level.isClientSide() ) {
+            if( !updates.stream().allMatch(manager::ableToUpdateBlock) )
+                return false;
+        }
 
         try {
             if( !manager.writeMonitor.tryLockWorkerThread() )
@@ -228,24 +243,22 @@ public class ManagedChunkBlockUpdates {
 
     private class WriteMonitor {
 
-        private static long TICKS_PER_SECOND = 20;
-        private long writesPerSecond;
-        long writesPerTick;
-        private final long MODULO_COUNT = 4;
-        private volatile long tickCount;
+        private static int TICKS_PER_SECOND = 20;
+        private AtomicInteger writesPerSecond;
+        private final int MODULO_COUNT = 4;
+        private volatile int tickCount;
 
         final ReentrantLock lock = new ReentrantLock(false);
 
-        public WriteMonitor(long writesPerSecond)
+        public WriteMonitor()
         {
-            this.writesPerSecond = writesPerSecond;
-
-            if( writesPerSecond <= 0 )
-                this.writesPerSecond = 10;
-
-            this.writesPerTick = writesPerSecond / (TICKS_PER_SECOND / MODULO_COUNT);
-
+            GeneralConfig config = GeneralConfig.getInstance();
+            this.writesPerSecond = config.getPerformanceImpactConfig().getBlockWritesPerTick();
             this.tickCount = 0;
+        }
+
+        Integer getWritePerTick() {
+            return writesPerSecond.get() / (TICKS_PER_SECOND / MODULO_COUNT);
         }
 
         boolean tryLockMainThread() {

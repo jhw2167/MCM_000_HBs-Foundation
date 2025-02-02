@@ -269,7 +269,8 @@ public class ManagedChunk implements IMangedChunkData {
 
     /**
      * Update the block states of in world on a Client or ServerLevel. These results are added to a queue and
-     * processed in the next tick where setBlock can run on the main thread.
+     * processed in the next tick where setBlock can run on the main thread. If ANY block position
+     * in the update is not in a location loaded by the server, no blocks are updated and false is returned.
      * @param level
      * @param updates
      * @return true if successful, false if some element was null

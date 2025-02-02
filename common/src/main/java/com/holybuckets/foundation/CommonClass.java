@@ -26,9 +26,6 @@ public class CommonClass {
     public static boolean isInitialized = false;
     public static void init()
     {
-        //Initialize Foundations
-        if (isInitialized)
-            return;
 
         Constants.LOG.info("Loaded {} mod on {}! we are currently in a {} environment!", Constants.MOD_NAME, Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
 
@@ -36,12 +33,8 @@ public class CommonClass {
             Constants.LOG.info("Hello to " + Constants.MOD_NAME + "!");
         }
 
-        EventRegistrar.init();
-        HBUtil.NetworkUtil.init(EventRegistrar.getInstance());
-        GeneralConfig.init(EventRegistrar.getInstance());
-        sample(EventRegistrar.getInstance());
-
         FoundationInitializers.init();
+        //test(EventRegistrar.getInstance());
 
         isInitialized = true;
     }
@@ -49,7 +42,7 @@ public class CommonClass {
     /**
      * Description: Run sample tests methods
      */
-    public static void sample(EventRegistrar reg)
+    public static void test(EventRegistrar reg)
     {
         reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
@@ -79,7 +72,7 @@ public class CommonClass {
         //Use MangedChunk.loadedChunks to determine when chunk is loaded
         while( !ManagedChunkUtilityAccessor.isLoaded(level, c) ) {}
 
-        final int RANGE = 1;
+        final int RANGE = 8;
         //final int Y = new Random(p.getX()*p.getZ()).nextInt(128);
         final int Y = 128;
         BlockPos pos = null;

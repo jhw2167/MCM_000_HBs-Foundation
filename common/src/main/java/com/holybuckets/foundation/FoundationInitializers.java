@@ -1,9 +1,10 @@
 package com.holybuckets.foundation;
 
+import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.config.PerformanceImpactConfigData;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessageHandler;
 import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
@@ -13,26 +14,47 @@ import net.minecraft.resources.ResourceLocation;
 
 public class FoundationInitializers {
 
-    public static void init()
+    static void init()
     {
+        commonInitialize();
+        
         initEvents();
+        initConfig();
         initNetworking();
     }
 
+    /**
+     * Description: Initialize common HB utilities that much support all mods prior to mod initialization
+     */
+    public static void commonInitialize()
+    {
+        if(CommonClass.isInitialized) return;
 
-    public static void initEvents()
+        EventRegistrar.init();
+        HBUtil.NetworkUtil.init(EventRegistrar.getInstance());
+        GeneralConfig.init(EventRegistrar.getInstance());
+    }
+
+
+    private static void initEvents()
     {
         ManagedChunk.init(EventRegistrar.getInstance());
         BalmEventRegister.registerEvents();
     }
 
-    public static void initNetworking()
+    private static void initConfig()
+    {
+        PerformanceImpactConfig.initialize();
+    }
+
+    private static void initNetworking()
     {
         BalmNetworking networking = Balm.getNetworking();
+        Handlers.init();
         networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
     }
 
-    public static ResourceLocation id(String location) {
+    private static ResourceLocation id(String location) {
         return new ResourceLocation(Constants.MOD_ID, location);
     }
 }

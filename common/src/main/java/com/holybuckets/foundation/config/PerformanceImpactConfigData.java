@@ -12,6 +12,6 @@ public class PerformanceImpactConfigData implements BalmConfigData {
     public static class CPerformanceImpactConfig {
 
         @Comment("Dictates the performance impact of any Holy Buckets mods by controlling settings that influence operations per second or number of threads. Options are VERY_LOW, LOW, MEDIUM, HIGH, VERY_HIGH")
-        public String performanceImpact = "HIGH";
+        public String performanceImpact = "MEDIUM";
     }
 }

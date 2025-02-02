@@ -17,7 +17,7 @@ public class FoundationInitializers {
     static void init()
     {
         commonInitialize();
-        
+
         initEvents();
         initConfig();
         initNetworking();

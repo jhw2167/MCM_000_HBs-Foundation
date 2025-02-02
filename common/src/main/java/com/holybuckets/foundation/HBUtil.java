@@ -621,6 +621,7 @@ public class HBUtil {
 
         private static int SENT = 0;
         private static boolean CLIENT_STARTED = false;
+        private static boolean USING_DEDICATED_SERVER = false;
         private static BalmNetworking networking = Balm.getNetworking();
 
         private static final Queue<Runnable> PENDING_TASKS = new LinkedBlockingQueue<>();
@@ -650,7 +651,10 @@ public class HBUtil {
 
         private static void onServerStart(ServerStartedEvent event) {
             if( event.getServer().isDedicatedServer() )
-                CLIENT_STARTED = true;
+            {
+                USING_DEDICATED_SERVER = true;
+                CLIENT_STARTED  = true;
+            }
         }
 
         private static void onPlayerConnectedEvent(PlayerLoginEvent event)

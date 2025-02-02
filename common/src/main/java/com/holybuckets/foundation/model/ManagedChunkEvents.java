@@ -12,6 +12,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
@@ -43,7 +44,7 @@ public class ManagedChunkEvents {
 
     public static void init( EventRegistrar reg )
     {
-        reg.registerOnServerStopped(ManagedChunkEvents::onServerStopped, false);
+        reg.registerOnServerStopped(ManagedChunkEvents::onServerStopped);
 
         reg.registerOnLevelLoad(ManagedChunkEvents::onWorldLoad);
         reg.registerOnLevelUnload(ManagedChunkEvents::onWorldUnload);
@@ -86,8 +87,7 @@ public class ManagedChunkEvents {
             initChunks.add(chunkId.getAsString());
         });
 
-        EventRegistrar.getInstance().registerOnDataSave( () -> ManagedChunk.save(level),
-         true);
+        EventRegistrar.getInstance().registerOnDataSave( () -> ManagedChunk.save(level), EventPriority.Highest);
     }
 
     private static void onWorldUnload( final LevelLoadingEvent.Unload event )

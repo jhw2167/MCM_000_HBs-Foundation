@@ -17,58 +17,59 @@ import java.util.function.Consumer;
 public class BalmEventRegister {
 
     private static final HashSet<Integer> registeredEvents = new HashSet<>();
+    private static EventRegistrar events;
     private static boolean  notRegistered(Consumer<?> c) { return !registeredEvents.contains(c.hashCode()); }
-
+    public static EventPriority p(Consumer<?> func) { return events.PRIORITIES.get(func.hashCode()); }
 
     // Register all events in the Registrar with Balm Events
     public static void registerEvents()
     {
         BalmEvents registry = Balm.getEvents();
-        EventRegistrar events = EventRegistrar.getInstance();
+        events = EventRegistrar.getInstance();
 
         //** CLIENT EVENTS **/
 
         events.ON_CLIENT_STARTED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ClientStartedEvent.class, c, p(false));
+            registry.onEvent( ClientStartedEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         //** SERVER EVENTS **/
 
         events.ON_BEFORE_SERVER_START.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( ServerStartingEvent.class, c, p(false));
+            registry.onEvent( ServerStartingEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_SERVER_START.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ServerStartedEvent.class, c, p(false));
+            registry.onEvent( ServerStartedEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_SERVER_STOP.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ServerStoppedEvent.class, c, p(false));
+            registry.onEvent( ServerStoppedEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         /** LEVEL & CHUNK EVENTS **/
 
         events.ON_LEVEL_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( LevelLoadingEvent.Load.class, c, p(false));
+            registry.onEvent( LevelLoadingEvent.Load.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_LEVEL_UNLOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( LevelLoadingEvent.Unload.class, c, p(false));
+            registry.onEvent( LevelLoadingEvent.Unload.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_CHUNK_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ChunkLoadingEvent.Load.class, c, p(false));
+            registry.onEvent( ChunkLoadingEvent.Load.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_CHUNK_UNLOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ChunkLoadingEvent.Unload.class, c, p(false));
+            registry.onEvent( ChunkLoadingEvent.Unload.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
@@ -77,16 +78,13 @@ public class BalmEventRegister {
 
         //Player login event
         events.ON_PLAYER_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( PlayerLoginEvent.class , c, p(false));
+            registry.onEvent( PlayerLoginEvent.class , c, p(c));
             registeredEvents.add(c.hashCode());
         });
 
 
     }
 
-    public static EventPriority p(boolean isHigh) {
-        return isHigh ? EventPriority.High  : EventPriority.Normal;
-    }
 
 
 

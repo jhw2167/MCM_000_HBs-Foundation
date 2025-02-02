@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -70,13 +71,13 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
-        reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, true);
-        reg.registerOnServerStopped(instance::onServerStopped, false);
+        reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, EventPriority.Highest);
+        reg.registerOnServerStopped(instance::onServerStopped, EventPriority.Lowest);
 
-        reg.registerOnLevelLoad(instance::onLoadLevel, true);
-        reg.registerOnLevelUnload(instance::onUnLoadLevel, false);
+        reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
+        reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
 
-        reg.registerOnPlayerLoad(instance::initPlayerConfigs, true);
+        reg.registerOnPlayerLoad(instance::initPlayerConfigs, EventPriority.Highest);
 
     }
 

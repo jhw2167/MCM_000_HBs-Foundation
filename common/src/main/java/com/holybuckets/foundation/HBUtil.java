@@ -341,6 +341,11 @@ public class HBUtil {
             return pos.x + "," + pos.z;
         }
 
+        public static String getId( BlockPos pos ) {
+            return getId( Math.floorDiv(pos.getX(), 16), Math.floorDiv(pos.getZ(), 16) );
+        }
+
+
         public static ChunkPos getPos(String id) {
             String[] parts = id.split(",");
             return new ChunkPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
@@ -981,6 +986,10 @@ public class HBUtil {
             X = new int[size];
             Y = new int[size];
             Z = new int[size];
+        }
+        //Write an add method for blockState and Block
+        public void add(BlockPos pos) {
+            this.add(pos.getX(), pos.getY(), pos.getZ());
         }
 
         public void add(int x, int y, int z)

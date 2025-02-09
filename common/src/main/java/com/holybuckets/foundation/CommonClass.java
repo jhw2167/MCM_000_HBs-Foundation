@@ -1,9 +1,11 @@
 package com.holybuckets.foundation;
 
+import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.platform.Services;
+import net.blay09.mods.balm.api.event.BalmEvents;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
@@ -34,7 +36,7 @@ public class CommonClass {
         }
 
         FoundationInitializers.init();
-        //test(EventRegistrar.getInstance());
+        //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
         isInitialized = true;
     }
@@ -45,7 +47,7 @@ public class CommonClass {
     public static void test(EventRegistrar reg)
     {
         reg.registerOnChunkLoad(CommonClass::onChunkLoad);
-        //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
+        reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         //reg.registerOnPlayerLoad(CommonClass::onPlayerLoad);
     }
 
@@ -56,9 +58,17 @@ public class CommonClass {
 
     //Create a threadpool to add blocks to a chunk, max 16 threads, store in queue
     public static final ThreadPoolExecutor POOL = new ThreadPoolExecutor(2, 2, 10L, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>());
-    public static void onChunkLoad(ChunkLoadingEvent.Load event) {
+    public static void onChunkLoad(ChunkLoadingEvent.Load event)
+    {
         if( event.getLevel().isClientSide() ) return;
-        POOL.submit(() -> threadAddChunkBlock(event));
+
+        String id = HBUtil.ChunkUtil.getId(event.getChunk().getPos().getWorldPosition());
+        String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
+
+        //Print ids to test if they match
+        Constants.LOG.info("Chunk loaded: " + id + " " + chunkId + " MATCH: " + id.equals(chunkId) );
+
+        //POOL.submit(() -> threadAddChunkBlock(event));
     }
 
     public static void threadAddChunkBlock(ChunkLoadingEvent.Load event)

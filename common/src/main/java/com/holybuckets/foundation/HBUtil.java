@@ -808,12 +808,12 @@ public class HBUtil {
         public static final int SECTION_SZ = 16;
         public boolean DNE = false;
 
-        public WorldPos(BlockPos pos, LevelChunk chunk) {
+        public WorldPos(BlockPos pos, ChunkAccess chunk) {
             blockPos = pos;
             setWorldPos(pos, chunk);
         }
 
-        public WorldPos(TripleInt indices, int section, LevelChunk chunk) {
+        public WorldPos(TripleInt indices, int section, ChunkAccess chunk) {
             sectionIndicies = indices;
             sectionIndex = section;
             setWorldPos(indices, section, chunk);
@@ -821,17 +821,8 @@ public class HBUtil {
 
         /** Setters **/
 
-        public void setWorldPos(BlockPos pos, LevelChunk chunk)
+        public void setWorldPos(BlockPos pos, ChunkAccess chunk)
         {
-            try {
-                chunk.getBlockState(pos);
-            } catch (Exception e) {
-                LoggerBase.logError( null, "004003", "Error setting world position, block state not found at position: " + pos.toString());
-                DNE = true;
-                return;
-            }
-
-
             blockPos = pos;
 
             //Convert worldPos to sectionIndicies
@@ -849,14 +840,14 @@ public class HBUtil {
         }
 
 
-        public void setWorldPos(TripleInt indices, int section, LevelChunk chunk)
+        public void setWorldPos(TripleInt indices, int section, ChunkAccess chunk)
         {
             final BlockPos chunkPos = chunk.getPos().getWorldPosition();
             final Integer Y_MIN = chunk.getMinBuildHeight();
             final Integer Y_MAX = chunk.getMaxBuildHeight();
 
              int x = chunkPos.getX() + indices.x;
-             int y = Y_MIN + (SECTION_SZ * section);
+             int y = Y_MIN + (SECTION_SZ * section) + indices.y;
              int z = chunkPos.getZ() + indices.z;
 
              this.blockPos = new BlockPos(x, y, z);

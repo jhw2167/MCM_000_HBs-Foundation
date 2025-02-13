@@ -8,6 +8,8 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Supplier;
 
 //Project imports
@@ -17,12 +19,17 @@ public class CommandRegistry {
     private static final String CLASS_ID = "011";
     //private static final Deque<Consumer<CommandSourceStack>> COMMANDS = new ArrayDeque<>();
     private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ArrayDeque<>();
+    private static final Set<Integer> registeredCommands = new HashSet<>();
 
     //Package private
     static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         LoggerBase.logDebug(null, "011001", "Registering Commands " + COMMANDS.size());
-        COMMANDS.forEach(command -> dispatcher.register(command.get()));
+        COMMANDS.stream().filter(s -> !registeredCommands.contains(s) ).forEach( (s) ->
+        {
+            dispatcher.register(s.get());
+            registeredCommands.add(s.hashCode());
+        });
         LoggerBase.logDebug(null, "011002", "Finished Registering Commands " + COMMANDS.size());
     }
 

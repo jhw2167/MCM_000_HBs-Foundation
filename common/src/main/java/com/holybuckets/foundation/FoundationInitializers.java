@@ -19,6 +19,7 @@ public class FoundationInitializers {
         commonInitialize();
 
         initEvents();
+        initCommands();
         initConfig();
         initNetworking();
     }
@@ -35,6 +36,10 @@ public class FoundationInitializers {
         GeneralConfig.init(EventRegistrar.getInstance());
     }
 
+    private static void initConfig()
+    {
+        PerformanceImpactConfig.initialize();
+    }
 
     private static void initEvents()
     {
@@ -42,10 +47,11 @@ public class FoundationInitializers {
         BalmEventRegister.registerEvents();
     }
 
-    private static void initConfig()
+    private static void initCommands()
     {
-        PerformanceImpactConfig.initialize();
+        BalmEventRegister.registerCommands();
     }
+
 
     private static void initNetworking()
     {

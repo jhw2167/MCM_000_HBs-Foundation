@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.event;
 
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.command.BalmCommands;
 import net.blay09.mods.balm.api.event.*;
 
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
@@ -85,6 +86,11 @@ public class BalmEventRegister {
 
     }
 
+
+    public static void registerCommands() {
+        BalmCommands commands = Balm.getCommands();
+        commands.register(CommandRegistry::register);
+    }
 
 
 

@@ -95,6 +95,14 @@ public class ManagedChunk implements IMangedChunkData {
     }
 
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setLevel(LevelAccessor level) {
+        this.level = level;
+    }
+
 
     /**
      * Set a managed chunk data subclass
@@ -136,8 +144,17 @@ public class ManagedChunk implements IMangedChunkData {
         {
             IMangedChunkData sub = data.getValue().get();
             try {
-                sub.deserializeNBT(tag.getCompound(sub.getClass().getName()));
-                setSubclass(sub.getClass(), sub);
+                CompoundTag nbt = tag.getCompound(sub.getClass().getName());
+                if( managedChunkData.containsKey(sub.getClass()) ) {
+                     managedChunkData.get(sub.getClass()).deserializeNBT(nbt);
+                }
+                else {
+                    sub.deserializeNBT(tag.getCompound(sub.getClass().getName()));
+                    setSubclass(sub.getClass(), sub);
+                }
+                sub.setId(this.id);
+                sub.setLevel(this.level);
+
             } catch (Exception e) {
                 errors.put(sub.getClass().getName(), e.getMessage());
             }

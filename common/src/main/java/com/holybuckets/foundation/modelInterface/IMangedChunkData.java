@@ -36,4 +36,7 @@ public interface IMangedChunkData  {
 
     public void deserializeNBT(CompoundTag nbt);
 
+    void setId(String id);
+
+    void setLevel(LevelAccessor level);
 }

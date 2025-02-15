@@ -203,7 +203,7 @@ public class DataStore implements IStringSerializable {
     //write a public static method to retrieve the world properties
     public static Long getTotalTickCount() {
         ModSaveData modData = INSTANCE.getOrCreateModSavedData(Constants.MOD_ID);
-        if (modData.worldSaveData.containsKey(INSTANCE.currentWorldId))
+        if (!modData.worldSaveData.containsKey(INSTANCE.currentWorldId))
             return -1L;
 
         WorldSaveData worldData = modData.getOrCreateWorldSaveData(INSTANCE.currentWorldId);

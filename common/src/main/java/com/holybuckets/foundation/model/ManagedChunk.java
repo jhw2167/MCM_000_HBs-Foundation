@@ -41,8 +41,8 @@ public class ManagedChunk implements IMangedChunkData {
     private String id;
     private ChunkPos pos;
     private LevelAccessor level;
-    private int tickWritten;
-    private int tickLoaded;
+    private long tickWritten;
+    private long tickLoaded;
     private boolean isLoaded;
     private final HashMap<Class<? extends IMangedChunkData>, IMangedChunkData> managedChunkData = new HashMap<>();
 
@@ -66,7 +66,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.pos = pos;
         this.level = level;
 
-        this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
+        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
         this.initSubclassesFromMemory(level, id);
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
@@ -163,7 +163,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.id = tag.getString("id");
 
         this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
-        this.tickWritten = tag.getInt("tickWritten");
+        this.tickWritten = tag.getLong("tickWritten");
 
         /** If tickWritten is < tickLoaded, then this data
          * was written previously and removed from memory. Replace the dummy
@@ -181,7 +181,7 @@ public class ManagedChunk implements IMangedChunkData {
             this.initSubclassesFromNbt(tag);
         }
 
-        this.tickLoaded = GENERAL_CONFIG.getServer().getTickCount();
+        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
 
     }
 
@@ -304,7 +304,7 @@ public class ManagedChunk implements IMangedChunkData {
         if(initChunks == null) return;
 
         String[] chunkIds = initChunks.toArray(new String[0]);
-        levelData.addProperty("chunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
+        levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
 
     }
 
@@ -327,8 +327,8 @@ public class ManagedChunk implements IMangedChunkData {
 
             details.putString("id", this.id); count++;
             details.putString("level", HBUtil.LevelUtil.toLevelId(this.level)); count++;
-            this.tickWritten = GENERAL_CONFIG.getServer().getTickCount(); count++;
-            details.putInt("tickWritten", this.tickWritten); count++;
+            this.tickWritten = GENERAL_CONFIG.getTotalTickCount(); count++;
+            details.putLong("tickWritten", this.tickWritten); count++;
 
             for(IMangedChunkData data : managedChunkData.values())
             {

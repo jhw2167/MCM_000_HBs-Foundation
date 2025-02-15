@@ -74,12 +74,12 @@ public class ManagedChunkEvents {
         DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
-        JsonElement chunksIds = levelData.get("chunkIds");
+        JsonElement chunksIds = levelData.get("initializedChunkIds");
         if( chunksIds == null )
         {
             String[] ids = new String[0];
-            levelData.addProperty("chunkIds", HBUtil.FileIO.arrayToJson(ids));
-            chunksIds = levelData.get("chunkIds");
+            levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(ids));
+            chunksIds = levelData.get("initializedChunkIds");
         }
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);

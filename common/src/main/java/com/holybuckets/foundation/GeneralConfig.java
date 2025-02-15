@@ -188,6 +188,10 @@ public class GeneralConfig {
         return server;
     }
 
+    public long getTotalTickCount() {
+        return dataStore.getTotalTickCount() + server.getTickCount();
+    }
+
     public PerformanceImpactConfig getPerformanceImpactConfig() {
         return performanceImpactConfig;
     }

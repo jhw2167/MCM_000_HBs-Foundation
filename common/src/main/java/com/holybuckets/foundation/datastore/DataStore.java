@@ -189,9 +189,8 @@ public class DataStore implements IStringSerializable {
         GeneralConfig config = GeneralConfig.getInstance();
 
         {
-            Long prevTicks = worldData.get("totalTicks").getAsLong();
-            Long currentTicks = Integer.toUnsignedLong( config.getServer().getTickCount() );
-            worldData.addProperty("totalTicks", parse(prevTicks + currentTicks) );
+            Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
+            worldData.addProperty("totalTicks", parse(currentTicks) );
         }
 
         worldData.addProperty("worldSpawn", parse(config.getWorldSpawn()) );
@@ -201,6 +200,15 @@ public class DataStore implements IStringSerializable {
 
     }
 
+    //write a public static method to retrieve the world properties
+    public static Long getTotalTickCount() {
+        ModSaveData modData = INSTANCE.getOrCreateModSavedData(Constants.MOD_ID);
+        if (modData.worldSaveData.containsKey(INSTANCE.currentWorldId))
+            return -1L;
+
+        WorldSaveData worldData = modData.getOrCreateWorldSaveData(INSTANCE.currentWorldId);
+        return worldData.get("totalTicks").getAsLong();
+    }
 
 
 

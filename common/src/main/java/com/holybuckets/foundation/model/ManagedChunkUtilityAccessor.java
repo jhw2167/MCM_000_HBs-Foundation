@@ -11,11 +11,15 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+
+import javax.annotation.Nullable;
+
 import static com.holybuckets.foundation.model.ManagedChunk.GENERAL_CONFIG;
 import static com.holybuckets.foundation.model.ManagedChunk.MANAGED_SUBCLASSES;
 import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
 import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -68,6 +72,19 @@ public class ManagedChunkUtilityAccessor {
 
 
     //** UTILITIES **//
+
+    /**
+     * Get a copy of the set of all initialized chunks for this world
+     * @param level
+     * @return A copy of the set the all initialized chunks for this world
+     */
+    @Nullable
+    public static Set<String> getInitializedChunks(LevelAccessor level)
+    {
+        if(level == null) return null;
+        if(INITIALIZED_CHUNKS.get(level) == null) return null;
+        return INITIALIZED_CHUNKS.get(level).stream().collect(Collectors.toSet());
+    }
 
     /**
      * Get a chunk from a level using a chunk id

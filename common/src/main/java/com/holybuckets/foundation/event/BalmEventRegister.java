@@ -5,6 +5,8 @@ import net.blay09.mods.balm.api.command.BalmCommands;
 import net.blay09.mods.balm.api.event.*;
 
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
+import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -32,6 +34,16 @@ public class BalmEventRegister {
 
         events.ON_CLIENT_STARTED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
             registry.onEvent( ClientStartedEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_CONNECTED_TO_SERVER.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
+            registry.onEvent( ConnectedToServerEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_DISCONNECTED_FROM_SERVER.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
+            registry.onEvent( DisconnectedFromServerEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 

@@ -10,6 +10,8 @@ import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
+import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -54,6 +56,8 @@ public class EventRegistrar {
     final Deque<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
     final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
+    final Deque<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ArrayDeque<>();
+    final Deque<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ArrayDeque<>();
     final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
 
 
@@ -159,6 +163,16 @@ public class EventRegistrar {
     public void registerOnServerStopped(Consumer<ServerStoppedEvent> function) { registerOnServerStopped(function, EventPriority.Normal);}
     public void registerOnServerStopped(Consumer<ServerStoppedEvent> function, EventPriority priority) {
         generalRegister(function, ON_SERVER_STOP, priority);
+    }
+
+    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function) { registerOnConnectedToServer(function, EventPriority.Normal);}
+    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function, EventPriority priority) {
+        generalRegister(function, ON_CONNECTED_TO_SERVER, priority);
+    }
+
+    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function) { registerOnDisconnectedFromServer(function, EventPriority.Normal);}
+    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
     public void registerOnDataSave(Runnable function) { registerOnDataSave(function, EventPriority.Normal);}

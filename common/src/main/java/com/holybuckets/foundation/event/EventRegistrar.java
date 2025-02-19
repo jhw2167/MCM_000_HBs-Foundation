@@ -15,6 +15,7 @@ import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -94,8 +95,8 @@ public class EventRegistrar {
 
 
     //Create public methods for pushing functions onto each function event
-    private <T> void  generalRegister(Consumer<T> function, Deque<Consumer<T>> array, EventPriority priority) {
-        array.add(function);
+    private <T> void generalRegister(Consumer<T> function, ConcurrentLinkedSet<Consumer<T>> set, EventPriority priority) {
+        set.add(function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 
@@ -177,10 +178,8 @@ public class EventRegistrar {
 
     public void registerOnDataSave(Runnable function) { registerOnDataSave(function, EventPriority.Normal);}
     public void registerOnDataSave(Runnable function, EventPriority priority) {
-        if (priority == EventPriority.Highest )
-            ON_DATA_SAVE.addFirst(function);
-        else
-            ON_DATA_SAVE.add(function);
+        ON_DATA_SAVE.add(function);
+        PRIORITIES.put(function.hashCode(), priority);
     }
 
 

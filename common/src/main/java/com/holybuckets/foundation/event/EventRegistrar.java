@@ -35,13 +35,13 @@ public class EventRegistrar {
     private static EventRegistrar instance;
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
     
-    final ArrayDeque<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ArrayDeque<>();
+    final ConcurrentLinkedSet<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ConcurrentLinkedSet<>();
 
 
-    final Deque<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ArrayDeque<>();
-    final Deque<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ArrayDeque<>();
+    final ConcurrentLinkedSet<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ConcurrentLinkedSet<>();
 
     //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
         //Will have to divide up into different lifecycles
@@ -52,14 +52,14 @@ public class EventRegistrar {
     //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
         //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
 
-    final Deque<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ArrayDeque<>();
+    final ConcurrentLinkedSet<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentLinkedSet<>();
 
-    final Deque<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ArrayDeque<>();
-    final Deque<Consumer<ServerStartedEvent>> ON_SERVER_START = new ArrayDeque<>();
-    final Deque<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ArrayDeque<>();
-    final Deque<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ArrayDeque<>();
-    final Deque<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ArrayDeque<>();
-    final Deque<Runnable> ON_DATA_SAVE = new ArrayDeque<>();
+    final ConcurrentLinkedSet<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<ServerStartedEvent>> ON_SERVER_START = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentLinkedSet<>();
+    final ConcurrentLinkedSet<Runnable> ON_DATA_SAVE = new ConcurrentLinkedSet<>();
 
 
     /**

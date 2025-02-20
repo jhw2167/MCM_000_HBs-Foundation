@@ -66,8 +66,11 @@ public class ManagedChunk implements IMangedChunkData {
         this.pos = pos;
         this.level = level;
 
-        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        this.initSubclassesFromMemory(level, id);
+        if(!this.level.isClientSide())
+        {
+            this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
+            this.initSubclassesFromMemory(level, id);
+        }
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
         INITIALIZED_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
@@ -144,16 +147,18 @@ public class ManagedChunk implements IMangedChunkData {
         {
             IMangedChunkData sub = data.getValue().get();
             try {
+
                 CompoundTag nbt = tag.getCompound(sub.getClass().getName());
+                sub.setId(this.id);
+                sub.setLevel(this.level);
+
                 if( managedChunkData.containsKey(sub.getClass()) ) {
                      managedChunkData.get(sub.getClass()).deserializeNBT(nbt);
                 }
                 else {
-                    sub.deserializeNBT(tag.getCompound(sub.getClass().getName()));
+                    sub.deserializeNBT(nbt);
                     setSubclass(sub.getClass(), sub);
                 }
-                sub.setId(this.id);
-                sub.setLevel(this.level);
 
             } catch (Exception e) {
                 errors.put(sub.getClass().getName(), e.getMessage());

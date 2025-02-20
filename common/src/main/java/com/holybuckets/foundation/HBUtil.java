@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -45,6 +46,45 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class HBUtil {
 
     public static final String CLASS_ID = "004";
+
+
+    public static class PlayerUtil {
+
+
+        public static List<ServerPlayer> getAllPlayers() {
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null)
+                return Collections.emptyList();
+            return server.getPlayerList().getPlayers();
+        }
+
+
+        public static List<ServerPlayer> getAllPlayersInBlockRange(BlockPos center, int range) {
+            if (range < 1)
+                return Collections.emptyList();
+
+            List<ServerPlayer> players = getAllPlayers();
+            List<ServerPlayer> playersInRange = new ArrayList<>();
+            for (ServerPlayer player : players) {
+                if (player.blockPosition().distSqr(center) <= range * range) {
+                    playersInRange.add(player);
+                }
+            }
+            return playersInRange;
+        }
+
+        public static List<ServerPlayer> getAllPlayersInChunkRange(ChunkAccess center, int range) {
+            List<ServerPlayer> players = getAllPlayers();
+            List<ServerPlayer> playersInRange = new ArrayList<>();
+            BlockPos centerPos = center.getPos().getWorldPosition();
+            for (ServerPlayer player : players) {
+                if (getAllPlayersInBlockRange(centerPos, range * 16).contains(player)) {
+                    playersInRange.add(player);
+                }
+            }
+            return playersInRange;
+        }
+    }
 
 
     public static class BlockUtil {
@@ -628,25 +668,27 @@ public class HBUtil {
         private static boolean CLIENT_STARTED = false;
         private static boolean USING_DEDICATED_SERVER = false;
         private static BalmNetworking networking = Balm.getNetworking();
+        private static MinecraftServer server;
 
         private static final Queue<Runnable> PENDING_TASKS = new LinkedBlockingQueue<>();
         public static final ThreadPoolExecutor POOL = new ThreadPoolExecutor(1, 1, 60L, java.util.concurrent.TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
-        public static <T> void serverSendToAllPlayers(T message) {
-            if( CLIENT_STARTED )
-                POOL.submit(() -> threadedSendToAllPlayers(message));
-            else
-                PENDING_TASKS.add(() -> threadedSendToAllPlayers(message));
-        }
-            private static <T> void threadedSendToAllPlayers( T message) {
-                networking.sendToAll(GeneralConfig.getInstance().getServer(), message);
-                SENT++;
+        private static <T> void sendHandler(Runnable r)
+        {
+            if( CLIENT_STARTED ) {
+                POOL.submit(r);
             }
+            else {
+                PENDING_TASKS.add(r);
+            }
+        }
 
-        //create a new method that sends a message to a specific player
-        public static <T> void sendToPlayer(Player player, T message) {
-            BalmNetworking networking = Balm.getNetworking();
-            networking.sendTo(player, message);
+        public static <T> void serverSendToAllPlayers(T message) {
+            sendHandler(() -> networking.sendToAll(server, message));
+        }
+
+        public static <T> void serverSendToPlayer(Player player, T message) {
+            sendHandler(() -> networking.sendTo(player, message));
         }
 
         public static void init(EventRegistrar reg) {
@@ -660,6 +702,7 @@ public class HBUtil {
                 USING_DEDICATED_SERVER = true;
                 CLIENT_STARTED  = true;
             }
+            server = GeneralConfig.getInstance().getServer();
         }
 
         private static void onPlayerConnectedEvent(PlayerLoginEvent event)

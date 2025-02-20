@@ -45,13 +45,6 @@ public class LoggerBase {
         }
     }
 
-    private static void addToHistory(LogEntry entry) {
-        logHistory.add(entry);
-        if (logHistory.size() > MAX_LOG_HISTORY) {
-            logHistory.remove(0);
-        }
-    }
-
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final String PREFIX =  Constants.MOD_NAME;
@@ -219,7 +212,6 @@ public class LoggerBase {
 
         LogEntry entry = new LogEntry("INFO", logId, prefix, message);
         if (shouldPrintLog(entry)) {
-            addToHistory(entry);
             LOGGER.info(buildBaseConsoleMessage(entry));
         }
     }
@@ -230,10 +222,6 @@ public class LoggerBase {
             prefix = PREFIX;
 
         LogEntry entry = new LogEntry("WARN", logId, prefix, string);
-        if (shouldPrintLog(entry)) {
-            addToHistory(entry);
-            LOGGER.warn(buildBaseConsoleMessage(entry));
-        }
     }
 
     public static void logError(String prefix, String logId, String string)
@@ -243,7 +231,6 @@ public class LoggerBase {
 
         LogEntry entry = new LogEntry("ERROR", logId, prefix, string);
         if (shouldPrintLog(entry)) {
-            addToHistory(entry);
             LOGGER.error(buildBaseConsoleMessage(entry));
         }
     }
@@ -253,7 +240,6 @@ public class LoggerBase {
         if (DEBUG_MODE) {
             LogEntry entry = new LogEntry("DEBUG", logId, prefix, string);
             if (shouldPrintLog(entry)) {
-                addToHistory(entry);
                 LOGGER.info(buildBaseConsoleMessage(entry));
             }
         }

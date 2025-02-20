@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.event;
 
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.command.BalmCommands;
 import net.blay09.mods.balm.api.event.*;
@@ -12,6 +13,7 @@ import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -19,7 +21,7 @@ import java.util.function.Consumer;
  */
 public class BalmEventRegister {
 
-    private static final HashSet<Integer> registeredEvents = new HashSet<>();
+    private static final Set<Integer> registeredEvents = new ConcurrentSet<>();
     private static EventRegistrar events;
     private static boolean  notRegistered(Consumer<?> c) { return !registeredEvents.contains(c.hashCode()); }
     public static EventPriority p(Consumer<?> func) { return events.PRIORITIES.get(func.hashCode()); }

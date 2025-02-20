@@ -33,7 +33,7 @@ public class ManagedChunkBlockUpdates {
      private Map<Integer, Integer> PENDING;
      private Map<Integer, WeakReference<Pair<BlockState, BlockPos>>> SUCCEEDED;
 
-     private WriteMonitor writeMonitor = new WriteMonitor();
+     private WriteMonitor writeMonitor;
 
     static final Map<LevelAccessor, ManagedChunkBlockUpdates> LEVEL_UPDATES = new ConcurrentHashMap<>();
 
@@ -44,6 +44,8 @@ public class ManagedChunkBlockUpdates {
             this.PENDING = new ConcurrentHashMap<>();
             this.UPDATES = new ConcurrentLinkedQueue<>();
             this.SUCCEEDED = new ConcurrentHashMap<>();
+            writeMonitor = new WriteMonitor();
+
         }
 
     private void addUpdate(Pair<BlockState, BlockPos> update) {
@@ -175,9 +177,12 @@ public class ManagedChunkBlockUpdates {
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return false;
 
-        //If any are unloaded or not editable, return false
-        if( !level.isClientSide() ) {
-            if( !updates.stream().allMatch(manager::ableToUpdateBlock) )
+
+        if( level.isClientSide() ) {
+            //nothing
+        }
+        else {
+            if( updates.stream().anyMatch(p -> !manager.ableToUpdateBlock(p)) )
                 return false;
         }
 

@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.event;
 
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -19,7 +20,7 @@ public class CommandRegistry {
     private static final String CLASS_ID = "011";
     //private static final Deque<Consumer<CommandSourceStack>> COMMANDS = new ArrayDeque<>();
     private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ArrayDeque<>();
-    private static final Set<Integer> registeredCommands = new HashSet<>();
+    private static final Set<Integer> registeredCommands = new ConcurrentSet<>();
 
     //Package private
     static void register(CommandDispatcher<CommandSourceStack> dispatcher)

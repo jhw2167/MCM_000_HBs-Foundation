@@ -8,9 +8,12 @@ import com.google.gson.Gson;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
+import net.blay09.mods.balm.api.event.BalmEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
+import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.Vec3i;
@@ -40,6 +43,7 @@ public class GeneralConfig {
     private DataStore dataStore;
     private Thread watchThread;
     private volatile boolean running = true;
+    private Boolean isClientSide;
 
     private MinecraftServer server;
     private final Map<String, LevelAccessor> LEVELS;
@@ -55,13 +59,13 @@ public class GeneralConfig {
     private GeneralConfig()
     {
         super();
+        instance = this;
         LoggerBase.logInit( null, "000000", this.getClass().getName());
+        this.isClientSide = false;
         this.isPlayerLoaded = false;
         this.LEVELS = new HashMap<>();
         this.running = true;
         this.isLevelConfigInit = false;
-
-        instance = this;
     }
 
     public static void init(EventRegistrar reg)
@@ -70,6 +74,9 @@ public class GeneralConfig {
             return;
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
+
+        reg.registerOnConnectedToServer(instance::onPlayerConnectedToServerEvent, EventPriority.Highest);
+        reg.registerOnDisconnectedFromServer(instance::onPlayerDisconnectedFromServerEvent, EventPriority.Lowest);
 
         reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(instance::onServerStopped, EventPriority.Lowest);
@@ -94,9 +101,20 @@ public class GeneralConfig {
         return dataStore;
     }
 
+
     /** Server Events **/
 
+    public void onPlayerConnectedToServerEvent(ConnectedToServerEvent event) {
+        this.isClientSide = true;
+        this.initPerformanceConfig();
+    }
+
+    public void onPlayerDisconnectedFromServerEvent(DisconnectedFromServerEvent event) {
+        this.isClientSide = null;
+    }
+
     public void onBeforeServerStarted(ServerStartingEvent event) {
+        this.isClientSide = false;
         this.initPerformanceConfig();
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
@@ -108,6 +126,7 @@ public class GeneralConfig {
         this.dataStore.onServerStopped(event);
         this.dataStore = null;
         this.server = null;
+        this.isClientSide = null;
     }
 
     /** Level Events **/
@@ -193,6 +212,8 @@ public class GeneralConfig {
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {
+        if(this.performanceImpactConfig == null)
+            this.initPerformanceConfig();
         return performanceImpactConfig;
     }
 

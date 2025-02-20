@@ -5,6 +5,7 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -35,13 +36,13 @@ public class EventRegistrar {
     private static EventRegistrar instance;
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
     
-    final ConcurrentLinkedSet<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ConcurrentLinkedSet<>();
+    final Set<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ConcurrentSet<>();
 
 
-    final ConcurrentLinkedSet<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ConcurrentLinkedSet<>();
+    final Set<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ConcurrentSet<>();
 
     //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
         //Will have to divide up into different lifecycles
@@ -52,14 +53,14 @@ public class EventRegistrar {
     //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
         //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
 
-    final ConcurrentLinkedSet<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentLinkedSet<>();
+    final Set<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentSet<>();
 
-    final ConcurrentLinkedSet<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<ServerStartedEvent>> ON_SERVER_START = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentLinkedSet<>();
-    final ConcurrentLinkedSet<Runnable> ON_DATA_SAVE = new ConcurrentLinkedSet<>();
+    final Set<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentSet<>();
+    final Set<Consumer<ServerStartedEvent>> ON_SERVER_START = new ConcurrentSet<>();
+    final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
+    final Set<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentSet<>();
+    final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
+    final Set<Runnable> ON_DATA_SAVE = new ConcurrentSet<>();
 
 
     /**
@@ -95,7 +96,7 @@ public class EventRegistrar {
 
 
     //Create public methods for pushing functions onto each function event
-    private <T> void generalRegister(Consumer<T> function, ConcurrentLinkedSet<Consumer<T>> set, EventPriority priority) {
+    private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {
         set.add(function);
         PRIORITIES.put(function.hashCode(), priority);
     }

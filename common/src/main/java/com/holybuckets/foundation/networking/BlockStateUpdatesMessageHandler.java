@@ -3,6 +3,7 @@ package com.holybuckets.foundation.networking;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,9 +62,13 @@ public class BlockStateUpdatesMessageHandler {
                 messages.add(blockStateUpdates);
         }
 
+
+        BlockPos pos = updates.values().stream().findFirst().get().get(0);
+        final int CHUNKS_RANGE = 40;
+        List<ServerPlayer> playersInUpdateRange = HBUtil.PlayerUtil.getAllPlayersInBlockRange(pos, 16*CHUNKS_RANGE);
         for(Map<BlockState, List<BlockPos>> message : messages) {
             BlockStateUpdatesMessage packet = new BlockStateUpdatesMessage(world, message);
-            HBUtil.NetworkUtil.serverSendToAllPlayers(packet);
+            playersInUpdateRange.stream().forEach(player -> HBUtil.NetworkUtil.serverSendToPlayer(player, packet));
         }
 
     }

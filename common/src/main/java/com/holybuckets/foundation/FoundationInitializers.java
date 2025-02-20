@@ -14,6 +14,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public class FoundationInitializers {
 
+    private static boolean commonIninitialized = false;
+
     static void init()
     {
         commonInitialize();
@@ -27,9 +29,10 @@ public class FoundationInitializers {
     /**
      * Description: Initialize common HB utilities that much support all mods prior to mod initialization
      */
-    public static void commonInitialize()
+    public static synchronized void commonInitialize()
     {
-        if(CommonClass.isInitialized) return;
+        if(commonIninitialized) return;
+        commonIninitialized = true;
 
         EventRegistrar.init();
         HBUtil.NetworkUtil.init(EventRegistrar.getInstance());

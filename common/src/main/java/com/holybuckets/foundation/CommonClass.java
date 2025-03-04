@@ -1,8 +1,10 @@
 package com.holybuckets.foundation;
 
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkBlockUpdates;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.BalmEvents;
@@ -12,6 +14,7 @@ import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -68,12 +71,14 @@ public class CommonClass {
         //Print ids to test if they match
         Constants.LOG.info("Chunk loaded: " + id + " " + chunkId + " MATCH: " + id.equals(chunkId) );
 
-        //POOL.submit(() -> threadAddChunkBlock(event));
+        POOL.submit(() -> threadAddChunkBlock(event));
     }
 
     public static void threadAddChunkBlock(ChunkLoadingEvent.Load event)
     {
-        final BlockState GOLD = Blocks.DIAMOND_BLOCK.defaultBlockState();
+        //final BlockState GOLD = Blocks.DIAMOND_BLOCK.defaultBlockState();
+        final BlockState GOLDSTATE = ModBlocks.empty.defaultBlockState();
+        final Block GOLD = ModBlocks.empty;
         List<Pair<BlockState, BlockPos>> blocks = new ArrayList<>();
         ChunkAccess c = event.getChunk();
         BlockPos p = c.getPos().getWorldPosition();
@@ -82,24 +87,14 @@ public class CommonClass {
         //Use MangedChunk.loadedChunks to determine when chunk is loaded
         while( !ManagedChunkUtilityAccessor.isLoaded(level, c) ) {}
 
-        final int RANGE = 8;
-        //final int Y = new Random(p.getX()*p.getZ()).nextInt(128);
-        final int Y = 128;
-        BlockPos pos = null;
-        for(int x = 0; x < RANGE; x++) {
-            for(int z = 0; z < RANGE; z++) {
-                pos = new BlockPos(p.getX()+x, Y, p.getZ()+z);
-                blocks.add(Pair.of(GOLD, new BlockPos(p.getX()+x, Y, p.getZ()+z )));
-            }
-        }
-        //LoggerBase.logInfo(null, "000000", "1) ADD: " + pos);
+        //Add blocks to chunk
+        List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();
+        blockStateList.add(Pair.of(GOLDSTATE, p));
+        ManagedChunk.updateChunkBlockStates(level, blockStateList);
 
-        int startTime = (int) System.currentTimeMillis();
-        boolean succeeded = false;
-        succeeded = ManagedChunk.updateChunkBlockStates( level, blocks);
-        //LoggerBase.logInfo(null, "000000", "2) REMOVE: " + pos + " TIME: " + (endTime - startTime) + "ms " + " THREADS RUNNING: " + POOL.getTaskCount());
-        //LoggerBase.logInfo(null, "000001", "2) CHUNK: " + pos + " SUCCEEDED: " + succeeded);
-
+        List<Pair<Block, BlockPos>> blockList = new ArrayList<>();
+        blockList.add(Pair.of(GOLD, p));
+        ManagedChunk.updateChunkBlocks(level, blockList);
 
     }
 

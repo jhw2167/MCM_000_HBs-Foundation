@@ -3,6 +3,7 @@ package com.holybuckets.foundation.model;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -177,7 +178,8 @@ public class ManagedChunkBlockUpdates {
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return false;
 
-
+        //Filter out any blockStates that have hbs_foundaton:empty_block default state
+        updates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.defaultBlockState()));
         if( level.isClientSide() ) {
             //nothing
         }

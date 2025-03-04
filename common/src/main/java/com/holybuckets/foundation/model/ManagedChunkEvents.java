@@ -51,8 +51,6 @@ public class ManagedChunkEvents {
 
         reg.registerOnChunkLoad(ManagedChunkEvents::onChunkLoad);
         reg.registerOnChunkUnload(ManagedChunkEvents::onChunkUnload);
-
-        ManagedChunkBlockUpdates.init(reg);
     }
 
     private static void onServerStopped(final ServerStoppedEvent event) {
@@ -106,7 +104,7 @@ public class ManagedChunkEvents {
 
         if(loadedChunk == null)
         {
-            LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
+            //LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
             loadedChunk = new ManagedChunk(level, event.getChunkPos());
         }
 

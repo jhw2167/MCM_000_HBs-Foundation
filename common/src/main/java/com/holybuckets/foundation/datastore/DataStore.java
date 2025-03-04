@@ -8,7 +8,6 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
@@ -93,13 +92,12 @@ public class DataStore implements IStringSerializable {
             return false;
 
         GeneralConfig config = GeneralConfig.getInstance();
-        while( config == null || !config.isLevelConfigInit() ){
+        while( config == null || !config.isWorldConfigInit() ){
             config = GeneralConfig.getInstance();
         }
 
         WorldSaveData worldData = modData.getOrCreateWorldSaveData(currentWorldId);
         worldData.addProperty("worldSeed", parse(config.getWorldSeed()) );
-        worldData.addProperty("worldSpawn", parse(config.getWorldSpawn()) );
         worldData.addProperty("totalTicks", parse(Integer.valueOf(0)) );
 
         return true;
@@ -192,8 +190,6 @@ public class DataStore implements IStringSerializable {
             Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
             worldData.addProperty("totalTicks", parse(currentTicks) );
         }
-
-        worldData.addProperty("worldSpawn", parse(config.getWorldSpawn()) );
 
         GeneralConfig.getInstance().stopAutoSaveThread();
         this.save();

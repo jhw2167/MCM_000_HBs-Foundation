@@ -119,7 +119,6 @@ public class LoggerBase {
     /** EXCLUDE CLASS CODES **/
     private static final HashSet<String> EXCLUDE_CLASS = new HashSet<>(
         Arrays.asList(
-            "003",
             ""
         )
     );

@@ -44,15 +44,15 @@ public class PerformanceImpactConfig {
             blockWritesPerTick = new AtomicInteger(0);
 
        if(p == VERY_LOW) {
-              blockWritesPerTick.set(25);
+              blockWritesPerTick.set(10);
          } else if(p == LOW) {
-              blockWritesPerTick.set(100);
+              blockWritesPerTick.set(20);
          } else if(p == MEDIUM) {
-              blockWritesPerTick.set(250);
+              blockWritesPerTick.set(50);
          } else if(p == HIGH) {
-              blockWritesPerTick.set(500);
+              blockWritesPerTick.set(100);
          } else if(p == VERY_HIGH) {
-              blockWritesPerTick.set(1000);
+              blockWritesPerTick.set(200);
        }
     }
 

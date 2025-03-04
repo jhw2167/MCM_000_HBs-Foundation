@@ -2,8 +2,6 @@ package com.holybuckets.foundation.model;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.HBUtil.BlockUtil;
-import com.mojang.realmsclient.util.LevelType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -14,8 +12,6 @@ import net.minecraft.world.level.chunk.LevelChunk;
 
 import javax.annotation.Nullable;
 
-import static com.holybuckets.foundation.model.ManagedChunk.GENERAL_CONFIG;
-import static com.holybuckets.foundation.model.ManagedChunk.MANAGED_SUBCLASSES;
 import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
 import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
 import java.util.*;
@@ -31,18 +27,16 @@ public class ManagedChunkUtilityAccessor {
 
 
     //** CHUNK STATUS **//
-    public static boolean isLoadedAndEditable(LevelAccessor level, BlockPos p) {
-        Level levelType = (Level) level;
-        if( !levelType.isLoaded(p) ) return false;
+    public static boolean isLoaded(LevelAccessor level, String id)
+    {
+        if(level == null || id == null) return false;
 
-        ChunkAccess chunk = levelType.getChunk(p);
-        if( chunk == null || !isChunkStatusFull(chunk) ) return false;
+        if(LOADED_CHUNKS.get(level) == null) return false;
 
-        return isLoaded(level, chunk);
-    }
+        ManagedChunk mc = LOADED_CHUNKS.get(level).get(id);
+        if(mc == null) return false;
 
-    public static boolean isChunkStatusFull(ChunkAccess c) {
-        return (c.getStatus() == ChunkStatus.FULL);
+        return true;
     }
 
     public static boolean isLoaded(LevelAccessor level, BlockPos p) {
@@ -52,7 +46,6 @@ public class ManagedChunkUtilityAccessor {
 
     public static boolean isLoaded(LevelAccessor level, ChunkAccess c) {
         if( c == null ) return false;
-        if( !isChunkStatusFull(c) ) return false;
         return isLoaded(level , c.getPos());
     }
 
@@ -60,14 +53,50 @@ public class ManagedChunkUtilityAccessor {
         return isLoaded(level, HBUtil.ChunkUtil.getId(p));
     }
 
-    public static boolean isLoaded(LevelAccessor level, String id) {
-        if(level == null || id == null)
-            return false;
+    public static boolean isChunkStatusFull(ChunkAccess c) {
+        return (c.getStatus() == ChunkStatus.FULL);
+    }
 
-        if(LOADED_CHUNKS.get(level) == null)
-            return false;
+    public static boolean isLoadedAndEditable(LevelAccessor level, BlockPos p)
+    {
+        Level levelType = (Level) level;
+        if( !levelType.isLoaded(p) ) return false;
 
-        return LOADED_CHUNKS.get(level).containsKey(id);
+        ChunkAccess chunk = levelType.getChunk(p);
+        if( chunk == null || !isLoaded(level, chunk) ) return false;
+
+        String chunkId = HBUtil.ChunkUtil.getId(chunk);
+        if( !isLevelChunkLoaded(level, chunkId ) ) return false;
+
+        if( !isChunkStatusFull(chunk) ) return false;
+
+        return true;
+    }
+
+    public static boolean isLoadedAndEditable(LevelAccessor level, String id) {
+        return isLoadedAndEditable(level, HBUtil.ChunkUtil.getWorldPos(id));
+    }
+
+
+    public static boolean isLevelChunkLoaded(LevelAccessor level, String id) {
+        if( !isLoaded(level, id) ) return false;
+        ManagedChunk mc = LOADED_CHUNKS.get(level).get(id);
+        return mc.getChunk(false) != null;
+    }
+
+    /**
+     * Provided a chunk and id, determines if the chunk and all chunks around it are loaded and
+     * in FULL status, else returns false.
+     * @param level
+     * @param id
+     * @return
+     */
+    public static boolean isChunkFullyLoaded(LevelAccessor level, String id)
+    {
+        if( !isLevelChunkLoaded(level, id) ) return false;
+        ChunkPos cp = HBUtil.ChunkUtil.getPos(id);
+        List<String> localAreaChunks = HBUtil.ChunkUtil.getLocalChunkIds(cp, 1);
+        return localAreaChunks.stream().allMatch( chunkId -> isLoadedAndEditable(level, chunkId) );
     }
 
 
@@ -144,15 +173,15 @@ public class ManagedChunkUtilityAccessor {
     public static Random getChunkRandom(ChunkPos pos)
     {
         final GeneralConfig CONFIG = GeneralConfig.getInstance();
-        final Long SEED = CONFIG.getWorldSeed();
-
-        Double RAND = HBUtil.ChunkUtil.getChunkRandom(pos) *1d;
-
+        return getChunkRandom(pos, CONFIG.getWorldSeed());
+    }
+    public static Random getChunkRandom(ChunkPos pos, final Long SEED)
+    {
+        Double RAND = HBUtil.ChunkUtil.getChunkPos1DMap(pos) *1d;
         if( RAND.equals( 0d ) )
             return new Random( SEED );
 
         RAND = SEED / RAND;
-
         if( RAND < 1d && RAND > -1d)
             RAND = 1d / RAND;
 

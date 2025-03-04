@@ -194,12 +194,12 @@ public class ManagedChunk implements IMangedChunkData {
         //if( this.tickWritten < this.tickLoaded )
         if( this.isLoaded )
         {
-            LoggerBase.logInfo(null, "003007", "Init from nbt id: " + this.id);
+            //LoggerBase.logInfo(null, "003007", "Init from nbt id: " + this.id);
             this.initSubclassesFromMemory(level, id);
         }
         else
         {
-            LoggerBase.logInfo(null, "003006", "Init from memory id: " + this.id);
+            //LoggerBase.logInfo(null, "003006", "Init from memory id: " + this.id);
             this.initSubclassesFromNbt(tag);
         }
 
@@ -268,6 +268,7 @@ public class ManagedChunk implements IMangedChunkData {
         ManagedChunkEvents.init(reg);
         ManagedChunkBlockUpdates.init(reg);
     }
+
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
@@ -379,7 +380,7 @@ public class ManagedChunk implements IMangedChunkData {
             LoggerBase.logError(null, "003020", error.toString());
         }
 
-        LoggerBase.logDebug( null,"003002", "Serializing ManagedChunk with data: " + details);
+        //LoggerBase.logDebug( null,"003002", "Serializing ManagedChunk with data: " + details);
         return details;
     }
 
@@ -390,7 +391,7 @@ public class ManagedChunk implements IMangedChunkData {
             return;
         }
 
-        LoggerBase.logInfo(null, "003001", "Deserializing ManagedChunk with id: " + this.id);
+        //LoggerBase.logInfo(null, "003001", "Deserializing ManagedChunk with id: " + this.id);
 
         //Deserialize subclasses
         try {

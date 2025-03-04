@@ -1,9 +1,11 @@
 package com.holybuckets.foundation;
 
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.config.PerformanceImpactConfigData;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.item.ModItems;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
@@ -24,6 +26,9 @@ public class FoundationInitializers {
         initCommands();
         initConfig();
         initNetworking();
+
+        initBlocks();
+        initItems();
     }
 
     /**
@@ -61,6 +66,14 @@ public class FoundationInitializers {
         BalmNetworking networking = Balm.getNetworking();
         Handlers.init();
         networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
+    }
+
+    private static void initBlocks() {
+        ModBlocks.initialize(Balm.getBlocks());
+    }
+
+    private static void initItems() {
+        ModItems.initialize(Balm.getItems());
     }
 
     private static ResourceLocation id(String location) {

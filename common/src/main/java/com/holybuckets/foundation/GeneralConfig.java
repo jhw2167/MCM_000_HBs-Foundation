@@ -8,7 +8,6 @@ import com.google.gson.Gson;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
-import net.blay09.mods.balm.api.event.BalmEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
@@ -16,9 +15,11 @@ import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.storage.LevelData;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -47,9 +48,9 @@ public class GeneralConfig {
 
     private MinecraftServer server;
     private final Map<String, LevelAccessor> LEVELS;
+    private Map<LevelAccessor, Vec3i> WORLD_SPAWNS;
     private Long worldSeed;
-    private Vec3i worldSpawn;
-    private boolean isLevelConfigInit;
+    private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
 
@@ -64,8 +65,9 @@ public class GeneralConfig {
         this.isClientSide = false;
         this.isPlayerLoaded = false;
         this.LEVELS = new HashMap<>();
+        this.WORLD_SPAWNS = new HashMap<>();
         this.running = true;
-        this.isLevelConfigInit = false;
+        this.isWorldConfigInit = false;
     }
 
     public static void init(EventRegistrar reg)
@@ -116,6 +118,22 @@ public class GeneralConfig {
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isClientSide = false;
         this.initPerformanceConfig();
+
+
+        if( this.server == null )
+            this.server = event.getServer();
+
+        if( !this.isWorldConfigInit)
+        {
+            this.worldSeed = server.getWorldData().worldGenOptions().seed();
+
+            if( this.worldSeed != null ) {
+                this.isWorldConfigInit = true;
+                LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
+            }
+
+        }
+
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
         this.startWatchAutoSaveThread();
@@ -135,27 +153,10 @@ public class GeneralConfig {
     {
         LevelAccessor level = event.getLevel();
         this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
-
-        if( level.isClientSide() )
-            return;
-
-        if( this.server == null )
-            this.server = level.getServer();
-
-        if( !this.isLevelConfigInit )
-        {
-
-            this.worldSeed = server.overworld().getSeed();
-            this.worldSpawn = server.overworld().getSharedSpawnPos();
-
-            if( this.worldSeed != null && this.worldSpawn != null ) {
-                this.isLevelConfigInit = true;
-                LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
-                LoggerBase.logInfo( null, "010002", "World Spawn: " + this.worldSpawn);
-            }
-
-        }
-
+        LevelData data = level.getLevelData();
+        BlockPos spawn = new BlockPos(data.getXSpawn(), data.getYSpawn(), data.getZSpawn());
+        this.WORLD_SPAWNS.put(level, spawn);
+        //if( level.isClientSide() ) return;
     }
 
     public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
@@ -163,8 +164,8 @@ public class GeneralConfig {
     }
 
 
-    public boolean isLevelConfigInit() {
-        return this.isLevelConfigInit;
+    public boolean isWorldConfigInit() {
+        return this.isWorldConfigInit;
     }
 
     public void initPlayerConfigs(PlayerLoginEvent event)
@@ -195,8 +196,8 @@ public class GeneralConfig {
         return worldSeed;
     }
 
-    public Vec3i getWorldSpawn() {
-        return worldSpawn;
+    public Vec3i getWorldSpawn(LevelAccessor level) {
+        return WORLD_SPAWNS.get(level);
     }
 
     public Boolean getIsPLAYER_LOADED() {

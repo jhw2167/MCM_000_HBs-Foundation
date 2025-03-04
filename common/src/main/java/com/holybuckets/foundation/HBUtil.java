@@ -7,12 +7,9 @@ import com.google.gson.JsonElement;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
-import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -385,6 +382,10 @@ public class HBUtil {
             return getId( Math.floorDiv(pos.getX(), 16), Math.floorDiv(pos.getZ(), 16) );
         }
 
+        public static BlockPos getWorldPos(String id) {
+            return getPos(id).getWorldPosition();
+        }
+
 
         public static ChunkPos getPos(String id) {
             String[] parts = id.split(",");
@@ -421,14 +422,30 @@ public class HBUtil {
             return new ChunkPos(p1.x + dir[0], p1.z + dir[1]);
         }
 
-        public static Long getChunkRandom(String id) {
-            return getChunkRandom(getPos(id));
+        public static Long getChunkPos1DMap(String id) {
+            return getChunkPos1DMap(getPos(id));
         }
 
-        public static Long getChunkRandom( ChunkPos pos ) {
+        public static Long getChunkPos1DMap(ChunkPos pos ) {
             //map the chunks x and z position to a random number
             final Long WIDTH = 10_000_000l;
             return (pos.x * WIDTH) + pos.z;
+        }
+
+        /**
+         * Gets all chunk ids for all chunks around the provided chunk
+         * @param radius
+         * @param center
+         * @return
+         */
+        public static List<String> getLocalChunkIds(ChunkPos center, int radius) {
+            List<String> ids = new ArrayList<>();
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    ids.add(getId(posAdd(center, x, z)));
+                }
+            }
+            return ids;
         }
 
 
@@ -737,7 +754,7 @@ public class HBUtil {
             if( !configFile.exists() )  //User set file
             {
                 final StringBuilder warnNoUserFile = new StringBuilder();
-                warnNoUserFile.append("Could not find the provided ore cluster config file at path: ");
+                warnNoUserFile.append("Could not find the provided  config file at path: ");
                 warnNoUserFile.append(configFile.getAbsolutePath());
                 warnNoUserFile.append(". Provided file name from serverConfig/hbs_ore_clusters_and_regen-server.toml: ");
                 warnNoUserFile.append(configFile.getPath());
@@ -749,7 +766,7 @@ public class HBUtil {
                 if( !configFile.exists() )  //default file
                 {
                     final StringBuilder warnNoDefaultFile = new StringBuilder();
-                    warnNoDefaultFile.append("Could not find the default ore cluster JSON config file at path: ");
+                    warnNoDefaultFile.append("Could not find the default  JSON config file at path: ");
                     warnNoDefaultFile.append(configFile.getAbsolutePath());
                     warnNoDefaultFile.append(". A default file will be created for future reference.");
                     LoggerBase.logError( null, "000002", warnNoDefaultFile.toString());
@@ -760,7 +777,7 @@ public class HBUtil {
                     catch (Exception e)
                     {
                         final StringBuilder error = new StringBuilder();
-                        error.append("Could not create the default ore cluster JSON config file at path: ");
+                        error.append("Could not create the default  JSON config file at path: ");
                         error.append(configFile.getAbsolutePath());
                         error.append(" due to an unknown exception. The game will still run using default values from memory.");
                         error.append("  You can try running the game as an administrator or update the file permissions to fix this issue.");
@@ -784,7 +801,7 @@ public class HBUtil {
                 json = Files.readString(Paths.get(configFile.getAbsolutePath()));
             } catch (IOException e) {
                 final StringBuilder error = new StringBuilder();
-                error.append("Could not read the ore cluster JSON config file at path: ");
+                error.append("Could not read the  JSON config file at path: ");
                 error.append(configFile.getAbsolutePath());
                 error.append(" due to an unknown exception. The game will still run using default values from memory.");
                 LoggerBase.logError( null, "000004", error.toString());
@@ -839,6 +856,12 @@ public class HBUtil {
 
         public static TripleInt of(int x, int y, int z) {
             return new TripleInt(x, y, z);
+        }
+
+        //override the toString method
+        @Override
+        public String toString() {
+            return "[" + x + ", " + y + ", " + z + "]";
         }
 
     }
@@ -1068,6 +1091,15 @@ public class HBUtil {
 
         public int getZ(int index) {
             return Z[index];
+        }
+
+        //implement forreach that takes 3 ints
+        public TripleInt[] toArray() {
+            TripleInt[] arr = new TripleInt[size];
+            for( int i = 0; i < size; i++) {
+                arr[i] = new TripleInt(X[i], Y[i], Z[i]);
+            }
+            return arr;
         }
 
         @Override

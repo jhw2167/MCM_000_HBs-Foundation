@@ -17,7 +17,7 @@ public class ModBlocks {
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
-        blocks.register(() -> empty = new EmptyBlock(emptyBlockProps()), () -> itemBlock(empty), id("empty_block"));
+        blocks.register( () -> empty = new EmptyBlock(defaultProperties()), () -> itemBlock(empty), id("empty_block"));
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {
@@ -40,6 +40,7 @@ public class ModBlocks {
     }
 
     private static BlockBehaviour.Properties emptyBlockProps() {
-        return BlockBehaviour.Properties.of().copy(Blocks.AIR).forceSolidOn();  //default properties
+        BlockBehaviour.Properties props = BlockBehaviour.Properties.of().copy(Blocks.AIR).forceSolidOn();  //default properties
+        return props;
     }
 }

@@ -179,19 +179,20 @@ public class ManagedChunkBlockUpdates {
         if( manager == null ) return false;
 
         //Filter out any blockStates that have hbs_foundaton:empty_block default state
-        updates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.defaultBlockState()));
+        List<Pair<BlockState, BlockPos>> mutableUpdates = new ArrayList<>(updates);
+        mutableUpdates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.defaultBlockState()));
         if( level.isClientSide() ) {
             //nothing
         }
         else {
-            if( updates.stream().anyMatch(p -> !manager.ableToUpdateBlock(p)) )
+            if( mutableUpdates.stream().anyMatch(p -> !manager.ableToUpdateBlock(p)) )
                 return false;
         }
 
         try {
             if( !manager.writeMonitor.tryLockWorkerThread() )
                 return false;
-            updates.forEach(manager::addUpdate);
+            mutableUpdates.forEach(manager::addUpdate);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -200,7 +201,7 @@ public class ManagedChunkBlockUpdates {
         }
 
         if( !level.isClientSide() )
-            return sendChunkBlockStatesToClient(level, updates);
+            return sendChunkBlockStatesToClient(level, mutableUpdates);
 
         return true;
     }

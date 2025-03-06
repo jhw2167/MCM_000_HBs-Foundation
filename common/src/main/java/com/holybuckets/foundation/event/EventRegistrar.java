@@ -60,7 +60,7 @@ public class EventRegistrar {
 
     final Set<TickType<ServerTickHandler>> ON_SERVER_TICK = new ConcurrentSet<>();
 
-    final Set<Runnable> ON_DATA_SAVE = new ConcurrentSet<>();
+    final Set<Consumer<DataSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
 
 
     /**
@@ -177,10 +177,9 @@ public class EventRegistrar {
         generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
-    public void registerOnDataSave(Runnable function) { registerOnDataSave(function, EventPriority.Normal);}
-    public void registerOnDataSave(Runnable function, EventPriority priority) {
-        ON_DATA_SAVE.add(function);
-        PRIORITIES.put(function.hashCode(), priority);
+    public void registerOnDataSave(Consumer<DataSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
+    public void registerOnDataSave(Consumer<DataSaveEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DATA_SAVE, priority);
     }
 
 

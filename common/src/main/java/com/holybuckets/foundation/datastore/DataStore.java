@@ -5,6 +5,7 @@ import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.DataSaveEvent;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -159,6 +160,10 @@ public class DataStore implements IStringSerializable {
     }
 
     private void save() {
+        DataSaveEvent event = new DataSaveEvent(this);
+        for (Consumer<DataSaveEvent> function : EventRegistrar.getInstance().ON_DATA_SAVE) {
+            function.accept(event);
+        }
         HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
     }
 

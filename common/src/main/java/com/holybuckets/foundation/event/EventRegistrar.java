@@ -4,8 +4,11 @@ package com.holybuckets.foundation.event;
 
 //Forge Imports
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
@@ -13,7 +16,7 @@ import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
+
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -60,7 +63,7 @@ public class EventRegistrar {
 
     final Set<TickType<ServerTickHandler>> ON_SERVER_TICK = new ConcurrentSet<>();
 
-    final Set<Consumer<DataSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
+    final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
 
 
     /**
@@ -86,9 +89,11 @@ public class EventRegistrar {
 
     public void dataSaveEvent()
     {
-        for (Runnable function : ON_DATA_SAVE) {
-            function.run();
+        DatastoreSaveEvent event = new DatastoreSaveEvent(GeneralConfig.getInstance().getDataStore());
+        for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
+            saver.accept(event);
         }
+        event.getDataStore().save();
     }
 
     /** ############### **/
@@ -177,8 +182,8 @@ public class EventRegistrar {
         generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
-    public void registerOnDataSave(Consumer<DataSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
-    public void registerOnDataSave(Consumer<DataSaveEvent> function, EventPriority priority) {
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
         generalRegister(function, ON_DATA_SAVE, priority);
     }
 

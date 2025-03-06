@@ -9,11 +9,11 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
@@ -317,10 +317,10 @@ public class ManagedChunk implements IMangedChunkData {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
 
-    static void save(LevelAccessor level)
+    static void save(DatastoreSaveEvent event, LevelAccessor level)
     {
         //Write out initialzed chunks to levelSaveData
-        DataStore ds = GENERAL_CONFIG.getDataStore();
+        DataStore ds = event.getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);

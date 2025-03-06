@@ -10,11 +10,9 @@ import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
-import net.blay09.mods.balm.api.event.BalmEvents;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -27,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
 
 
 public class CommonClass {
@@ -55,6 +54,10 @@ public class CommonClass {
         reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         //reg.registerOnPlayerLoad(CommonClass::onPlayerLoad);
+    }
+
+    static void onServerTick(MinecraftServer server) {
+        Constants.LOG.info("Server ticked: " + server.getTickCount());
     }
 
     private static void onPlayerLoad(PlayerLoginEvent event) {

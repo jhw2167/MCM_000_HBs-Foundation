@@ -9,6 +9,7 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.holybuckets.foundation.model.ManagedChunk.GENERAL_CONFIG;
@@ -85,14 +87,16 @@ public class ManagedChunkEvents {
             initChunks.add(chunkId.getAsString());
         });
 
-        EventRegistrar.getInstance().registerOnDataSave( () -> ManagedChunk.save(level), EventPriority.Highest);
+        Consumer<DatastoreSaveEvent> save = (datastoreSaveEvent) -> ManagedChunk.save(datastoreSaveEvent, level);
+        EventRegistrar.getInstance().registerOnDataSave( save, EventPriority.Highest);
     }
 
     private static void onWorldUnload( final LevelLoadingEvent.Unload event )
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide()) return;
-        ManagedChunk.save(level);
+        DatastoreSaveEvent saveEvent = new DatastoreSaveEvent(GeneralConfig.getInstance().getDataStore());
+        ManagedChunk.save(saveEvent, level);
     }
 
     private static void onChunkLoad( final ChunkLoadingEvent.Load event )

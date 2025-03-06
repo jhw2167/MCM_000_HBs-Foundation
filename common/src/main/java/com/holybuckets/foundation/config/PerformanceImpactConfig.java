@@ -41,18 +41,18 @@ public class PerformanceImpactConfig {
     {
        if( p == null ) return;
        if( blockWritesPerTick == null)
-            blockWritesPerTick = new AtomicInteger(0);
+            blockWritesPerTick = new AtomicInteger(20);
 
        if(p == VERY_LOW) {
-              blockWritesPerTick.set(10);
+              blockWritesPerTick.set(5);
          } else if(p == LOW) {
-              blockWritesPerTick.set(20);
+              blockWritesPerTick.set(10);
          } else if(p == MEDIUM) {
-              blockWritesPerTick.set(50);
+              blockWritesPerTick.set(20);
          } else if(p == HIGH) {
-              blockWritesPerTick.set(100);
+              blockWritesPerTick.set(40);
          } else if(p == VERY_HIGH) {
-              blockWritesPerTick.set(200);
+              blockWritesPerTick.set(60);
        }
     }
 

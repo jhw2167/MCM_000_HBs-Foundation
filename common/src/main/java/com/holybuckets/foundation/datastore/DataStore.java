@@ -5,7 +5,7 @@ import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.event.custom.DataSaveEvent;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -18,6 +18,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Class DataStore - manages a simple persisted json file used as a datastore that holds
@@ -50,7 +51,7 @@ public class DataStore implements IStringSerializable {
         this.currentWorldId = worldId;
         String json = HBUtil.FileIO.loadJsonConfigs(DATA_STORE_FILE, DATA_STORE_FILE, new DefaultDataStore());
         this.deserialize(json);
-        EventRegistrar.getInstance().registerOnDataSave(this::save);
+        this.save();
     }
 
 
@@ -159,11 +160,7 @@ public class DataStore implements IStringSerializable {
         return json.toString();
     }
 
-    private void save() {
-        DataSaveEvent event = new DataSaveEvent(this);
-        for (Consumer<DataSaveEvent> function : EventRegistrar.getInstance().ON_DATA_SAVE) {
-            function.accept(event);
-        }
+    public void save() {
         HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
     }
 

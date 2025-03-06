@@ -17,7 +17,6 @@ import java.lang.ref.WeakReference;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -237,6 +236,7 @@ public class ManagedChunkBlockUpdates {
 
     private static void onUnloadWorld(LevelLoadingEvent.Unload event) {
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.remove(event.getLevel());
+        if( manager == null ) return;
         manager.clear();
     }
 
@@ -252,7 +252,7 @@ public class ManagedChunkBlockUpdates {
     private class WriteMonitor {
 
         private static int TICKS_PER_SECOND = 20;
-        private AtomicInteger writesPerSecond;
+        private AtomicInteger writesPerTick;
         private final int MODULO_COUNT = 4;
         private volatile int tickCount;
 
@@ -261,12 +261,12 @@ public class ManagedChunkBlockUpdates {
         public WriteMonitor()
         {
             GeneralConfig config = GeneralConfig.getInstance();
-            this.writesPerSecond = config.getPerformanceImpactConfig().getBlockWritesPerTick();
+            this.writesPerTick = config.getPerformanceImpactConfig().getBlockWritesPerTick();
             this.tickCount = 0;
         }
 
         Integer getWritePerTick() {
-            return writesPerSecond.get() / (TICKS_PER_SECOND / MODULO_COUNT);
+            return writesPerTick.get() * MODULO_COUNT;
         }
 
         boolean tryLockMainThread() {

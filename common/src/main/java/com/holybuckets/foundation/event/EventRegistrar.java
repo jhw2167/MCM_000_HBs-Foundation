@@ -102,7 +102,8 @@ public class EventRegistrar {
         event.getDataStore().save();
     }
 
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(MinecraftServer server)
+    {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         
         // Fire single tick event

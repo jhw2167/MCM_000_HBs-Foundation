@@ -231,29 +231,38 @@ public class EventRegistrar {
         generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
-    public void registerOnSingleTick(Consumer<ServerTickEvent.SingleTick> function) { registerOnSingleTick(function, EventPriority.Normal); }
-    public void registerOnSingleTick(Consumer<ServerTickEvent.SingleTick> function, EventPriority priority) {
-        generalRegister(function, ON_SINGLE_TICK, priority);
+    public enum TickType {
+        SINGLE_TICK,
+        TWENTY_TICKS,
+        ONE_TWENTY_TICKS,
+        TWELVE_HUNDRED_TICKS,
+        DAILY_TICK
     }
 
-    public void registerOn20Ticks(Consumer<ServerTickEvent.Every20Ticks> function) { registerOn20Ticks(function, EventPriority.Normal); }
-    public void registerOn20Ticks(Consumer<ServerTickEvent.Every20Ticks> function, EventPriority priority) {
-        generalRegister(function, ON_20_TICKS, priority);
+    @SuppressWarnings("unchecked")
+    public <T extends ServerTickEvent> void registerTickEvent(TickType type, Consumer<T> function) {
+        registerTickEvent(type, function, EventPriority.Normal);
     }
 
-    public void registerOn120Ticks(Consumer<ServerTickEvent.Every120Ticks> function) { registerOn120Ticks(function, EventPriority.Normal); }
-    public void registerOn120Ticks(Consumer<ServerTickEvent.Every120Ticks> function, EventPriority priority) {
-        generalRegister(function, ON_120_TICKS, priority);
-    }
-
-    public void registerOn1200Ticks(Consumer<ServerTickEvent.Every1200Ticks> function) { registerOn1200Ticks(function, EventPriority.Normal); }
-    public void registerOn1200Ticks(Consumer<ServerTickEvent.Every1200Ticks> function, EventPriority priority) {
-        generalRegister(function, ON_1200_TICKS, priority);
-    }
-
-    public void registerOnDailyTick(Consumer<ServerTickEvent.DailyTick> function) { registerOnDailyTick(function, EventPriority.Normal); }
-    public void registerOnDailyTick(Consumer<ServerTickEvent.DailyTick> function, EventPriority priority) {
-        generalRegister(function, ON_DAILY_TICK, priority);
+    @SuppressWarnings("unchecked")
+    public <T extends ServerTickEvent> void registerTickEvent(TickType type, Consumer<T> function, EventPriority priority) {
+        switch (type) {
+            case SINGLE_TICK:
+                generalRegister((Consumer<ServerTickEvent.SingleTick>) function, ON_SINGLE_TICK, priority);
+                break;
+            case TWENTY_TICKS:
+                generalRegister((Consumer<ServerTickEvent.Every20Ticks>) function, ON_20_TICKS, priority);
+                break;
+            case ONE_TWENTY_TICKS:
+                generalRegister((Consumer<ServerTickEvent.Every120Ticks>) function, ON_120_TICKS, priority);
+                break;
+            case TWELVE_HUNDRED_TICKS:
+                generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_1200_TICKS, priority);
+                break;
+            case DAILY_TICK:
+                generalRegister((Consumer<ServerTickEvent.DailyTick>) function, ON_DAILY_TICK, priority);
+                break;
+        }
     }
 
     public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}

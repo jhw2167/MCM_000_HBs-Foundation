@@ -16,6 +16,7 @@ import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.server.MinecraftServer;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -94,6 +95,11 @@ public class EventRegistrar {
             saver.accept(event);
         }
         event.getDataStore().save();
+    }
+
+    public void onServerTick(MinecraftServer server) {
+        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+
     }
 
     /** ############### **/

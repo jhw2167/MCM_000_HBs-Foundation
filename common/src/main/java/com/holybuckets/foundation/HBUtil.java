@@ -4,6 +4,7 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
@@ -113,7 +114,7 @@ public class HBUtil {
             {
                 LoggerBase.logError( null, "004001", "Error parsing block name as string into a Minecraft Block type, " +
                     "type provided was null or provided as empty string");
-                return Blocks.AIR;
+                return ModBlocks.empty;
             }
 
             if( blockName.contains(":") )

@@ -4,6 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkBlockUpdates;
 import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
@@ -54,10 +55,11 @@ public class CommonClass {
         reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         //reg.registerOnPlayerLoad(CommonClass::onPlayerLoad);
+        reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 
-    static void onServerTick(MinecraftServer server) {
-        Constants.LOG.info("Server ticked: " + server.getTickCount());
+    static void onServerTick(ServerTickEvent event) {
+        Constants.LOG.info("Server ticked: " + event.getTickCount() );
     }
 
     private static void onPlayerLoad(PlayerLoginEvent event) {

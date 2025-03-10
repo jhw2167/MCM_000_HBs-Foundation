@@ -95,8 +95,7 @@ public class ManagedChunkEvents {
     {
         LevelAccessor level = event.getLevel();
         if(level.isClientSide()) return;
-        DatastoreSaveEvent saveEvent = new DatastoreSaveEvent(GeneralConfig.getInstance().getDataStore());
-        ManagedChunk.save(saveEvent, level);
+        ManagedChunk.save(DatastoreSaveEvent.create(), level);
     }
 
     private static void onChunkLoad( final ChunkLoadingEvent.Load event )

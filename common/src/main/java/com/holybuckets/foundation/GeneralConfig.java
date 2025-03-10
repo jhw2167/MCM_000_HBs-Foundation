@@ -24,6 +24,8 @@ import net.minecraft.world.level.storage.LevelData;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 /**
@@ -42,7 +44,7 @@ public class GeneralConfig {
      **/
     private static GeneralConfig instance;
     private DataStore dataStore;
-    private Thread watchThread;
+    private ExecutorService watchExecutorService;
     private volatile boolean running = true;
     private Boolean isClientSide;
 
@@ -136,7 +138,8 @@ public class GeneralConfig {
 
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
-        this.startWatchAutoSaveThread();
+        this.watchExecutorService = Executors.newSingleThreadExecutor();
+        this.watchExecutorService.submit(this::startAutoSaveThread);
     }
 
     public void onServerStopped(ServerStoppedEvent event) {
@@ -228,37 +231,30 @@ public class GeneralConfig {
      * SAVE METHODS - register class to save method
      */
 
-    private void startWatchAutoSaveThread() {
-        watchThread = new Thread(() -> {
-            while (running) {
-                try {
-                    Thread.sleep(30000); // 30 seconds
-                    if (running) {
-                        EventRegistrar.getInstance().dataSaveEvent();
-                    }
-                } catch (InterruptedException e) {
-                    // Interrupted, exit the thread
-                    break;
-                }
-            }
-        });
-        watchThread.setDaemon(true);
-        watchThread.setName("GeneralConfig-AutoSave");
-        watchThread.start();
-    }
-
-    public void stopAutoSaveThread()
+    private void startAutoSaveThread()
     {
-        this.running = false;
-        if (this.watchThread != null) {
-            this.watchThread.interrupt();
+        while (running) {
             try {
-                this.watchThread.join(1000); // Wait up to 1 second for thread to finish
+                Thread.sleep(30000); // 30 seconds
+                if (running) {
+                    EventRegistrar.getInstance().dataSaveEvent();
+                }
             } catch (InterruptedException e) {
-                // Ignore interruption during shutdown
+                // Interrupted, exit the thread
+                break;
             }
         }
     }
 
-}
+    public void stopAutoSaveThread()
+    {
+        try {
+            this.watchExecutorService.awaitTermination(1000, java.util.concurrent.TimeUnit.MILLISECONDS);
+            this.watchExecutorService.shutdownNow();
+        } catch (InterruptedException e) {
+            LoggerBase.logError(null, "006002", "Error stopping AutoSaveThread");
+            }
+        }
+
+    }
 //END CLASS

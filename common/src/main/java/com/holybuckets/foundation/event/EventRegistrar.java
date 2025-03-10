@@ -95,7 +95,7 @@ public class EventRegistrar {
 
     public void dataSaveEvent()
     {
-        DatastoreSaveEvent event = new DatastoreSaveEvent(GeneralConfig.getInstance().getDataStore());
+        DatastoreSaveEvent event = DatastoreSaveEvent.create();
         for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
             saver.accept(event);
         }
@@ -232,31 +232,31 @@ public class EventRegistrar {
     }
 
     public enum TickType {
-        SINGLE_TICK,
-        TWENTY_TICKS,
-        ONE_TWENTY_TICKS,
-        TWELVE_HUNDRED_TICKS,
+        ON_SINGLE_TICK,
+        ON_20_TICKS,
+        ON_120_TICKS,
+        ON_1200_TICKS,
         DAILY_TICK
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ServerTickEvent> void registerTickEvent(TickType type, Consumer<T> function) {
-        registerTickEvent(type, function, EventPriority.Normal);
+    public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function) {
+        registerOnServerTick(type, function, EventPriority.Normal);
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ServerTickEvent> void registerTickEvent(TickType type, Consumer<T> function, EventPriority priority) {
+    public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
         switch (type) {
-            case SINGLE_TICK:
+            case ON_SINGLE_TICK:
                 generalRegister((Consumer<ServerTickEvent.SingleTick>) function, ON_SINGLE_TICK, priority);
                 break;
-            case TWENTY_TICKS:
+            case ON_20_TICKS:
                 generalRegister((Consumer<ServerTickEvent.Every20Ticks>) function, ON_20_TICKS, priority);
                 break;
-            case ONE_TWENTY_TICKS:
+            case ON_120_TICKS:
                 generalRegister((Consumer<ServerTickEvent.Every120Ticks>) function, ON_120_TICKS, priority);
                 break;
-            case TWELVE_HUNDRED_TICKS:
+            case ON_1200_TICKS:
                 generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_1200_TICKS, priority);
                 break;
             case DAILY_TICK:

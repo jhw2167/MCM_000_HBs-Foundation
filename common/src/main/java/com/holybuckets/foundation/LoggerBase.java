@@ -56,11 +56,11 @@ public class LoggerBase {
 
      */
 
-    protected static String buildBaseConsoleMessage(String id, String prefix, String message) {
+    protected static synchronized String buildBaseConsoleMessage(String id, String prefix, String message) {
         return "[" + prefix + "] " + "( " + id + " ): " + message;
     }
 
-    protected static String buildBaseConsoleMessage(LogEntry entry) {
+    protected static synchronized String buildBaseConsoleMessage(LogEntry entry) {
         return buildBaseConsoleMessage(entry.id, entry.prefix, entry.message);
     }
 
@@ -195,12 +195,12 @@ public class LoggerBase {
         return true;
     }
 
-    protected static String buildBaseClientMessage(String prefix, String message)
+    protected static synchronized String buildBaseClientMessage(String prefix, String message)
     {
         return prefix + ":" + message;
     }
 
-    protected static String buildClientDisplayMessage(String prefix, String message) {
+    protected static synchronized String buildClientDisplayMessage(String prefix, String message) {
         return message;
     }
 

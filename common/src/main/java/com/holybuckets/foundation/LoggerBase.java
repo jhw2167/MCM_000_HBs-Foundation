@@ -236,6 +236,8 @@ public class LoggerBase {
 
     public static void logDebug(String prefix, String logId, String string)
     {
+        if( prefix == null) prefix = PREFIX;
+
         if (DEBUG_MODE) {
             LogEntry entry = new LogEntry("DEBUG", logId, prefix, string);
             if (shouldPrintLog(entry)) {

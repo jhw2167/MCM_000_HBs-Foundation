@@ -277,10 +277,10 @@ public class ManagedChunkBlockUpdates {
         }
 
         boolean tryLockWorkerThread() {
-            while( softLock() || lock.isLocked() )
+            if( softLock() || lock.isLocked() )
             {
                 try {
-                    Thread.sleep(1);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

@@ -18,6 +18,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -73,7 +74,6 @@ public class ManagedChunkBlockUpdates {
 
     private void updateBlockStates()
     {
-
         try {
 
             if( !writeMonitor.tryLockMainThread() ) return;
@@ -127,6 +127,12 @@ public class ManagedChunkBlockUpdates {
             writeMonitor.unlock();
         }
 
+    }
+
+    private void shutdown() {
+        if( writeMonitor != null ) {
+            writeMonitor.shutdown();
+        }
     }
 
     private boolean updateBlockState(Pair<BlockState, BlockPos> update) {
@@ -237,6 +243,7 @@ public class ManagedChunkBlockUpdates {
     private static void onUnloadWorld(LevelLoadingEvent.Unload event) {
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.remove(event.getLevel());
         if( manager == null ) return;
+        manager.shutdown();
         manager.clear();
     }
 
@@ -256,6 +263,9 @@ public class ManagedChunkBlockUpdates {
         private final int MODULO_COUNT = 4;
         private volatile int tickCount;
 
+        private volatile Thread currentWorker;
+        private Thread currentMain;
+
         final ReentrantLock lock = new ReentrantLock(false);
 
         public WriteMonitor()
@@ -269,23 +279,19 @@ public class ManagedChunkBlockUpdates {
             return writesPerTick.get() * MODULO_COUNT;
         }
 
-        boolean tryLockMainThread() {
+        boolean tryLockMainThread() throws InterruptedException {
+            this.currentMain = Thread.currentThread();
             if( canWrite() ) {
-                return lock.tryLock();
+                return lock.tryLock(0, TimeUnit.SECONDS);
             }
             return false;
         }
 
-        boolean tryLockWorkerThread() {
+        boolean tryLockWorkerThread() throws InterruptedException {
+            this.currentWorker = Thread.currentThread();
             if( softLock() || lock.isLocked() )
-            {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            return lock.tryLock();
+                Thread.sleep(50);
+            return lock.tryLock(0, TimeUnit.SECONDS);
         }
 
         private boolean canWrite()
@@ -307,6 +313,18 @@ public class ManagedChunkBlockUpdates {
             if( lock.isLocked() && lock.isHeldByCurrentThread() )
                 lock.unlock();
         }
+
+        private void shutdown() {
+            lock.unlock();
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            currentMain.interrupt();
+            currentWorker.interrupt();
+        }
+
     }
 
 }

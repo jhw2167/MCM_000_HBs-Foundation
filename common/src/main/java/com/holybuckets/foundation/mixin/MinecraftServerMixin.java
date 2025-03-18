@@ -1,7 +1,9 @@
 package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.mixin.util.MixinManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.server.MinecraftServer;
@@ -23,8 +25,14 @@ public class MinecraftServerMixin {
     @Inject(method = "tickChildren", at = @At("HEAD"))
     private void onTickChildren(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         MinecraftServer server = (MinecraftServer) (Object) this;
-        EventRegistrar.getInstance().onServerTick(server);
-        //Constants.LOG.info("LOG TICK!");
+        if(MixinManager.isEnabled("MinecraftServerMixin::onTickChildren")) {
+            try {
+                EventRegistrar.getInstance().onServerTick(server);
+            } catch (Exception e) {
+                MixinManager.recordError("MinecraftServerMixin::onTickChildren", e);
+            }
+        }
+
     }
 
     /*

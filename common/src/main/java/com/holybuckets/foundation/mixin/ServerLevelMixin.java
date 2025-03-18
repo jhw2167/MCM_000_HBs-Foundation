@@ -1,5 +1,7 @@
 package com.holybuckets.foundation.mixin;
 
+import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.mixin.util.MixinManager;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import net.minecraft.server.level.ServerLevel;
@@ -17,8 +19,17 @@ public class ServerLevelMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void onServerTickStart(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        ServerLevel level = (ServerLevel) (Object) this;
-        ManagedChunkEvents.onWorldTickStart(level);
+        if(MixinManager.isEnabled("ServerLevelMixin::onServerTickStart")) {
+            try {
+                ServerLevel level = (ServerLevel) (Object) this;
+                ManagedChunkEvents.onWorldTickStart(level);
+            }
+            catch (Exception e) {
+                MixinManager.recordError("ServerLevelMixin::onServerTickStart", e);
+            }
+
+        }
+
     }
 
     /*

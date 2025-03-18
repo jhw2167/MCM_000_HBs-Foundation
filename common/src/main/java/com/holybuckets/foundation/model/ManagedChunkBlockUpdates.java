@@ -131,7 +131,7 @@ public class ManagedChunkBlockUpdates {
 
     private void shutdown() {
         if( writeMonitor != null ) {
-            writeMonitor.shutdown();
+            //writeMonitor.shutdown();
         }
     }
 
@@ -141,8 +141,9 @@ public class ManagedChunkBlockUpdates {
         int tag = Block.UPDATE_IMMEDIATE;
 
         boolean succeeded = level.setBlock(pos, state, tag);
-        if(succeeded)
-            level.getChunk(pos).setUnsaved(true);
+        if(succeeded) {
+            //level.getChunk(pos).setUnsaved(true);
+        }
 
         return succeeded;
     }
@@ -279,19 +280,24 @@ public class ManagedChunkBlockUpdates {
             return writesPerTick.get() * MODULO_COUNT;
         }
 
-        boolean tryLockMainThread() throws InterruptedException {
+        boolean tryLockMainThread() {
             this.currentMain = Thread.currentThread();
             if( canWrite() ) {
-                return lock.tryLock(0, TimeUnit.SECONDS);
+                return lock.tryLock();
             }
             return false;
         }
 
-        boolean tryLockWorkerThread() throws InterruptedException {
+        boolean tryLockWorkerThread() {
             this.currentWorker = Thread.currentThread();
-            if( softLock() || lock.isLocked() )
+            if( softLock() || lock.isLocked() ) {
+            try {
                 Thread.sleep(50);
-            return lock.tryLock(0, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                }
+            }
+            return lock.tryLock();
         }
 
         private boolean canWrite()
@@ -315,14 +321,14 @@ public class ManagedChunkBlockUpdates {
         }
 
         private void shutdown() {
-            lock.unlock();
+        if(lock.isLocked()) lock.unlock();
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            currentMain.interrupt();
-            currentWorker.interrupt();
+            if( currentWorker != null && currentWorker.isAlive() )
+                currentWorker.interrupt();
         }
 
     }

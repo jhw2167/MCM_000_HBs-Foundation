@@ -1,4 +1,4 @@
-package com.holybuckets.foundation.mixin.util;
+package com.holybuckets.foundation.util;
 
 import com.holybuckets.foundation.LoggerBase;
 
@@ -15,7 +15,7 @@ public class MixinManager {
         return IS_ENABLED.get(id);
     }
 
-    public static void reEnabled(String id) {
+    public static void reEnable(String id) {
         IS_ENABLED.put(id, true);
     }
 

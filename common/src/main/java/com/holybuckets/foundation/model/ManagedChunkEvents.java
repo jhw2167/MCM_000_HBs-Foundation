@@ -10,8 +10,10 @@ import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
+import com.holybuckets.foundation.util.MixinManager;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -53,6 +55,9 @@ public class ManagedChunkEvents {
 
         reg.registerOnChunkLoad(ManagedChunkEvents::onChunkLoad);
         reg.registerOnChunkUnload(ManagedChunkEvents::onChunkUnload);
+
+        EventRegistrar.TickType tickType = EventRegistrar.TickType.ON_1200_TICKS;
+        reg.registerOnServerTick(tickType, ManagedChunkEvents::onServerTick1200);
     }
 
     private static void onServerStopped(final ServerStoppedEvent event) {
@@ -127,6 +132,19 @@ public class ManagedChunkEvents {
 
     public static void onWorldTickStart(Level level) {
         ManagedChunkBlockUpdates.onWorldTick(level);
+    }
+
+    public static void onServerTick1200(ServerTickEvent event) {
+        try {
+            if(MixinManager.isEnabled("ManagedChunkEvents::onServerTick1200")) {
+                ManagedChunkUtility.INSTANCES.values()
+                    .stream().filter( m -> !m.level.isClientSide())
+                    .forEach( m -> m.cullLevelChunks(event) );
+            }
+        } catch (Exception e) {
+            MixinManager.recordError("ManagedChunkEvents::onServerTick1200", e);
+        }
+
     }
 
 

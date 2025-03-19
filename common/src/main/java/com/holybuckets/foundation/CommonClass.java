@@ -1,32 +1,23 @@
 package com.holybuckets.foundation;
 
-import com.google.common.eventbus.Subscribe;
 import com.holybuckets.foundation.block.ModBlocks;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.model.ManagedChunkBlockUpdates;
-import com.holybuckets.foundation.model.ManagedChunkUtilityAccessor;
+import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.Services;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
 
 
 public class CommonClass {
@@ -91,9 +82,10 @@ public class CommonClass {
         ChunkAccess c = event.getChunk();
         BlockPos p = c.getPos().getWorldPosition();
         LevelAccessor level = event.getLevel();
+        ManagedChunkUtility util = ManagedChunkUtility.getInstance(level);
 
         //Use MangedChunk.loadedChunks to determine when chunk is loaded
-        while( !ManagedChunkUtilityAccessor.isLoaded(level, c) ) {}
+        while( !util.isLoaded(c) ) {}
 
         //Add blocks to chunk
         List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();

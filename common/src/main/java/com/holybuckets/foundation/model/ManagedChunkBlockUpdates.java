@@ -18,7 +18,6 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -26,8 +25,9 @@ public class ManagedChunkBlockUpdates {
 
     private static final String CLASS_ID = "013";
     private static final int MAX_ATTEMPTS = 5;
+    private final ManagedChunkUtility util;
 
-     private LevelAccessor level;
+    private LevelAccessor level;
 
      private Queue<Pair<BlockState, BlockPos>> UPDATES;
      private Iterator<Pair<BlockState, BlockPos>> NEXT_UPDATE;
@@ -42,6 +42,7 @@ public class ManagedChunkBlockUpdates {
         public ManagedChunkBlockUpdates(LevelAccessor level)
         {
             this.level = level;
+            this.util = ManagedChunkUtility.getInstance(level);
             this.PENDING = new ConcurrentHashMap<>();
             this.UPDATES = new ConcurrentLinkedQueue<>();
             this.SUCCEEDED = new ConcurrentHashMap<>();
@@ -149,7 +150,7 @@ public class ManagedChunkBlockUpdates {
     }
 
     private boolean ableToUpdateBlock(Pair<BlockState, BlockPos> update) {
-        return ManagedChunkUtilityAccessor.isLoadedAndEditable(level, update.getRight());
+        return this.util.isChunkFullyLoaded(update.getRight());
     }
 
     //** UPDATING CHUNK BLOCKS **//

@@ -40,12 +40,12 @@ public class ManagedChunk implements IMangedChunkData {
     private String id;
     private LevelAccessor level;
     private ChunkPos pos;
-    private ChunkAccess levelChunk;
+    ChunkAccess levelChunk;
     private long tickWritten;
     private long tickLoaded;
     private boolean isLoaded;
     private final HashMap<Class<? extends IMangedChunkData>, IMangedChunkData> managedChunkData = new HashMap<>();
-    public final ManagedChunkUtilityAccessor util;
+    public ManagedChunkUtility util;
 
 
 
@@ -67,7 +67,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.id = HBUtil.ChunkUtil.getId(pos);
         this.pos = pos;
         this.level = level;
-        this.util = ManagedChunkUtilityAccessor.getInstance(level);
+        this.util = ManagedChunkUtility.getInstance(level);
 
         if(!this.level.isClientSide())
         {
@@ -85,11 +85,6 @@ public class ManagedChunk implements IMangedChunkData {
     /** GETTERS and SETTERS **/
     public IMangedChunkData getSubclass(Class<? extends IMangedChunkData> classObject) {
         return managedChunkData.get(classObject);
-    }
-
-    //set chunk to null on chunkUnload
-    public LevelChunk getChunk(boolean forceLoad) {
-        return ManagedChunkUtilityAccessor.getChunk(this.level, this.id, forceLoad);
     }
 
     public String getId() {
@@ -118,7 +113,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.level = level;
     }
 
-    private void releaseLevelChunk() { this.levelChunk = null; }
+    void releaseLevelChunk() { this.levelChunk = null; }
 
 
     /**
@@ -248,7 +243,7 @@ public class ManagedChunk implements IMangedChunkData {
      */
     @Override
     public IMangedChunkData getStaticInstance(LevelAccessor level, String id) {
-        return ManagedChunkUtilityAccessor.getManagedChunk(level, id);
+        return ManagedChunkUtility.getInstance(level).getManagedChunk(id);
     }
 
 
@@ -281,6 +276,7 @@ public class ManagedChunk implements IMangedChunkData {
 
     public static void init( EventRegistrar reg )
     {
+        ManagedChunkUtility.init(reg);
         ManagedChunkEvents.init(reg);
         ManagedChunkBlockUpdates.init(reg);
     }
@@ -347,44 +343,6 @@ public class ManagedChunk implements IMangedChunkData {
 
     }
 
-    /**
-     * Checks to make sure we are not holding a reference to a levelChunk that is trying to unload
-     * @param level
-     */
-    static void cullLevelChunks(Level level)
-    {
-        if(LOADED_CHUNKS.get(level) == null) return;
-
-        Map<String, ManagedChunk> loadedChunks = LOADED_CHUNKS.get(level);
-        boolean cull = loadedChunks.size() > 16_000;
-        for(ManagedChunk m : loadedChunks.values())
-        {
-            boolean isFullyLoaded = ManagedChunkUtilityAccessor.isChunkFullyLoaded(level, m.getChunkPos());
-            boolean hasLevelChunk = m.getLevelChunk() != null;
-
-            if( isFullyLoaded && hasLevelChunk) {
-                //nothing
-            }
-            else if( !isFullyLoaded  && !hasLevelChunk ) {
-                //nothing
-            }
-            else if( !isFullyLoaded  && hasLevelChunk && cull ) {
-                m.releaseLevelChunk();
-            }
-            else if( !isFullyLoaded  && hasLevelChunk && !cull )
-            {
-                List<String> localChunks = HBUtil.ChunkUtil.getLocalChunkIds(m.getChunkPos(), 1);
-                long countLoaded = localChunks.stream()
-                    .filter( s -> ManagedChunkUtilityAccessor.isLoaded(level, s)).count();
-                if( countLoaded == 0 ) m.releaseLevelChunk();
-            }
-            else if( isFullyLoaded  && !hasLevelChunk ) {
-                ChunkPos cp = m.getChunkPos();
-                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x, cp.z, false);
-            }
-
-        }
-    }
 
 
     /** SERIALIZERS **/

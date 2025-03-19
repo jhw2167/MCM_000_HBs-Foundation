@@ -20,7 +20,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -346,7 +345,16 @@ public class HBUtil {
             }
             return toLevel(levelId);
         }
-        public static LevelAccessor toLevel(String id) {
+
+        public static LevelAccessor toServerLevel(String id) {
+            return toLevel(LevelNameSpace.SERVER, id);
+        }
+
+        public static LevelAccessor toClientLevel(String id) {
+            return toLevel(LevelNameSpace.CLIENT, id);
+        }
+
+        private static LevelAccessor toLevel(String id) {
             return GeneralConfig.getInstance().getLevel(id);
         }
 
@@ -384,11 +392,17 @@ public class HBUtil {
         }
 
         public static BlockPos getWorldPos(String id) {
-            return getPos(id).getWorldPosition();
+            return getChunkPos(id).getWorldPosition();
         }
 
 
-        public static ChunkPos getPos(String id) {
+        public static ChunkPos getChunkPos(String id) {
+            String[] parts = id.split(",");
+            return new ChunkPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+        }
+
+        public static ChunkPos getChunkPos(BlockPos pos) {
+            String id = getId(pos);
             String[] parts = id.split(",");
             return new ChunkPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
         }
@@ -408,7 +422,7 @@ public class HBUtil {
 
         //override with string Id args
         public static float chunkDist(String id1, String id2) {
-            return chunkDist(getPos(id1), getPos(id2));
+            return chunkDist(getChunkPos(id1), getChunkPos(id2));
         }
 
         public static ChunkPos posAdd(ChunkPos p, int x, int z) {
@@ -424,7 +438,7 @@ public class HBUtil {
         }
 
         public static Long getChunkPos1DMap(String id) {
-            return getChunkPos1DMap(getPos(id));
+            return getChunkPos1DMap(getChunkPos(id));
         }
 
         public static Long getChunkPos1DMap(ChunkPos pos ) {
@@ -479,6 +493,9 @@ public class HBUtil {
             if( Math.abs( x ) > 25 ||  Math.abs( z ) > 25 ) {
                  int i = 0;
             }
+            if( level == null ) return null;
+            if( level.getChunkSource() == null ) return null;
+            if( level.getChunkSource().getLoadedChunksCount() == 0 ) return null;
 
             if( forceLoad )
             {
@@ -487,6 +504,9 @@ public class HBUtil {
 
             // Try non-blocking getChunkNow first
             LevelChunk c = level.getChunkSource().getChunkNow( x, z );
+            return c;
+
+            /*
             if( c != null )
                 return c;
 
@@ -507,6 +527,8 @@ public class HBUtil {
             } catch (InterruptedException e) {
                 return null;
             }
+
+             */
         }
 
 

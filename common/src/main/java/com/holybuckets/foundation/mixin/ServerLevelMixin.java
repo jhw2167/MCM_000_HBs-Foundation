@@ -1,8 +1,6 @@
 package com.holybuckets.foundation.mixin;
 
-import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.mixin.util.MixinManager;
-import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.util.MixinManager;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;

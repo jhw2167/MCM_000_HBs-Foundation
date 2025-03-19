@@ -1,11 +1,7 @@
 package com.holybuckets.foundation.mixin;
 
-import com.holybuckets.foundation.Constants;
-import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.mixin.util.MixinManager;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.server.IntegratedServer;
+import com.holybuckets.foundation.util.MixinManager;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

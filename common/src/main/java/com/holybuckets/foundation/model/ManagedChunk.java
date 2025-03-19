@@ -45,12 +45,14 @@ public class ManagedChunk implements IMangedChunkData {
     private long tickLoaded;
     private boolean isLoaded;
     private final HashMap<Class<? extends IMangedChunkData>, IMangedChunkData> managedChunkData = new HashMap<>();
+    public final ManagedChunkUtilityAccessor util;
 
 
 
     /** CONSTRUCTORS **/
     private ManagedChunk() {
         super();
+        this.util = null;
     }
 
     public ManagedChunk( CompoundTag tag ) {
@@ -65,6 +67,7 @@ public class ManagedChunk implements IMangedChunkData {
         this.id = HBUtil.ChunkUtil.getId(pos);
         this.pos = pos;
         this.level = level;
+        this.util = ManagedChunkUtilityAccessor.getInstance(level);
 
         if(!this.level.isClientSide())
         {

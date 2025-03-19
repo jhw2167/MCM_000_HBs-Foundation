@@ -1,6 +1,5 @@
 package com.holybuckets.foundation.model;
 
-import com.google.gson.JsonElement;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.datastore.DataStore;
@@ -39,8 +38,9 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
 
     private String id;
-    private ChunkPos pos;
     private LevelAccessor level;
+    private ChunkPos pos;
+    private ChunkAccess levelChunk;
     private long tickWritten;
     private long tickLoaded;
     private boolean isLoaded;
@@ -89,14 +89,23 @@ public class ManagedChunk implements IMangedChunkData {
         return ManagedChunkUtilityAccessor.getChunk(this.level, this.id, forceLoad);
     }
 
-    public LevelAccessor getLevel() {
-        return this.level;
-    }
-
     public String getId() {
         return this.id;
     }
 
+    public LevelAccessor getLevel() {
+        return this.level;
+    }
+
+    public ChunkPos getChunkPos() { return this.pos; }
+
+    public BlockPos getWorldPos() { return HBUtil.ChunkUtil.getWorldPos(this.id); }
+
+    public LevelChunk getLevelChunk() {
+        if(this.levelChunk instanceof LevelChunk)
+            return (LevelChunk) this.levelChunk;
+        return  null;
+    }
 
     public void setId(String id) {
         this.id = id;
@@ -105,6 +114,8 @@ public class ManagedChunk implements IMangedChunkData {
     public void setLevel(LevelAccessor level) {
         this.level = level;
     }
+
+    private void releaseLevelChunk() { this.levelChunk = null; }
 
 
     /**
@@ -243,6 +254,7 @@ public class ManagedChunk implements IMangedChunkData {
     {
         this.isLoaded = true;
         if(this.level.isClientSide()) return;
+        this.levelChunk = event.getChunk();
         for(IMangedChunkData data : managedChunkData.values()) {
             data.handleChunkLoaded(event);
         }
@@ -253,6 +265,7 @@ public class ManagedChunk implements IMangedChunkData {
     {
         this.isLoaded = false;
         if(this.level.isClientSide()) return;
+        this.levelChunk = null;
         for(IMangedChunkData data : managedChunkData.values()) {
             data.handleChunkUnloaded(event);
         }
@@ -331,6 +344,44 @@ public class ManagedChunk implements IMangedChunkData {
 
     }
 
+    /**
+     * Checks to make sure we are not holding a reference to a levelChunk that is trying to unload
+     * @param level
+     */
+    static void cullLevelChunks(Level level)
+    {
+        if(LOADED_CHUNKS.get(level) == null) return;
+
+        Map<String, ManagedChunk> loadedChunks = LOADED_CHUNKS.get(level);
+        boolean cull = loadedChunks.size() > 16_000;
+        for(ManagedChunk m : loadedChunks.values())
+        {
+            boolean isFullyLoaded = ManagedChunkUtilityAccessor.isChunkFullyLoaded(level, m.getChunkPos());
+            boolean hasLevelChunk = m.getLevelChunk() != null;
+
+            if( isFullyLoaded && hasLevelChunk) {
+                //nothing
+            }
+            else if( !isFullyLoaded  && !hasLevelChunk ) {
+                //nothing
+            }
+            else if( !isFullyLoaded  && hasLevelChunk && cull ) {
+                m.releaseLevelChunk();
+            }
+            else if( !isFullyLoaded  && hasLevelChunk && !cull )
+            {
+                List<String> localChunks = HBUtil.ChunkUtil.getLocalChunkIds(m.getChunkPos(), 1);
+                long countLoaded = localChunks.stream()
+                    .filter( s -> ManagedChunkUtilityAccessor.isLoaded(level, s)).count();
+                if( countLoaded == 0 ) m.releaseLevelChunk();
+            }
+            else if( isFullyLoaded  && !hasLevelChunk ) {
+                ChunkPos cp = m.getChunkPos();
+                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x, cp.z, false);
+            }
+
+        }
+    }
 
 
     /** SERIALIZERS **/

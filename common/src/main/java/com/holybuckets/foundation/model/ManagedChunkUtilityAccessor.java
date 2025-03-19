@@ -5,7 +5,6 @@ import com.holybuckets.foundation.HBUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -22,8 +21,6 @@ import java.util.stream.Collectors;
  * Description: Used to declutter the ManagedChunk class from static utility methods
  */
 public class ManagedChunkUtilityAccessor {
-
-
 
 
     //** CHUNK STATUS **//
@@ -53,50 +50,27 @@ public class ManagedChunkUtilityAccessor {
         return isLoaded(level, HBUtil.ChunkUtil.getId(p));
     }
 
-    public static boolean isChunkStatusFull(ChunkAccess c) {
-        return (c.getStatus() == ChunkStatus.FULL);
-    }
-
-    public static boolean isLoadedAndEditable(LevelAccessor level, BlockPos p)
-    {
-        Level levelType = (Level) level;
-        if( !levelType.isLoaded(p) ) return false;
-
-        ChunkAccess chunk = levelType.getChunk(p);
-        if( chunk == null || !isLoaded(level, chunk) ) return false;
-
-        String chunkId = HBUtil.ChunkUtil.getId(chunk);
-        if( !isLevelChunkLoaded(level, chunkId ) ) return false;
-
-        if( !isChunkStatusFull(chunk) ) return false;
-
-        return true;
-    }
-
-    public static boolean isLoadedAndEditable(LevelAccessor level, String id) {
-        return isLoadedAndEditable(level, HBUtil.ChunkUtil.getWorldPos(id));
-    }
-
-
-    public static boolean isLevelChunkLoaded(LevelAccessor level, String id) {
-        if( !isLoaded(level, id) ) return false;
-        ManagedChunk mc = LOADED_CHUNKS.get(level).get(id);
-        return mc.getChunk(false) != null;
-    }
 
     /**
      * Provided a chunk and id, determines if the chunk and all chunks around it are loaded and
      * in FULL status, else returns false.
      * @param level
-     * @param id
+     * @param cp
      * @return
      */
-    public static boolean isChunkFullyLoaded(LevelAccessor level, String id)
+    public static boolean isChunkFullyLoaded(LevelAccessor level, ChunkPos cp)
     {
-        if( !isLevelChunkLoaded(level, id) ) return false;
-        ChunkPos cp = HBUtil.ChunkUtil.getPos(id);
+        if(!isLoaded(level, cp)) return false;
         List<String> localAreaChunks = HBUtil.ChunkUtil.getLocalChunkIds(cp, 1);
-        return localAreaChunks.stream().allMatch( chunkId -> isLoadedAndEditable(level, chunkId) );
+        return localAreaChunks.stream().allMatch( chunkId -> isLoaded(level, chunkId) );
+    }
+
+    public static boolean isChunkFullyLoaded(LevelAccessor level, String id) {
+        return isChunkFullyLoaded(level, HBUtil.ChunkUtil.getChunkPos(id));
+    }
+
+    public static boolean isChunkFullyLoaded(LevelAccessor level, BlockPos pos) {
+        return isChunkFullyLoaded(level, HBUtil.ChunkUtil.getChunkPos(pos) );
     }
 
 
@@ -119,24 +93,16 @@ public class ManagedChunkUtilityAccessor {
      * Get a chunk from a level using a chunk id
      * @param level
      * @param chunkId
+     * @param forceLoad is deprecated, it causes too man issues
      * @return
      */
     public static LevelChunk getChunk(LevelAccessor level, String chunkId, boolean forceLoad)
     {
-        if(level == null || chunkId == null)
-            return null;
+        if(level == null || chunkId == null) return null;
+        if(LOADED_CHUNKS.get(level) == null) return null;
+        if( !LOADED_CHUNKS.get(level).containsKey(chunkId) ) return null;
 
-        if(LOADED_CHUNKS.get(level) == null)
-            return null;
-
-        if(!forceLoad)
-        {
-            if( !LOADED_CHUNKS.get(level).containsKey(chunkId) )
-                return null;
-        }
-
-        ChunkPos p = HBUtil.ChunkUtil.getPos(chunkId);
-        return HBUtil.ChunkUtil.getLevelChunk(level, p.x, p.z, forceLoad);
+        return LOADED_CHUNKS.get(level).get(chunkId).getLevelChunk();
     }
 
     /*
@@ -155,11 +121,8 @@ public class ManagedChunkUtilityAccessor {
 
     public static ManagedChunk getManagedChunk(LevelAccessor level, String id)
     {
-        if(level == null || id == null)
-            return null;
-
-        if(LOADED_CHUNKS.get(level) == null)
-            return null;
+        if(level == null || id == null) return null;
+        if(LOADED_CHUNKS.get(level) == null) return null;
 
         return LOADED_CHUNKS.get(level).get(id);
     }

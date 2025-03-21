@@ -590,13 +590,58 @@ public class HBUtil {
 
         /**
          * Returns a 3D array of all vertices within a sphere of radius r.
-         * @param radius
-         * @param height
-         * @return
+         * If height < radius*2, the sphere is compressed vertically.
+         * If height > radius*2, the sphere is stretched vertically.
+         * @param radius Sphere radius
+         * @param height Total height of the sphere
+         * @return Fast3DArray containing all points, null if invalid params
          */
-        public static Fast3DArray getSphere(int radius, int height)
+        public static Fast3DArray getSphere(int radius, int height) 
         {
+            if (radius <= 0 || height <= 0) {
+                return null;
+            }
 
+            // Special case: height < 2 returns a circle
+            if (height < 2) {
+                return getCircle(radius);
+            }
+
+            // Special case: tiny radius
+            if (radius < 4) {
+                Fast3DArray sphere = new Fast3DArray(height * 9); // Approximate size
+                Fast3DArray circle = getCircle(1);
+                
+                for (int y = 0; y < height; y++) {
+                    for (int i = 0; i < circle.size; i++) {
+                        sphere.add(circle.X[i], y, circle.Z[i]);
+                    }
+                }
+                return sphere;
+            }
+
+            // Calculate vertical scaling factor
+            float verticalScale = height / (float)(radius * 2);
+            
+            Fast3DArray sphere = new Fast3DArray(height * radius * radius);
+            
+            // Generate layers of circles with decreasing radii
+            for (int y = 0; y < height; y++) {
+                // Calculate the radius for this layer using the sphere equation
+                float normalizedY = (y - height/2f) / (height/2f);
+                float layerRadius = (float) (radius * Math.sqrt(1 - (normalizedY * normalizedY)));
+                
+                if (layerRadius < 0.5f) continue;
+                
+                Fast3DArray layer = getCircle((int)layerRadius);
+                if (layer != null) {
+                    for (int i = 0; i < layer.size; i++) {
+                        sphere.add(layer.X[i], y, layer.Z[i]);
+                    }
+                }
+            }
+
+            return sphere;
         }
 
 

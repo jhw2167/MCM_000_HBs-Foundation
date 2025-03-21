@@ -588,6 +588,17 @@ public class HBUtil {
             return circle;
         }
 
+        /**
+         * Returns a 3D array of all vertices within a sphere of radius r.
+         * @param radius
+         * @param height
+         * @return
+         */
+        public static Fast3DArray getSphere(int radius, int height)
+        {
+
+        }
+
 
         /**
          * Returns a 3D array of all vertices within a 2D square of provided length and width

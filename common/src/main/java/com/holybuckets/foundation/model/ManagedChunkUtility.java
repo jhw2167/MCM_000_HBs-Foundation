@@ -124,18 +124,26 @@ public class ManagedChunkUtility {
         return LOADED_CHUNKS.get(level).get(id);
     }
 
+    //* STATICS
+
+    public static ManagedChunk getManagedChunk(LevelAccessor level, String id) {
+        if(id == null || level == null) return null;
+        if(LOADED_CHUNKS.get(level) == null) return null;
+
+        return LOADED_CHUNKS.get(level).get(id);
+    }
 
     /**
      * Get a new instance of random object unique to this chunks coordinates
      * and the Minecraft world seed value
      * @return Random instance
      */
-    public Random getChunkRandom(ChunkPos pos) {
+    public static Random getChunkRandom(ChunkPos pos) {
         final GeneralConfig CONFIG = GeneralConfig.getInstance();
         return getChunkRandom(pos, CONFIG.getWorldSeed());
     }
 
-    public Random getChunkRandom(ChunkPos pos, final Long SEED) {
+    public static Random getChunkRandom(ChunkPos pos, final Long SEED) {
         Double RAND = HBUtil.ChunkUtil.getChunkPos1DMap(pos) * 1d;
         if(RAND.equals(0d))
             return new Random(SEED);
@@ -146,6 +154,7 @@ public class ManagedChunkUtility {
 
         return new Random(RAND.intValue());
     }
+
 
     //*
     void cullLevelChunks(ServerTickEvent event) {

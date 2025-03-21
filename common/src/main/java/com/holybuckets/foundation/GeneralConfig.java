@@ -105,6 +105,10 @@ public class GeneralConfig {
         return dataStore;
     }
 
+    public Map<String,LevelAccessor> getLevels() {
+        return new HashMap<>(LEVELS);
+    }
+
 
     /** Server Events **/
 

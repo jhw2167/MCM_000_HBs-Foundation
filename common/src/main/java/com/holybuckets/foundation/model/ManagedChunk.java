@@ -58,6 +58,8 @@ public class ManagedChunk implements IMangedChunkData {
     public ManagedChunk( CompoundTag tag ) {
         this();
         this.deserializeNBT(tag);
+        this.pos = HBUtil.ChunkUtil.getChunkPos(this.id);
+        this.util = ManagedChunkUtility.getInstance(this.level);
         LOADED_CHUNKS.get(this.level).put(this.id, this);
     }
 
@@ -95,13 +97,35 @@ public class ManagedChunk implements IMangedChunkData {
         return this.level;
     }
 
-    public ChunkPos getChunkPos() { return this.pos; }
+    public ChunkPos getChunkPos() {
+        if(this.pos == null)
+        this.pos = HBUtil.ChunkUtil.getChunkPos(this.id);
+        return this.pos;
+    }
 
     public BlockPos getWorldPos() { return HBUtil.ChunkUtil.getWorldPos(this.id); }
 
+    public LevelChunk getCachedLevelChunk() {
+        if(this.levelChunk instanceof LevelChunk)
+            return (LevelChunk) this.levelChunk;
+        return null;
+    }
+
+    /**
+     * DO NOT ATTEMPT THIS FROM MAIN THREAD LIKE A TICK OR A COMMAND, will crash world
+     * @return LevelChunk
+     */
     public LevelChunk getLevelChunk() {
         if(this.levelChunk instanceof LevelChunk)
             return (LevelChunk) this.levelChunk;
+        else if( util.isChunkFullyLoaded(id) ) {
+            if(this.level.isClientSide())
+                return (LevelChunk) this.level.getChunk(this.pos.x, this.pos.z);
+
+            ChunkAccess c = this.level.getChunk(this.pos.x, this.pos.z);
+            if(c instanceof LevelChunk) this.levelChunk = c;
+            return (LevelChunk) this.levelChunk;
+        }
         return  null;
     }
 

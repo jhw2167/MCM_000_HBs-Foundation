@@ -67,6 +67,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerTickEvent.Every20Ticks>> ON_20_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.Every120Ticks>> ON_120_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.Every1200Ticks>> ON_1200_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ServerTickEvent.Every1200Ticks>> ON_6000_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.DailyTick>> ON_DAILY_TICK = new ConcurrentSet<>();
 
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
@@ -133,6 +134,14 @@ public class EventRegistrar {
             ServerTickEvent.Every1200Ticks event1200 = new ServerTickEvent.Every1200Ticks(totalTicks);
             for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_1200_TICKS) {
                 consumer.accept(event1200);
+            }
+        }
+
+        // Fire every 6000 ticks
+        if (totalTicks % 6000 == 0) {
+            ServerTickEvent.Every1200Ticks event6000 = new ServerTickEvent.Every1200Ticks(totalTicks);
+            for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_6000_TICKS) {
+                consumer.accept(event6000);
             }
         }
 
@@ -236,6 +245,7 @@ public class EventRegistrar {
         ON_20_TICKS,
         ON_120_TICKS,
         ON_1200_TICKS,
+        ON_6000_TICKS,
         DAILY_TICK
     }
 
@@ -258,6 +268,9 @@ public class EventRegistrar {
                 break;
             case ON_1200_TICKS:
                 generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_1200_TICKS, priority);
+                break;
+            case ON_6000_TICKS:
+                generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_6000_TICKS, priority);
                 break;
             case DAILY_TICK:
                 generalRegister((Consumer<ServerTickEvent.DailyTick>) function, ON_DAILY_TICK, priority);

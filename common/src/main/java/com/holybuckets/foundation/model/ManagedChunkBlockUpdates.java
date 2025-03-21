@@ -143,7 +143,7 @@ public class ManagedChunkBlockUpdates {
 
         boolean succeeded = level.setBlock(pos, state, tag);
         if(succeeded) {
-            //level.getChunk(pos).setUnsaved(true);
+            level.getChunk(pos).setUnsaved(true);
         }
 
         return succeeded;

@@ -325,6 +325,32 @@ public class HBUtil {
             return stateMap;
         }
 
+
+        public static int mapTo1DNumber(TripleInt p) {
+            return mapTo1DNumber(new BlockPos(p.x,p.y,p.z));
+        }
+
+        /**
+         * Takes a blockPos - a 3D entity and maps it to a unique 1D number
+         * @param p
+         * @return
+         */
+        public static int mapTo1DNumber(BlockPos p) {
+            // Zigzag encoding: turns negative numbers into unique positive integers
+            int x = (p.getX() << 1) ^ (p.getX() >> 31);
+            int y = (p.getY() << 1) ^ (p.getY() >> 31);
+            int z = (p.getZ() << 1) ^ (p.getZ() >> 31);
+
+            // Szudzik pairing function for combining two ints into one (no overflow worries)
+            long pairXY = (x >= y) ? (long)x * x + x + y : (long)y * y + x;
+            long pairXYZ = ((int)pairXY >= z) ? (long)((int)pairXY) * ((int)pairXY) + (int)pairXY + z
+                : (long)z * z + (int)pairXY;
+
+            // Compress to 32-bit int with simple folding (optional)
+            return (int)(pairXYZ ^ (pairXYZ >>> 32));
+        }
+
+
     }
     //END BLOCK UTIL
 
@@ -539,7 +565,8 @@ public class HBUtil {
 
         /**
          * Returns a 3D array of all vertices within a circle of radius r.
-         * The y value is always 0. If the provided radius is even, it will be incremented by 1.
+         * The y value is always 0. If the provided radius is odd, it will be incremented by 1.  Returns single block at
+         * the center for radius of 0 or 1 Returns 3x3 square for radius of 2 or 3.
          * @param radius
          * @return null if radius is less than 0. returns 3x3 square if radius is 2 or 3. Otherwise
          * returns all integer solutions where x^2 + z^2 = r^2 or less
@@ -549,19 +576,14 @@ public class HBUtil {
             if( radius <= 0 )
                 return null;
 
-            Fast3DArray circle = new Fast3DArray(4 * radius * radius);
-
+            Fast3DArray circle = new Fast3DArray(4 * (radius+1) * (radius+1));
             circle.add(0, 0, 0);
             if( radius <= 1 ) {
                 return circle;
             }
 
-            if( radius % 2 == 0) {
-                radius++;
-            }
-
-            //if radius is 3, we just return 3x3 square
-            if( radius == 3)
+            //if radius is 2, we just return 3x3 square
+            if( radius == 2 )
             {
                 for (int x = -1; x <= 1; x++) {
                     for (int z = -1; z <= 1; z++) {
@@ -571,12 +593,12 @@ public class HBUtil {
                 return circle;
             }
 
-            int radiusSquared = radius * radius;
+
+            radius -= 1;
+            double softness = 0.5;
+            double radiusSquared = Math.ceil(radius + softness) * (radius+softness);
             for (int x = -radius; x <= radius; x++)
             {
-                // Calculate y^2 for the current x
-                int zSquared = radiusSquared - x * x;
-
                 //Instead, we want all integer solutions where x^2 + y^2 <= r^2
                 for (int z = -radius; z <= radius; z++) {
                     if (x * x + z * z <= radiusSquared) {
@@ -620,24 +642,30 @@ public class HBUtil {
                 return sphere;
             }
 
-            // Calculate vertical scaling factor
-            float verticalScale = height / (float)(radius * 2);
-            
-            Fast3DArray sphere = new Fast3DArray(height * radius * radius);
+            Fast3DArray sphere = new Fast3DArray((int) (height * radius * radius * Math.PI*2));
             
             // Generate layers of circles with decreasing radii
-            for (int y = 0; y < height; y++) {
-                // Calculate the radius for this layer using the sphere equation
-                float normalizedY = (y - height/2f) / (height/2f);
-                float layerRadius = (float) (radius * Math.sqrt(1 - (normalizedY * normalizedY)));
-                
-                if (layerRadius < 0.5f) continue;
-                
-                Fast3DArray layer = getCircle((int)layerRadius);
-                if (layer != null) {
-                    for (int i = 0; i < layer.size; i++) {
-                        sphere.add(layer.X[i], y, layer.Z[i]);
-                    }
+            int halfHeight = (int) Math.floor(height / 2);
+            double[] radii = new double[halfHeight + 1];
+            double deltaRadiusPerHt =  ( (double) radius / height);
+            for (int y = 0; y <= halfHeight; y++) {
+                if( y == 0)
+                    radii[y] = radius;
+                else
+                    radii[y] = (radii[y-1] - deltaRadiusPerHt) - 0.01;
+            }
+            int yAdj = 0;
+            for (int y = halfHeight*-1; y <= halfHeight; y++)
+            {
+                if(height % 2 == 0 && y == 0) {
+                    yAdj = -1;
+                    continue;
+                }
+
+
+                Fast3DArray layer = getCircle( (int) Math.ceil(radii[Math.abs(y)]) );
+                for (int i = 0; i < layer.size; i++) {
+                    sphere.add(layer.X[i], y+ yAdj, layer.Z[i]);
                 }
             }
 

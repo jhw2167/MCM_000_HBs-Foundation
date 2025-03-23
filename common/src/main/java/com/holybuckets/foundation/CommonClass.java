@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
+import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -11,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.apache.commons.lang3.tuple.Pair;
@@ -18,6 +20,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import static java.lang.Thread.sleep;
 
 
 public class CommonClass {
@@ -67,6 +71,8 @@ public class CommonClass {
         String id = HBUtil.ChunkUtil.getId(event.getChunk().getPos().getWorldPosition());
         String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
 
+        if(!chunkId.equals("0,0"))
+            return;
         //Print ids to test if they match
         Constants.LOG.info("Chunk loaded: " + id + " " + chunkId + " MATCH: " + id.equals(chunkId) );
 
@@ -76,7 +82,7 @@ public class CommonClass {
     public static void threadAddChunkBlock(ChunkLoadingEvent.Load event)
     {
         //final BlockState GOLD = Blocks.DIAMOND_BLOCK.defaultBlockState();
-        final BlockState GOLDSTATE = ModBlocks.empty.defaultBlockState();
+        final BlockState GOLDSTATE = Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState();
         final Block GOLD = ModBlocks.empty;
         List<Pair<BlockState, BlockPos>> blocks = new ArrayList<>();
         ChunkAccess c = event.getChunk();
@@ -85,16 +91,27 @@ public class CommonClass {
         ManagedChunkUtility util = ManagedChunkUtility.getInstance(level);
 
         //Use MangedChunk.loadedChunks to determine when chunk is loaded
-        while( !util.isLoaded(c) ) {}
+        while( !util.isChunkFullyLoaded(c.getPos()) ) {}
+
+    try {
+        sleep(5000);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
+
 
         //Add blocks to chunk
+        HBUtil.TripleInt[] sphere = HBUtil.ShapeUtil.getSphere(8, 32).toArray();
         List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();
-        blockStateList.add(Pair.of(GOLDSTATE, p));
-        ManagedChunk.updateChunkBlockStates(level, blockStateList);
 
-        List<Pair<Block, BlockPos>> blockList = new ArrayList<>();
-        blockList.add(Pair.of(GOLD, p));
-        ManagedChunk.updateChunkBlocks(level, blockList);
+        for(int i = 0; i < sphere.length; i++)
+        {
+            BlockPos pos = p.offset(sphere[i].x, sphere[i].y+120, sphere[i].z);
+            blockStateList.add(Pair.of(GOLDSTATE, pos));
+        }
+
+        LoggerBase.logInfo(null, "999000", "Added blocks to chunk: " + p);
+        ManagedChunk.updateChunkBlockStates(level, blockStateList);
 
     }
 

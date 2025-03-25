@@ -976,9 +976,9 @@ public class HBUtil {
 
 
     public static class WorldPos {
-        public static BlockPos blockPos;
-        public static TripleInt sectionIndicies;
-        public static int sectionIndex;
+        public BlockPos blockPos;
+        public TripleInt sectionIndicies;
+        public int sectionIndex;
         public static final int SECTION_SZ = 16;
         public boolean DNE = false;
 
@@ -1051,6 +1051,21 @@ public class HBUtil {
 
         public int getZ() {
             return blockPos.getZ();
+        }
+
+        //sectionToString
+        public String sectionToString() {
+            return "Indicies{" +
+                "x,y,z=" + sectionIndicies +
+                ", sectionIndex=" + sectionIndex +
+                '}';
+        }
+
+        //worldPosToString
+        public String worldPosToString() {
+            return "WorldPos{" +
+                "blockPos=" + blockPos +
+                '}';
         }
     }
     //END WORLD POS

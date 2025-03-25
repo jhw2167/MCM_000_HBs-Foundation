@@ -101,17 +101,50 @@ public class CommonClass {
 
 
         //Add blocks to chunk
-        HBUtil.TripleInt[] sphere = HBUtil.ShapeUtil.getSphere(8, 32).toArray();
+        //HBUtil.TripleInt[] sphere = HBUtil.ShapeUtil.getSphere(8, 32).toArray();
         List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();
 
+        /*
         for(int i = 0; i < sphere.length; i++)
         {
             BlockPos pos = p.offset(sphere[i].x, sphere[i].y+120, sphere[i].z);
             blockStateList.add(Pair.of(GOLDSTATE, pos));
         }
+        */
 
         LoggerBase.logInfo(null, "999000", "Added blocks to chunk: " + p);
         ManagedChunk.updateChunkBlockStates(level, blockStateList);
+
+
+        //TestWorldPos
+        BlockPos p1 = new BlockPos(0, 0, 0);
+        BlockPos p2 = new BlockPos(0, 15, 0);
+        BlockPos p2a = new BlockPos(0, 16, 0);
+        BlockPos p2b = new BlockPos(0, -15, 0);
+        BlockPos p2c = new BlockPos(0, -16, 0);
+        BlockPos p2d = new BlockPos(0, -17, 0);
+        BlockPos p3 = new BlockPos(0, -64, 0);
+
+        //Convert this blockPos to HBUtil.WorldPos and back, print the results
+        HBUtil.WorldPos wp1 = new HBUtil.WorldPos(p1, c);
+        HBUtil.WorldPos wp2 = new HBUtil.WorldPos(p2, c);
+        HBUtil.WorldPos wp2a = new HBUtil.WorldPos(p2a, c);
+        HBUtil.WorldPos wp2b = new HBUtil.WorldPos(p2b, c);
+        HBUtil.WorldPos wp2c = new HBUtil.WorldPos(p2c, c);
+        HBUtil.WorldPos wp2d = new HBUtil.WorldPos(p2d, c);
+        HBUtil.WorldPos wp3 = new HBUtil.WorldPos(p3, c);
+
+        Constants.LOG.info("WorldPos: " + wp1 + " " + wp1.worldPosToString() + " " + wp1.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp2 + " " + wp2.worldPosToString() + " " + wp2.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp2a + " " + wp2a.worldPosToString() + " " + wp2a.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp2b + " " + wp2b.worldPosToString() + " " + wp2b.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp2c + " " + wp2c.worldPosToString() + " " + wp2c.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp2d + " " + wp2d.worldPosToString() + " " + wp2d.sectionToString());
+        Constants.LOG.info("WorldPos: " + wp3 + " " + wp3.worldPosToString() + " " + wp3.sectionToString());
+
+
+
+
 
     }
 

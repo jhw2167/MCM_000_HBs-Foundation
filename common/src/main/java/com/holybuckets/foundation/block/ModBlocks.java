@@ -5,7 +5,6 @@ import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.block.BalmBlocks;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
@@ -14,10 +13,12 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 public class ModBlocks {
 
     public static Block empty;
+    public static Block stoneBrickBlockEntity;
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
-        blocks.register( () -> empty = new EmptyBlock(defaultProperties()), () -> itemBlock(empty), id("empty_block"));
+        blocks.register(() -> empty = new EmptyBlock(defaultProperties()), () -> itemBlock(empty), id("empty_block"));
+        blocks.register(() -> stoneBrickBlockEntity = new SimpleBlockEntityBlock(SimpleBlockEntityBlock.stoneBrickProperties()), () -> itemBlock(stoneBrickBlockEntity), id("stone_brick_block_entity"));
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {
@@ -28,7 +29,7 @@ public class ModBlocks {
     }
 
     private static BlockItem itemBlock(Block block) {
-        return new BlockItem(block, Balm.getItems().itemProperties() );
+        return new BlockItem(block, Balm.getItems().itemProperties());
     }
 
     private static ResourceLocation id(String name) {
@@ -43,4 +44,7 @@ public class ModBlocks {
         BlockBehaviour.Properties props = BlockBehaviour.Properties.of().copy(Blocks.AIR).forceSolidOn();  //default properties
         return props;
     }
+
 }
+
+

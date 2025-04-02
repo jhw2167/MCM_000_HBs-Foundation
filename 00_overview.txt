@@ -60,3 +60,7 @@ Appendix
 
 - runtimeOnly fg.deobf("dependency")
 
+Useful tool for applying textures to antoher item:
+https://github.com/Mrthomas20121/WoodEditing/tree/master
+@MrThomas20121 via discord - run with npm
+

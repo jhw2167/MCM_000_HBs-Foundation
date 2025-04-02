@@ -91,6 +91,15 @@ public class ManagedChunkUtility {
     }
 
 
+    //** STATICS **//
+
+    public static boolean isChunkFullyLoaded(LevelAccessor level, String id) {
+        ManagedChunkUtility util = getInstance(level);
+        return util.isChunkFullyLoaded(id);
+    }
+
+
+
     //** UTILITIES **//
 
     /**
@@ -223,7 +232,7 @@ public class ManagedChunkUtility {
 
     public static void onWorldUnload(LevelLoadingEvent.Unload event) {
         ManagedChunkUtility util = INSTANCES.remove(event.getLevel());
-        util.shutdown();
+        if(util != null) util.shutdown();
     }
 
 }

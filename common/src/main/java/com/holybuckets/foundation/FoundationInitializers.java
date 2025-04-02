@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
+import com.holybuckets.foundation.block.entity.ModBlockEntities;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.config.PerformanceImpactConfigData;
 import com.holybuckets.foundation.event.BalmEventRegister;
@@ -70,6 +71,7 @@ public class FoundationInitializers {
 
     private static void initBlocks() {
         ModBlocks.initialize(Balm.getBlocks());
+        ModBlockEntities.initialize(Balm.getBlockEntities());
     }
 
     private static void initItems() {

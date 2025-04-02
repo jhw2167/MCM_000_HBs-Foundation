@@ -55,7 +55,10 @@ public class ManagedChunkCapabilityProvider implements ICapabilityProvider, INBT
 
     @Override
     public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> capability, @Nullable Direction direction) {
-        return getCapability(capability);
+        if(capability == MANAGED_CHUNK) {
+            return optional.cast();
+        }
+        return LazyOptional.empty();
     }
 
     @Override

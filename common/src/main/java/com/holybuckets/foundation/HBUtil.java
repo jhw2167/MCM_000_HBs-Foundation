@@ -15,7 +15,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -560,6 +564,40 @@ public class HBUtil {
 
 
     }
+
+    public static class EntityUtil {
+
+        //All entities: SuggestionProviders.SUMMONABLE_ENTITIES;
+
+        /**
+         * Desciption: - You can do entity create in place if you want, here the argument are described
+         * public T create(
+         *     ServerLevel world,                 // The server-level/world where the entity should be spawned
+         *     @Nullable CompoundTag customNbt,   // Optional NBT data (e.g., from a spawn egg or saved entity)
+         *     @Nullable Consumer<T> postProcess, // Optional function to customize the entity after creation
+         *     BlockPos position,                 // The target block position for spawning the entity
+         *     MobSpawnType spawnType,            // The reason/type of spawn (e.g., NATURAL, SPAWNER, COMMAND)
+         *     boolean applyOffset,               // Whether to position the entity above the block center (usually true)
+         *     boolean alignToGround              // Whether to adjust the entity’s Y offset based on the terrain
+         * )
+         *
+         */
+        public static <T extends Entity> T createEntityAtPosition(EntityType<T> entityType, ServerLevel world, BlockPos pos )
+        {
+            return entityType.create(
+                world,
+                null,               // Optional NBT data (e.g., from a spawn egg or saved entity)
+                null,                   // Optional function to customize the entity after creation
+                pos,                 // The target block position for spawning the entity
+                MobSpawnType.COMMAND,            // The reason/type of spawn (e.g., NATURAL, SPAWNER, COMMAND)
+            true,               // Whether to position the entity above the block center (usually true)
+            true              // Whether to adjust the entity’s Y offset based on the terrain
+            );
+        }
+
+
+    }
+
 
     public static class ShapeUtil {
 

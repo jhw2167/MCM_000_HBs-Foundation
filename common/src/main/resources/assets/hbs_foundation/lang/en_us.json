@@ -1,5 +1,3 @@
 {
-	"itemGroup.hbs_foundation.hbs_foundation": "HB's Foundation",
-	"block.hbs_foundation.empty_block": "Test Block",
-	"lore.hbs_foundation.empty_block": "Test Block used for debugging and in certain internal algorithms"
+  "block.hbs_foundation.stone_brick_block_entity": "Stone Bricks"
 }

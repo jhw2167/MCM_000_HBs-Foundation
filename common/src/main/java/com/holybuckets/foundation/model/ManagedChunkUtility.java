@@ -95,6 +95,7 @@ public class ManagedChunkUtility {
 
     public static boolean isChunkFullyLoaded(LevelAccessor level, String id) {
         ManagedChunkUtility util = getInstance(level);
+        if(util == null) return false;
         return util.isChunkFullyLoaded(id);
     }
 

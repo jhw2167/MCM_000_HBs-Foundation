@@ -1,7 +1,6 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
@@ -40,6 +39,10 @@ public class CommonClass {
         //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
         isInitialized = true;
+    }
+
+    public static void initClient() {
+        FoundationInitializers.initClient();
     }
 
     /**

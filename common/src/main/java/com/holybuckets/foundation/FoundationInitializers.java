@@ -2,8 +2,8 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
+import com.holybuckets.foundation.client.ModRenderers;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
-import com.holybuckets.foundation.config.PerformanceImpactConfigData;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.ModItems;
@@ -12,6 +12,7 @@ import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.resources.ResourceLocation;
 
@@ -30,6 +31,10 @@ public class FoundationInitializers {
 
         initBlocks();
         initItems();
+    }
+
+    static void initClient(){
+        initRenderers();
     }
 
     /**
@@ -77,6 +82,16 @@ public class FoundationInitializers {
     private static void initItems() {
         ModItems.initialize(Balm.getItems());
     }
+
+
+
+    //** CLIENT INITIALIZERS **//
+
+    private static void initRenderers() {
+        ModRenderers.initialize(BalmClient.getRenderers());
+    }
+
+
 
     private static ResourceLocation id(String location) {
         return new ResourceLocation(Constants.MOD_ID, location);

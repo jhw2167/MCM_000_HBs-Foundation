@@ -22,6 +22,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -392,12 +393,20 @@ public class HBUtil {
         {
             if (level == null)
                 return null;
-            String levelName = level.dimensionType().effectsLocation().toString();
+            String levelName = ((Level) level).dimension().location().toString();
             if(level.isClientSide()) {
                 return "CLIENT:" + levelName;
             } else {
                 return "SERVER:" + levelName;
             }
+        }
+
+        public static boolean testLevel(Level level, String levelNameSpace, String levelId) {
+            return testLevel(level, new ResourceLocation(levelNameSpace + ":" + levelId));
+        }
+
+        public static boolean testLevel(Level level, ResourceLocation location) {
+            return level.dimension().location().equals(location);
         }
     }
 

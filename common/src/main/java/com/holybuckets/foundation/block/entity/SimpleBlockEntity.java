@@ -12,4 +12,6 @@ public class SimpleBlockEntity extends BalmBlockEntity {
     public SimpleBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(ModBlockEntities.simpleBlockEntity.get(), blockPos, blockState);
     }
+
+
 }

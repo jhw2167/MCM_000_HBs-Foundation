@@ -38,7 +38,7 @@ public class FoundationInitializers {
     }
 
     /**
-     * Description: Initialize common HB utilities that much support all mods prior to mod initialization
+     * Description: Initialize common HB utilities that must support all mods prior to mod initialization
      */
     public static synchronized void commonInitialize()
     {
@@ -48,6 +48,7 @@ public class FoundationInitializers {
         EventRegistrar.init();
         HBUtil.NetworkUtil.init(EventRegistrar.getInstance());
         GeneralConfig.init(EventRegistrar.getInstance());
+        ModItems.commonInitialize(Balm.getItems());
     }
 
     private static void initConfig()
@@ -88,7 +89,7 @@ public class FoundationInitializers {
     //** CLIENT INITIALIZERS **//
 
     private static void initRenderers() {
-        ModRenderers.initialize(BalmClient.getRenderers());
+        ModRenderers.clientInitialize(BalmClient.getRenderers());
     }
 
 

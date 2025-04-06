@@ -1,3 +1,4 @@
 {
-  "block.hbs_foundation.stone_brick_block_entity": "Stone Bricks"
+  "block.hbs_foundation.stone_brick_block_entity": "Stone Bricks",
+  "itemGroup.hbs_foundation.hbs_foundation": "HB's Utility Blocks"
 }

@@ -17,6 +17,9 @@
     "entrypoints": {
         "main": [
             "com.holybuckets.foundation.FoundationMain"
+        ],
+        "client": [
+            "com.holybuckets.foundation.FoundationMainClientFabric"
         ]
     },
     "mixins": [

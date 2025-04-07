@@ -13,12 +13,14 @@ public class FoundationAttachments {
 
     private static void initAttachments() {
         ManagedChunkAttachment.init();
+        ManagedPlayerAttachment.init();
     }
 
 
     private static void registerAttachments() {
         BalmEvents events = Balm.getEvents();
         events.onEvent(ChunkLoadingEvent.Load.class, ManagedChunkAttachment::onChunkLoadRegisterAttachment);
+        events.onEvent(PlayerConnectedEvent.class, ManagedPlayerAttachment::onPlayerConnectedRegisterAttachment);
     }
 
 

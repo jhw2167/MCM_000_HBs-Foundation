@@ -6,7 +6,6 @@ package com.holybuckets.foundation.event;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
@@ -38,7 +37,7 @@ public class EventRegistrar {
     private static EventRegistrar instance;
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
     
-    final Set<Consumer<PlayerLoginEvent>> ON_PLAYER_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<PlayerConnectedEvent>> ON_PLAYER_CONNECTED = new ConcurrentSet<>();
     final Set<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ConcurrentSet<>();
     final Set<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ConcurrentSet<>();
 
@@ -164,9 +163,9 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    public void registerOnPlayerLoad(Consumer<PlayerLoginEvent> function) { registerOnPlayerLoad(function, EventPriority.Normal);}
-    public void registerOnPlayerLoad(Consumer<PlayerLoginEvent> function, EventPriority priority) {
-        generalRegister(function, ON_PLAYER_LOAD, priority);
+    public void registerOnPlayerConnected(Consumer<PlayerConnectedEvent> function) { registerOnPlayerConnected(function, EventPriority.Normal);}
+    public void registerOnPlayerConnected(Consumer<PlayerConnectedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_CONNECTED, priority);
     }
 
 

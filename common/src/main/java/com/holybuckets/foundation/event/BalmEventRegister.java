@@ -12,7 +12,6 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -92,8 +91,8 @@ public class BalmEventRegister {
         /** PLAYER EVENTS **/
 
         //Player login event
-        events.ON_PLAYER_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( PlayerLoginEvent.class , c, p(c));
+        events.ON_PLAYER_CONNECTED.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent( PlayerConnectedEvent.class , c, p(c));
             registeredEvents.add(c.hashCode());
         });
 

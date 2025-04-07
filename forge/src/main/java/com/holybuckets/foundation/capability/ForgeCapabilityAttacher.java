@@ -9,6 +9,8 @@ import com.holybuckets.foundation.capability.ManagedChunkCapabilityProvider;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -35,6 +37,21 @@ public class ForgeCapabilityAttacher {
                     new ManagedChunkCapabilityProvider(chunk));
             }
         }
+
+    }
+
+    @SubscribeEvent
+    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event)
+    {
+
+        if (event.getObject() instanceof Player)
+        {
+            Player p = (Player) event.getObject();
+
+        }
+
+
+
     }
 
 

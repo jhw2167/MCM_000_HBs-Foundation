@@ -10,6 +10,8 @@ import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import net.blay09.mods.balm.api.event.*;
+import net.blay09.mods.balm.api.event.block.BlockBrokenEvent;
+import net.blay09.mods.balm.api.event.entity.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
@@ -70,6 +72,8 @@ public class EventRegistrar {
     final Set<Consumer<ServerTickEvent.DailyTick>> ON_DAILY_TICK = new ConcurrentSet<>();
 
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
+    final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
+    final Set<Consumer<BlockBrokenEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
 
 
     /**
@@ -280,6 +284,16 @@ public class EventRegistrar {
     public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
     public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
         generalRegister(function, ON_DATA_SAVE, priority);
+    }
+
+    public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function) { registerOnPlayerAttack(function, EventPriority.Normal); }
+    public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_ATTACK, priority);
+    }
+
+    public void registerOnBlockBroken(Consumer<BlockBrokenEvent> function) { registerOnBlockBroken(function, EventPriority.Normal); }
+    public void registerOnBlockBroken(Consumer<BlockBrokenEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BLOCK_BROKEN, priority);
     }
 
 

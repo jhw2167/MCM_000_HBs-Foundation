@@ -96,6 +96,16 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        events.ON_PLAYER_ATTACK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent( PlayerAttackEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_BLOCK_BROKEN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent( BlockBrokenEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
 
     }
 

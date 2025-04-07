@@ -90,9 +90,14 @@ public class BalmEventRegister {
 
         /** PLAYER EVENTS **/
 
-        //Player login event
-        events.ON_PLAYER_CONNECTED.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( PlayerConnectedEvent.class , c, p(c));
+        //Player login/logout events
+        events.ON_PLAYER_LOGIN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(PlayerLoginEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_PLAYER_LOGOUT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(PlayerLogoutEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 

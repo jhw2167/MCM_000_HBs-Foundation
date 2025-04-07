@@ -57,8 +57,12 @@ public class CommonClass {
     {
         reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         reg.registerOnLevelLoad(CommonClass::onLevelLoad);
-        //reg.registerOnPlayerLoad(CommonClass::onPlayerLoad);
+        reg.registerOnPlayerConnected(CommonClass::onPlayerConnected);
         reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS , CommonClass::onServerTick);
+    }
+
+    private static void onPlayerConnected(PlayerConnectedEvent event) {
+        Constants.LOG.info("Player connected: " + event.getPlayer().getGameProfile().getName());
     }
 
     static void onServerTick(ServerTickEvent event) {

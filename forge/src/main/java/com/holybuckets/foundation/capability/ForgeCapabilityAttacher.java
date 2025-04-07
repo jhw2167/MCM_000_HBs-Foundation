@@ -43,15 +43,14 @@ public class ForgeCapabilityAttacher {
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event)
     {
-
         if (event.getObject() instanceof Player)
         {
-            Player p = (Player) event.getObject();
-
+            Player player = (Player) event.getObject();
+            if (!event.getObject().getCapability(ManagedPlayerCapabilityProvider.MANAGED_PLAYER).isPresent()) {
+                event.addCapability(new ResourceLocation(Constants.MOD_ID, "managed_player"),
+                    new ManagedPlayerCapabilityProvider(player));
+            }
         }
-
-
-
     }
 
 

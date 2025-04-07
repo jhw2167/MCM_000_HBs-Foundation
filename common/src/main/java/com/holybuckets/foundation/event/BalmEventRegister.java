@@ -102,7 +102,7 @@ public class BalmEventRegister {
         });
 
         events.ON_BLOCK_BROKEN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( BlockBrokenEvent.class, c, p(c));
+            registry.onEvent( BreakBlockEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
 

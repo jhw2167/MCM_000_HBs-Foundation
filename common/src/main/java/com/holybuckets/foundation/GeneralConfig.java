@@ -10,6 +10,7 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.blay09.mods.balm.api.event.PlayerConnectedEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
@@ -88,7 +89,7 @@ public class GeneralConfig {
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
 
-        reg.registerOnPlayerLoad(instance::initPlayerConfigs, EventPriority.Highest);
+        reg.registerOnPlayerConnected(instance::initPlayerConfigs, EventPriority.Highest);
 
     }
 
@@ -175,7 +176,7 @@ public class GeneralConfig {
         return this.isWorldConfigInit;
     }
 
-    public void initPlayerConfigs(PlayerLoginEvent event)
+    public void initPlayerConfigs(PlayerConnectedEvent event)
     {
         isPlayerLoaded = true;
         LoggerBase.logDebug( null,"006001", "Player Logged In");

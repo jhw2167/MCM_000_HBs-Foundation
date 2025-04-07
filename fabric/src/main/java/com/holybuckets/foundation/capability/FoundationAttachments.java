@@ -3,6 +3,7 @@ package com.holybuckets.foundation.capability;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.BalmEvents;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.PlayerConnectedEvent;
 
 public class FoundationAttachments {
 

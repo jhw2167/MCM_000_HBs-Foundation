@@ -1,11 +1,8 @@
 package com.holybuckets.foundation.player;
 
-import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.*;
@@ -35,11 +32,12 @@ public class ManagedPlayer {
     public ManagedPlayer(Player player) {
         this.player = player;
         this.id = player.getUUID().toString();
+        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
+        initSubclassesFromMemory(player, id);
+
         if(player instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) player;
         }
-        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        initSubclassesFromMemory(player, id);
     }
 
     public ManagedPlayer(CompoundTag tag) {
@@ -141,6 +139,20 @@ public class ManagedPlayer {
         }
     }
 
+    private void save() {
+        if(this.player == null || this.player.isRemoved()) return;
+
+        try {
+            CompoundTag tag = this.serializeNBT();
+            if(tag.isEmpty()) return;
+            if(this.serverPlayer != null) {
+                serverPlayer.addAdditionalSaveData(tag);
+            }
+        } catch (Exception e) {
+            LoggerBase.logError(null, "004004", "Error saving ManagedPlayer: " + e.getMessage());
+        }
+    }
+
     public static void registerManagedPlayerData(Class<? extends IManagedPlayer> classObject, Supplier<IManagedPlayer> data) {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
@@ -157,19 +169,15 @@ public class ManagedPlayer {
 
     public static void onServerStopped(ServerStoppedEvent event) {
         for (ManagedPlayer player : PLAYERS.values()) {
-            CompoundTag data = player.serializeNBT();
-            // Save to persistent storage
-            DataStore.getInstance().savePlayerData(Constants.MOD_ID, player.getId(), data);
-            
-            for(IManagedPlayer playerData : player.managedPlayerData.values()) {
-                playerData.handlePlayerLeave(player.getPlayer());
-            }
+            player.save();
         }
         PLAYERS.clear();
     }
 
+
+
     public static void init(EventRegistrar reg) {
-        reg.registerEvent(PlayerConnectedEvent.class, ManagedPlayer::onPlayerConnected);
-        reg.registerEvent(ServerStoppedEvent.class, ManagedPlayer::onServerStopped);
+        reg.registerOnPlayerConnected(ManagedPlayer::onPlayerConnected, EventPriority.Highest);
+        reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
     }
 }

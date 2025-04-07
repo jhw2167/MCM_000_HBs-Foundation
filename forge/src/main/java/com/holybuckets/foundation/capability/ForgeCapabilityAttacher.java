@@ -23,35 +23,30 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 public class ForgeCapabilityAttacher {
 
     @SubscribeEvent
-    public static void onAttachCapabilities(AttachCapabilitiesEvent<LevelChunk> event)
+    public static void onAttachCapabilities(AttachCapabilitiesEvent event)
     {
 
         if (event.getObject() instanceof LevelChunk)
         {
-            LevelChunk chunk = event.getObject();
+            LevelChunk chunk = (LevelChunk) event.getObject();
             if(chunk.getLevel().isClientSide()) return;
 
             //LoggerBase.logDebug("002001", "Attaching Capabilities to MOD EVENT:  ");
-            if (!event.getObject().getCapability(ManagedChunkCapabilityProvider.MANAGED_CHUNK).isPresent()) {
+            if (!chunk.getCapability(ManagedChunkCapabilityProvider.MANAGED_CHUNK).isPresent()) {
                 event.addCapability(new ResourceLocation(Constants.MOD_ID, "managed_chunk"),
                     new ManagedChunkCapabilityProvider(chunk));
             }
         }
 
-    }
-
-    @SubscribeEvent
-    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event)
-    {
         if (event.getObject() instanceof Player)
         {
             Player player = (Player) event.getObject();
-            if (!event.getObject().getCapability(ManagedPlayerCapabilityProvider.MANAGED_PLAYER).isPresent()) {
+            if (!player.getCapability(ManagedPlayerCapabilityProvider.MANAGED_PLAYER).isPresent()) {
                 event.addCapability(new ResourceLocation(Constants.MOD_ID, "managed_player"),
                     new ManagedPlayerCapabilityProvider(player));
             }
         }
-    }
 
+    }
 
 }

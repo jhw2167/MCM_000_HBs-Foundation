@@ -48,5 +48,6 @@ public class SimpleBlockEntity extends BalmBlockEntity {
             dataTag.putString(entry.getKey(), entry.getValue());
         }
         initialData.put("data", dataTag);
+        this.setChanged();
     }
 }

@@ -11,6 +11,7 @@ import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
+import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.network.BalmNetworking;
@@ -58,7 +59,9 @@ public class FoundationInitializers {
 
     private static void initEvents()
     {
-        ManagedChunk.init(EventRegistrar.getInstance());
+        EventRegistrar reg = EventRegistrar.getInstance();
+        ManagedChunk.init(reg);
+        ManagedPlayer.init(reg);
         BalmEventRegister.registerEvents();
     }
 

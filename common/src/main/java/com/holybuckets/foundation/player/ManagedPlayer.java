@@ -5,6 +5,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
+import com.mojang.authlib.GameProfile;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.nbt.CompoundTag;
@@ -20,9 +21,8 @@ public class ManagedPlayer {
     public static final String CLASS_ID = "004";
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
-    static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
+    static final Map<Player, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
 
-    private String id;
     private Player player;
     private ServerPlayer serverPlayer;
     private long tickWritten;
@@ -31,9 +31,7 @@ public class ManagedPlayer {
 
     public ManagedPlayer(Player player) {
         this.player = player;
-        this.id = player.getScoreboardName();
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        initSubclassesFromMemory(player);
 
         if(player instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) player;
@@ -45,7 +43,11 @@ public class ManagedPlayer {
     }
 
     public String getId() {
-        return id;
+        GameProfile gameProfile = player.getGameProfile();
+        if(gameProfile != null) {
+            return gameProfile.getName();
+        }
+        return null;
     }
 
     public Player getPlayer() {
@@ -68,10 +70,10 @@ public class ManagedPlayer {
         return true;
     }
 
-    private void initSubclassesFromMemory(Player player)
+    private void initSubclassesFromMemory()
     {
         int i = 0;
-        String playerId = player.getScoreboardName();
+        String playerId = this.getId();
         for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet())
         {
             IManagedPlayer sub = data.getValue().get();
@@ -114,7 +116,6 @@ public class ManagedPlayer {
                 if(managedPlayerData.containsKey(sub.getClass())) {
                     managedPlayerData.get(sub.getClass()).deserializeNBT(nbt);
                 } else {
-                    sub.setId(this.id);
                     sub.setPlayer(this.player);
                     sub.deserializeNBT(nbt);
                     setSubclass(sub.getClass(), sub);
@@ -136,13 +137,14 @@ public class ManagedPlayer {
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
         
-        if(this.id == null || this.player == null) {
+        if(this.player == null) {
             LoggerBase.logError(null, "004001", "ManagedPlayer not initialized properly");
             return tag;
         }
 
         try {
-            tag.putString("id", this.id);
+            if(this.getId() != null)
+                tag.putString("id", this.getId());
             this.tickWritten = GENERAL_CONFIG.getTotalTickCount();
             tag.putLong("tickWritten", this.tickWritten);
 
@@ -161,7 +163,6 @@ public class ManagedPlayer {
         if(tag == null || tag.isEmpty()) return;
 
         try {
-            this.id = tag.getString("id");
             this.tickWritten = tag.getLong("tickWritten");
             initSubclassesFromNbt(tag);
         } catch (InvalidId e) {
@@ -189,8 +190,9 @@ public class ManagedPlayer {
 
     public static void onPlayerLogin(PlayerLoginEvent event) {
         Player player = event.getPlayer();
-        ManagedPlayer mp = new ManagedPlayer(player);
-        PLAYERS.put(player.getScoreboardName() , mp);
+        ManagedPlayer mp = PLAYERS.getOrDefault(player, new ManagedPlayer(player));
+        PLAYERS.put(player , mp);
+        mp.initSubclassesFromMemory();
         
         for(IManagedPlayer data : mp.managedPlayerData.values()) {
             data.handlePlayerJoin(player);

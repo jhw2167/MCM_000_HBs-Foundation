@@ -81,7 +81,7 @@ public class SamplePlayerData implements IManagedPlayer {
 
     @Override
     public void setId(String id) {
-        this.id = p.getName().getString();
+        this.id = id;
     }
 
     @Override

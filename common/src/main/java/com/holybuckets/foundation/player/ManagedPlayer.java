@@ -31,9 +31,9 @@ public class ManagedPlayer {
 
     public ManagedPlayer(Player player) {
         this.player = player;
-        this.id = player.getUUID().toString();
+        this.id = player.getScoreboardName();
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        initSubclassesFromMemory(player, id);
+        initSubclassesFromMemory(player);
 
         if(player instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) player;
@@ -68,35 +68,54 @@ public class ManagedPlayer {
         return true;
     }
 
-    private void initSubclassesFromMemory(Player player, String playerId) {
-        for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet()) {
-            IManagedPlayer instance = data.getValue().get();
-            if( instance.getStaticInstance(player, playerId) != null ) {
-                instance = instance.getStaticInstance(player, playerId);
+    private void initSubclassesFromMemory(Player player)
+    {
+        int i = 0;
+        String playerId = player.getScoreboardName();
+        for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet())
+        {
+            IManagedPlayer sub = data.getValue().get();
+            if( sub == null ) continue;
+            if( managedPlayerData.containsKey(sub.getClass()) ) {
+                sub = managedPlayerData.get(sub.getClass());
             }
-            instance.setPlayer(player);
-            if( instance.isServerOnly() && (player instanceof ServerPlayer) ) {
-                setSubclass(data.getKey(), instance);
+            if( sub.isServerOnly() && !(player instanceof ServerPlayer) ) {
+                continue;
             }
-            if (instance.isClientOnly() && !(player instanceof ServerPlayer) ) {
-                setSubclass(data.getKey(), instance);
+            if( sub.isClientOnly() && (player instanceof ServerPlayer) ) {
+                continue;
             }
+
+            if( sub.getStaticInstance(player, playerId) != null ) {
+                sub = sub.getStaticInstance(player, playerId);
+            }
+            sub.setPlayer(player);
+            this.setSubclass(sub.getClass(), sub);
 
         }
     }
 
-    private void initSubclassesFromNbt(CompoundTag tag) throws InvalidId {
+    private void initSubclassesFromNbt(CompoundTag tag) throws InvalidId
+    {
         HashMap<String, String> errors = new HashMap<>();
-        for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet()) {
+        for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet())
+        {
             IManagedPlayer sub = data.getValue().get();
+            if( sub == null ) continue;
+            if( sub.isServerOnly() && !(this.player instanceof ServerPlayer) ) {
+                continue;
+            }
+            if( sub.isClientOnly() && (this.player instanceof ServerPlayer) ) {
+                continue;
+            }
+
             try {
                 CompoundTag nbt = tag.getCompound(sub.getClass().getName());
-                sub.setId(this.id);
-                sub.setPlayer(this.player);
-
                 if(managedPlayerData.containsKey(sub.getClass())) {
                     managedPlayerData.get(sub.getClass()).deserializeNBT(nbt);
                 } else {
+                    sub.setId(this.id);
+                    sub.setPlayer(this.player);
                     sub.deserializeNBT(nbt);
                     setSubclass(sub.getClass(), sub);
                 }
@@ -171,7 +190,7 @@ public class ManagedPlayer {
     public static void onPlayerLogin(PlayerLoginEvent event) {
         Player player = event.getPlayer();
         ManagedPlayer mp = new ManagedPlayer(player);
-        PLAYERS.put(player.getUUID().toString(), mp);
+        PLAYERS.put(player.getScoreboardName() , mp);
         
         for(IManagedPlayer data : mp.managedPlayerData.values()) {
             data.handlePlayerJoin(player);

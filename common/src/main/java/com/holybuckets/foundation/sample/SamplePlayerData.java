@@ -13,18 +13,19 @@ import java.util.Map;
 
 import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPlayerData;
 
-public class PlayerData implements IManagedPlayer {
+public class SamplePlayerData implements IManagedPlayer {
 
     int blocksBroken;
     int damageDealt;
+    private String id;
     Player p;
 
     static {
-        registerManagedPlayerData(PlayerData.class, () -> new PlayerData(null));
+        registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
     }
 
 
-    public PlayerData(Player p) {
+    public SamplePlayerData(Player p) {
         blocksBroken = 0;
         damageDealt = 0;
         this.p = p;
@@ -47,11 +48,10 @@ public class PlayerData implements IManagedPlayer {
 
     @Override
     public IManagedPlayer getStaticInstance(Player player, String id) {
-        if(!(player instanceof ServerPlayer))
-        {
-            return playerDataMap.get(player);
+        if(!(player instanceof ServerPlayer)) {
+            return null;
         }
-        return null;
+        return playerDataMap.get(player);
     }
 
     @Override
@@ -61,7 +61,8 @@ public class PlayerData implements IManagedPlayer {
 
     @Override
     public void handlePlayerLeave(Player player) {
-
+        if( player != null)
+        playerDataMap.remove(player);
     }
 
     @Override
@@ -80,7 +81,7 @@ public class PlayerData implements IManagedPlayer {
 
     @Override
     public void setId(String id) {
-
+        this.id = p.getName().getString();
     }
 
     @Override
@@ -92,25 +93,25 @@ public class PlayerData implements IManagedPlayer {
     }
 
     public static void init(EventRegistrar reg) {
-        reg.registerOnPlayerAttack(PlayerData::onPlayerAttack);
-        reg.registerOnBreakBlock(PlayerData::onPlayerBreakBlock);
+        reg.registerOnPlayerAttack(SamplePlayerData::onPlayerAttack);
+        reg.registerOnBreakBlock(SamplePlayerData::onPlayerBreakBlock);
     }
 
 
     //** EVENTS
-    static Map<Player, PlayerData> playerDataMap = new HashMap<>();
+    static Map<Player, SamplePlayerData> playerDataMap = new HashMap<>();
     public static void onPlayerAttack(PlayerAttackEvent event) {
         Player p = event.getPlayer();
         if(playerDataMap.containsKey(p)) {
-            PlayerData data = playerDataMap.get(p);
+            SamplePlayerData data = playerDataMap.get(p);
             data.damageDealt++;
         }
     }
 
     public static void onPlayerBreakBlock(BreakBlockEvent event) {
         Player p = event.getPlayer();
-        if(playerDataMap.containsKey(p)) {
-            PlayerData data = playerDataMap.get(p);
+        if(p != null && playerDataMap.containsKey(p)) {
+            SamplePlayerData data = playerDataMap.get(p);
             data.blocksBroken++;
         }
     }

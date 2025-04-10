@@ -10,7 +10,6 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.PlayerConnectedEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
@@ -19,6 +18,7 @@ import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelData;
 
@@ -80,7 +80,7 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
-        reg.registerOnConnectedToServer(instance::onPlayerConnectedToServerEvent, EventPriority.Highest);
+        reg.registerOnConnectedToServer(instance::onPlayerLoginToServerEvent, EventPriority.Highest);
         reg.registerOnDisconnectedFromServer(instance::onPlayerDisconnectedFromServerEvent, EventPriority.Lowest);
 
         reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, EventPriority.Highest);
@@ -89,7 +89,7 @@ public class GeneralConfig {
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
 
-        reg.registerOnPlayerConnected(instance::initPlayerConfigs, EventPriority.Highest);
+        reg.registerOnPlayerLogin(instance::initPlayerConfigs, EventPriority.Highest);
 
     }
 
@@ -113,7 +113,7 @@ public class GeneralConfig {
 
     /** Server Events **/
 
-    public void onPlayerConnectedToServerEvent(ConnectedToServerEvent event) {
+    public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
         this.isClientSide = true;
         this.initPerformanceConfig();
     }
@@ -176,10 +176,11 @@ public class GeneralConfig {
         return this.isWorldConfigInit;
     }
 
-    public void initPlayerConfigs(PlayerConnectedEvent event)
+    public void initPlayerConfigs(PlayerLoginEvent event)
     {
         isPlayerLoaded = true;
-        LoggerBase.logDebug( null,"006001", "Player Logged In");
+        Player p = event.getPlayer();
+        LoggerBase.logDebug( null,"006001", "Player Logged In " + p.getName() + " | " + p.getUUID() );
     }
 
     /**

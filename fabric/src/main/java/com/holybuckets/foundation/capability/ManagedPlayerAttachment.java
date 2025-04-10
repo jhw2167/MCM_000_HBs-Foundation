@@ -1,7 +1,7 @@
 package com.holybuckets.foundation.capability;
 
 import com.holybuckets.foundation.player.ManagedPlayer;
-import net.blay09.mods.balm.api.event.PlayerConnectedEvent;
+import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
@@ -37,7 +37,7 @@ public class ManagedPlayerAttachment {
             }
         });
 
-    static void onPlayerConnectedRegisterAttachment(PlayerConnectedEvent event) {
+    static void onPlayerLoginRegisterAttachment(PlayerLoginEvent event) {
         if(event.getPlayer().hasAttached(MANAGED_PLAYER_ATTACHMENT)) return;
         event.getPlayer().setAttached(MANAGED_PLAYER_ATTACHMENT, new ManagedPlayer(event.getPlayer()));
     }

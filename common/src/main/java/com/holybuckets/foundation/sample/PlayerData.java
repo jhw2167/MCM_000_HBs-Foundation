@@ -5,6 +5,7 @@ import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.HashMap;
@@ -30,12 +31,26 @@ public class PlayerData implements IManagedPlayer {
     }
 
     @Override
+    public boolean isServerOnly() {
+        return true;
+    }
+
+    @Override
+    public boolean isClientOnly() {
+        return false;
+    }
+
+    @Override
     public boolean isInit(String subclass) {
         return false;
     }
 
     @Override
     public IManagedPlayer getStaticInstance(Player player, String id) {
+        if(!(player instanceof ServerPlayer))
+        {
+            return playerDataMap.get(player);
+        }
         return null;
     }
 
@@ -72,7 +87,7 @@ public class PlayerData implements IManagedPlayer {
     public void setPlayer(Player player) {
         if(player != null) {
             this.p = player;
-            playerDataMap.putIfAbsent(player.getUUID().toString(), this);
+            playerDataMap.putIfAbsent(player , this);
         }
     }
 
@@ -83,19 +98,19 @@ public class PlayerData implements IManagedPlayer {
 
 
     //** EVENTS
-    static Map<String, PlayerData> playerDataMap = new HashMap<>();
+    static Map<Player, PlayerData> playerDataMap = new HashMap<>();
     public static void onPlayerAttack(PlayerAttackEvent event) {
         Player p = event.getPlayer();
-        if(playerDataMap.containsKey(p.getUUID().toString())) {
-            PlayerData data = playerDataMap.get(p.getUUID().toString());
+        if(playerDataMap.containsKey(p)) {
+            PlayerData data = playerDataMap.get(p);
             data.damageDealt++;
         }
     }
 
     public static void onPlayerBreakBlock(BreakBlockEvent event) {
         Player p = event.getPlayer();
-        if(playerDataMap.containsKey(p.getUUID().toString())) {
-            PlayerData data = playerDataMap.get(p.getUUID().toString());
+        if(playerDataMap.containsKey(p)) {
+            PlayerData data = playerDataMap.get(p);
             data.blocksBroken++;
         }
     }

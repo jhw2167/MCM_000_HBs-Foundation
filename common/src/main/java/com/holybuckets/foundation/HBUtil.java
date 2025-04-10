@@ -8,7 +8,6 @@ import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.PlayerConnectedEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
@@ -865,7 +864,7 @@ public class HBUtil {
 
         public static void init(EventRegistrar reg) {
             reg.registerOnServerStarted(NetworkUtil::onServerStart);
-            reg.registerOnPlayerConnected(NetworkUtil::onPlayerConnectedEvent);
+            reg.registerOnPlayerLogin(NetworkUtil::onPlayerLoginEvent);
         }
 
         private static void onServerStart(ServerStartedEvent event) {
@@ -877,7 +876,7 @@ public class HBUtil {
             server = GeneralConfig.getInstance().getServer();
         }
 
-        private static void onPlayerConnectedEvent(PlayerConnectedEvent event)
+        private static void onPlayerLoginEvent(PlayerLoginEvent event)
         {
             CLIENT_STARTED = true;
 

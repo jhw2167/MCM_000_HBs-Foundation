@@ -70,7 +70,18 @@ public class ManagedPlayer {
 
     private void initSubclassesFromMemory(Player player, String playerId) {
         for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet()) {
-            setSubclass(data.getKey(), data.getValue().get().getStaticInstance(player, playerId));
+            IManagedPlayer instance = data.getValue().get();
+            if( instance.getStaticInstance(player, playerId) != null ) {
+                instance = instance.getStaticInstance(player, playerId);
+            }
+            instance.setPlayer(player);
+            if( instance.isServerOnly() && (player instanceof ServerPlayer) ) {
+                setSubclass(data.getKey(), instance);
+            }
+            if (instance.isClientOnly() && !(player instanceof ServerPlayer) ) {
+                setSubclass(data.getKey(), instance);
+            }
+
         }
     }
 
@@ -157,7 +168,7 @@ public class ManagedPlayer {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
 
-    public static void onPlayerConnected(PlayerConnectedEvent event) {
+    public static void onPlayerLogin(PlayerLoginEvent event) {
         Player player = event.getPlayer();
         ManagedPlayer mp = new ManagedPlayer(player);
         PLAYERS.put(player.getUUID().toString(), mp);
@@ -177,7 +188,7 @@ public class ManagedPlayer {
 
 
     public static void init(EventRegistrar reg) {
-        reg.registerOnPlayerConnected(ManagedPlayer::onPlayerConnected, EventPriority.Highest);
+        reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.Highest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
     }
 }

@@ -4,6 +4,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 
 public interface IManagedPlayer {
+    boolean isServerOnly();
+
+    boolean isClientOnly();
+
     /**
      * Initialize the ManagedPlayer data
      */

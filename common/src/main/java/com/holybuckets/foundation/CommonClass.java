@@ -7,7 +7,7 @@ import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.Services;
-import com.holybuckets.foundation.sample.PlayerData;
+import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -40,9 +40,6 @@ public class CommonClass {
         FoundationInitializers.init();
         //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
-        PlayerData.init(EventRegistrar.getInstance());
-        BalmEventRegister.registerEvents();
-
         isInitialized = true;
     }
 
@@ -55,14 +52,15 @@ public class CommonClass {
      */
     public static void test(EventRegistrar reg)
     {
-        reg.registerOnChunkLoad(CommonClass::onChunkLoad);
-        reg.registerOnLevelLoad(CommonClass::onLevelLoad);
-        reg.registerOnPlayerConnected(CommonClass::onPlayerConnected);
-        reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS , CommonClass::onServerTick);
+        //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
+        //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
+        BalmEvents registry = Balm.getEvents();
+        reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
+        //reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 
-    private static void onPlayerConnected(PlayerConnectedEvent event) {
-        Constants.LOG.info("Player connected: " + event.getPlayer().getGameProfile().getName());
+    private static void onPlayerLogin(PlayerLoginEvent event) {
+        Constants.LOG.info("Player connected CONNECTED: " + event.getPlayer().getGameProfile().getName());
     }
 
     static void onServerTick(ServerTickEvent event) {

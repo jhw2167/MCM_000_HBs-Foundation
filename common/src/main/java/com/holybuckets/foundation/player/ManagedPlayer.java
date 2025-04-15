@@ -1,18 +1,20 @@
 package com.holybuckets.foundation.player;
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
-import com.mojang.authlib.GameProfile;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -21,33 +23,54 @@ public class ManagedPlayer {
     public static final String CLASS_ID = "004";
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
-    static final Map<Player, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
+    public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
+    static final List<ManagedPlayer> PENDING_PLAYERS = new ArrayList<>();
 
     private Player player;
+    private String id;
     private ServerPlayer serverPlayer;
     private long tickWritten;
     private long tickLoaded;
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
 
-    public ManagedPlayer(Player player) {
+    public ManagedPlayer() {
+        super();
+    }
+
+    public ManagedPlayer(Player player)
+    {
+        this();
         this.player = player;
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
+        if(player instanceof ServerPlayer) {
+            this.serverPlayer = (ServerPlayer) player;
+        }
+        PENDING_PLAYERS.add(this);
+    }
 
+    public ManagedPlayer(Player player, String id)
+    {
+        this();
+        this.player = player;
+        this.id = id;
+        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
         if(player instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) player;
         }
     }
 
     public ManagedPlayer(CompoundTag tag) {
+        this();
         this.deserializeNBT(tag);
+        PENDING_PLAYERS.add(this);
+        PLAYERS.put(this.id, this);
     }
 
     public String getId() {
-        GameProfile gameProfile = player.getGameProfile();
-        if(gameProfile != null) {
-            return gameProfile.getName();
+        if( this.id == null) {
+            this.id = HBUtil.PlayerUtil.getId(player);
         }
-        return null;
+        return this.id;
     }
 
     public Player getPlayer() {
@@ -68,6 +91,25 @@ public class ManagedPlayer {
         }
         managedPlayerData.put(classObject, data);
         return true;
+    }
+
+    private void onPlayerJoin(Player player) {
+        this.initSubclassesFromMemory();
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            data.handlePlayerJoin(player);
+        }
+    }
+
+    private void onPlayerLeave() {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            data.handlePlayerLeave(player);
+        }
+    }
+
+    //** Utility
+    public static ManagedPlayer getManagedPlayer(Player player) {
+        String id = HBUtil.PlayerUtil.getId(player);
+        return PLAYERS.getOrDefault(id, new ManagedPlayer(player));
     }
 
     private void initSubclassesFromMemory()
@@ -134,6 +176,7 @@ public class ManagedPlayer {
         }
     }
 
+    //HERE
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
         
@@ -164,6 +207,7 @@ public class ManagedPlayer {
 
         try {
             this.tickWritten = tag.getLong("tickWritten");
+            this.id = tag.getString("id");
             initSubclassesFromNbt(tag);
         } catch (InvalidId e) {
             LoggerBase.logError(null, "004003", "Error deserializing ManagedPlayer: " + e.getMessage());
@@ -188,14 +232,36 @@ public class ManagedPlayer {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
 
-    public static void onPlayerLogin(PlayerLoginEvent event) {
+
+    //** EVENT
+
+    //HERE
+    public static void onPlayerLogin(PlayerLoginEvent event)
+    {
         Player player = event.getPlayer();
-        ManagedPlayer mp = PLAYERS.getOrDefault(player, new ManagedPlayer(player));
-        PLAYERS.put(player , mp);
-        mp.initSubclassesFromMemory();
-        
-        for(IManagedPlayer data : mp.managedPlayerData.values()) {
-            data.handlePlayerJoin(player);
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp == null) {
+            for(ManagedPlayer pending : PENDING_PLAYERS) {
+                if(pending.getId().equals(id) || pending.player.equals(player)) {
+                    mp = pending;
+                    PENDING_PLAYERS.remove(pending);
+                    break;
+                }
+            }
+            if(mp == null) mp = new ManagedPlayer(player, id);
+        }
+        PLAYERS.put(id , mp);
+        mp.onPlayerJoin(player);
+    }
+
+    public static void onPlayerLogout(PlayerLogoutEvent event) {
+        Player player = event.getPlayer();
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.save();
+            mp.onPlayerLeave();
         }
     }
 
@@ -204,12 +270,14 @@ public class ManagedPlayer {
             player.save();
         }
         PLAYERS.clear();
+        PENDING_PLAYERS.clear();
     }
 
 
 
     public static void init(EventRegistrar reg) {
-        reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.Highest);
+        reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
+        reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
     }
 }

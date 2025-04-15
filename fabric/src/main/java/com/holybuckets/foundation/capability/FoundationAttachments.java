@@ -1,8 +1,10 @@
 package com.holybuckets.foundation.capability;
 
+import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.BalmEvents;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 
 public class FoundationAttachments {
@@ -21,7 +23,7 @@ public class FoundationAttachments {
     private static void registerAttachments() {
         BalmEvents events = Balm.getEvents();
         events.onEvent(ChunkLoadingEvent.Load.class, ManagedChunkAttachment::onChunkLoadRegisterAttachment);
-        events.onEvent(PlayerLoginEvent.class, ManagedPlayerAttachment::onPlayerLoginRegisterAttachment);
+        events.onEvent(PlayerLoginEvent.class, ManagedPlayerAttachment::onPlayerLoginRegisterAttachment, EventPriority.Highest);
     }
 
 

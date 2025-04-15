@@ -7,6 +7,8 @@ import com.google.gson.JsonElement;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
+import com.holybuckets.foundation.player.ManagedPlayer;
+import com.mojang.authlib.GameProfile;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
@@ -86,6 +88,40 @@ public class HBUtil {
             }
             return playersInRange;
         }
+
+
+        public static String getId(Player p) {
+            GameProfile gp = p.getGameProfile();
+            if( gp == null ) {
+                LoggerBase.logError( null, "004000", "Error getting player id, game profile is null");
+                return null;
+            }
+            String prefix = "CLIENT:";
+            if( p instanceof ServerPlayer ) {
+                prefix = "SERVER:";
+            }
+            return prefix + gp.getName().toString();
+        }
+
+    //create a PlayerNameSpace for CLIENT and SERVER
+        public enum PlayerNameSpace {
+            SERVER,
+            CLIENT
+        }
+        public static Player getPlayer(String id, PlayerNameSpace nameSpace) {
+
+             if( id == null || id.isEmpty() || nameSpace == null ) {
+                 return null;
+             }
+            String playerName = id.replace("CLIENT:", "").replace("SERVER:", "");
+            if( nameSpace == PlayerNameSpace.CLIENT ) {
+                return ManagedPlayer.PLAYERS.get("CLIENT:" + playerName).getPlayer();
+            } else if( nameSpace == PlayerNameSpace.SERVER ) {
+                return ManagedPlayer.PLAYERS.get("SERVER:" + playerName).getServerPlayer();
+            }
+            return null;
+        }
+
     }
 
 

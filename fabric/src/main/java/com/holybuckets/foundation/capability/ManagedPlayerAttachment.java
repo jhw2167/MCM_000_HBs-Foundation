@@ -39,6 +39,6 @@ public class ManagedPlayerAttachment {
 
     static void onPlayerLoginRegisterAttachment(PlayerLoginEvent event) {
         if(event.getPlayer().hasAttached(MANAGED_PLAYER_ATTACHMENT)) return;
-        event.getPlayer().setAttached(MANAGED_PLAYER_ATTACHMENT, new ManagedPlayer(event.getPlayer()));
+        event.getPlayer().setAttached(MANAGED_PLAYER_ATTACHMENT, ManagedPlayer.getManagedPlayer(event.getPlayer()));
     }
 }

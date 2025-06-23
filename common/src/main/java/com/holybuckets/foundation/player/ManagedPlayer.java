@@ -103,18 +103,25 @@ public class ManagedPlayer {
         return true;
     }
 
-    private void onPlayerJoin(Player player)
+    private void checkAndInitializePendingPlayer() {
+        if (this.holdNbt != null && this.player != null) {
+            try {
+                this.initSubclassesFromNbt(this.holdNbt);
+                this.holdNbt = null; // Clear the held NBT after processing
+                this.onPlayerJoinComplete(this.player);
+            } catch (InvalidId e) {
+                String msg = String.format("Invalid id: initializing ManagedPlayer from NBT for player %s: %s",
+                        player.getName().getString(), e.getMessage());
+                LoggerBase.logError(null, "004005", msg);
+            }
+        }
+    }
+
+    private void onPlayerJoinComplete(Player player) 
     {
         this.player = player;
         if(player instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) player;
-        }
-        try {
-            if( this.holdNbt != null) this.initSubclassesFromNbt(this.holdNbt);
-        } catch (InvalidId e) {
-            String msg = String.format("Invalid id: initializing ManagedPlayer from NBT for player %s: %s",
-                    player.getName().getString(), e.getMessage());
-            LoggerBase.logError(null, "004005", msg);
         }
 
         this.initSubclassesFromMemory();
@@ -317,9 +324,17 @@ public class ManagedPlayer {
 
 
 
+    public static void onServerTick() {
+        // Process any pending players that need NBT initialization
+        for (ManagedPlayer player : PENDING_PLAYERS) {
+            player.checkAndInitializePendingPlayer();
+        }
+    }
+
     public static void init(EventRegistrar reg) {
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
+        reg.registerOnServerTick(ManagedPlayer::onServerTick);
     }
 }

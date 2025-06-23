@@ -13,6 +13,8 @@ import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -31,6 +33,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
+import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
@@ -127,6 +130,16 @@ public class HBUtil {
 
     public static class BlockUtil {
 
+        public static Vec3 toVec3(BlockPos pos ) {
+            if( pos == null ) return null;
+            return new Vec3(pos.getX(), pos.getY(), pos.getZ());
+        }
+
+        public static BlockPos toBlockPos(Vec3 pos) {
+            if( pos == null ) return null;
+            return new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+        }
+
         /**
          * Convert a block to its string name for formatting
          * @param blockType - Block object
@@ -197,11 +210,30 @@ public class HBUtil {
             return b;
         }
 
-        public static String positionToString(BlockPos pos)
+        public static String positionToString(Vec3i pos)
         {
             if( pos == null)
                 return null;
             return "[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "]";
+        }
+
+        //write stringToBlockPos method to reverse the above, return Vec3i
+        public static Vec3i stringToBlockPos(String posString)
+        {
+            if( posString == null || posString.isEmpty() )
+                return null;
+
+            posString = posString.replace("[", "").replace("]", "");
+            String[] parts = posString.split(",");
+            if( parts.length != 3 ) {
+                return null;
+            }
+
+            int x = Integer.parseInt(parts[0].trim());
+            int y = Integer.parseInt(parts[1].trim());
+            int z = Integer.parseInt(parts[2].trim());
+
+            return new BlockPos(x, y, z);
         }
 
         /**
@@ -268,6 +300,28 @@ public class HBUtil {
                 }
             }
             return blockStates;
+        }
+
+        public static String serializeBlockPos(List<BlockPos> list) {
+            //hijack serialize BlockPairs and ModBlocks.Empty
+            if( list == null || list.isEmpty() )
+                return "[]";
+
+            Map<Block, List<BlockPos>> blocks = new HashMap<>();
+            blocks.putIfAbsent(ModBlocks.empty, list);
+            return serializeBlockPairs(blocks);
+        }
+
+        public static List<BlockPos> deserializeBlockPos(String data) {
+            //hijack deserialize BlockPairs and ModBlocks.Empty
+            if( data == null || data.isEmpty() || data.equals("[]") )
+                return Collections.emptyList();
+
+            Map<Block, List<BlockPos>> blocks = deserializeBlockPairs(data);
+            if( blocks.isEmpty() )
+                return Collections.emptyList();
+
+            return blocks.getOrDefault(ModBlocks.empty, Collections.emptyList());
         }
 
         /**
@@ -402,7 +456,7 @@ public class HBUtil {
             SERVER
         }
         @Nullable
-        public static LevelAccessor toLevel(LevelNameSpace nameSpace, String dimensionId)
+        public static Level toLevel(LevelNameSpace nameSpace, String dimensionId)
         {
             String levelId = dimensionId.replace("CLIENT:", "").replace("SERVER:", "");
             if( nameSpace == LevelNameSpace.CLIENT ) {
@@ -410,15 +464,27 @@ public class HBUtil {
             } else if( nameSpace == LevelNameSpace.SERVER ) {
                 levelId = "SERVER:" + levelId;
             }
-            return toLevel(levelId);
+            return (Level) toLevel(levelId);
         }
 
-        public static LevelAccessor toServerLevel(String id) {
-            return toLevel(LevelNameSpace.SERVER, id);
+        public static Level toLevel(LevelNameSpace nameSpace, ResourceKey<Level> key) {
+            return toLevel(nameSpace, key.location());
         }
 
-        public static LevelAccessor toClientLevel(String id) {
-            return toLevel(LevelNameSpace.CLIENT, id);
+        public static Level toLevel(LevelNameSpace nameSpace, ResourceLocation loc) {
+            if (loc == null) {
+                return null;
+            }
+            return toLevel(nameSpace, loc.toString());
+        }
+
+
+        public static ServerLevel toServerLevel(String id) {
+            return (ServerLevel) toLevel(LevelNameSpace.SERVER, id);
+        }
+
+        public static ClientLevel toClientLevel(String id) {
+            return (ClientLevel) toLevel(LevelNameSpace.CLIENT, id);
         }
 
         private static LevelAccessor toLevel(String id) {

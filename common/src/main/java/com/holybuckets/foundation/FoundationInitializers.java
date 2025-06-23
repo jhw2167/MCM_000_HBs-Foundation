@@ -61,7 +61,7 @@ public class FoundationInitializers {
     private static void initEvents()
     {
         EventRegistrar reg = EventRegistrar.getInstance();
-        SamplePlayerData.init(EventRegistrar.getInstance());
+        //SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
         BalmEventRegister.registerEvents();

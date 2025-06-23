@@ -64,5 +64,8 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
         super.playerWillDestroy(world, pos, state, player);
     }
 
+
+
+
 }
 

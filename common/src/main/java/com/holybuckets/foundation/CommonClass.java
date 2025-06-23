@@ -10,6 +10,8 @@ import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -61,6 +63,7 @@ public class CommonClass {
 
     private static void onPlayerLogin(PlayerLoginEvent event) {
         Constants.LOG.info("Player connected CONNECTED: " + event.getPlayer().getGameProfile().getName());
+        //Print out the location of each dimension by converting the resourceLocation to Level using HBUtil.LevelUtil
     }
 
     static void onServerTick(ServerTickEvent event) {

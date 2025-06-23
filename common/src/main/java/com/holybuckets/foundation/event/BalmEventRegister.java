@@ -111,6 +111,12 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        //support ON_PLAYER_CHANGE_DIMENSION
+        events.ON_PLAYER_CHANGED_DIMENSION.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(PlayerChangedDimensionEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
 
     }
 

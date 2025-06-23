@@ -1,9 +1,11 @@
 package com.holybuckets.foundation.sample;
 
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
+import net.blay09.mods.balm.api.event.PlayerChangedDimensionEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -21,7 +23,7 @@ public class SamplePlayerData implements IManagedPlayer {
     Player p;
 
     static {
-        registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
+        //registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
     }
 
 
@@ -95,6 +97,7 @@ public class SamplePlayerData implements IManagedPlayer {
     public static void init(EventRegistrar reg) {
         reg.registerOnPlayerAttack(SamplePlayerData::onPlayerAttack);
         reg.registerOnBreakBlock(SamplePlayerData::onPlayerBreakBlock);
+        reg.registerOnPlayerChangedDimension(SamplePlayerData::onPlayerChangedDimension);
     }
 
 
@@ -115,6 +118,13 @@ public class SamplePlayerData implements IManagedPlayer {
             data.blocksBroken++;
         }
     }
+
+    public static void onPlayerChangedDimension(PlayerChangedDimensionEvent event) {
+        LoggerBase.logInfo(null,
+        "SamplePlayerData",
+         "Player " + event.getPlayer().getName().getString() + " changed dimension to " + event.getToDim());
+    }
+
 
 
 }

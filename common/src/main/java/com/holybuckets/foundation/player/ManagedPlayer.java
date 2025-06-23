@@ -119,7 +119,13 @@ public class ManagedPlayer {
 
         this.initSubclassesFromMemory();
         for(IManagedPlayer data : managedPlayerData.values()) {
-            data.handlePlayerJoin(player);
+            try {
+                data.handlePlayerJoin(player);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player join for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004007", msg);
+            }
+
         }
 
         PENDING_PLAYERS.remove(this);
@@ -127,7 +133,13 @@ public class ManagedPlayer {
 
     private void onPlayerLeave() {
         for(IManagedPlayer data : managedPlayerData.values()) {
+        try {
             data.handlePlayerLeave(player);
+        } catch (Exception e) {
+            String msg = String.format("Error handling player leave for player %s, class: %s", player.getDisplayName(), data.getClass() );
+            LoggerBase.logError(null, "004006", msg);
+        }
+
         }
     }
 

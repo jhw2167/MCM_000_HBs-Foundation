@@ -118,9 +118,10 @@ public class EventRegistrar {
         for (Consumer<ServerTickEvent.SingleTick> consumer : ON_SINGLE_TICK) {
             consumer.accept(singleTickEvent);
         }
+        //** TICKS OFFSET TO AVOID ALL OCCURRING AT THE SAME TIME **//
 
         // Fire every 20 ticks
-        if (totalTicks % 20 == 0) {
+        if ((totalTicks+1) % 20 == 0) {
             ServerTickEvent.Every20Ticks event20 = new ServerTickEvent.Every20Ticks(totalTicks);
             for (Consumer<ServerTickEvent.Every20Ticks> consumer : ON_20_TICKS) {
                 consumer.accept(event20);
@@ -128,7 +129,7 @@ public class EventRegistrar {
         }
 
         // Fire every 120 ticks
-        if (totalTicks % 120 == 0) {
+        if ((totalTicks+2) % 120 == 0) {
             ServerTickEvent.Every120Ticks event120 = new ServerTickEvent.Every120Ticks(totalTicks);
             for (Consumer<ServerTickEvent.Every120Ticks> consumer : ON_120_TICKS) {
                 consumer.accept(event120);
@@ -136,7 +137,7 @@ public class EventRegistrar {
         }
 
         // Fire every 1200 ticks
-        if (totalTicks % 1200 == 0) {
+        if ((totalTicks+3) % 1200 == 0) {
             ServerTickEvent.Every1200Ticks event1200 = new ServerTickEvent.Every1200Ticks(totalTicks);
             for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_1200_TICKS) {
                 consumer.accept(event1200);
@@ -144,7 +145,7 @@ public class EventRegistrar {
         }
 
         // Fire every 6000 ticks
-        if (totalTicks % 6000 == 0) {
+        if ((totalTicks+4) % 6000 == 0) {
             ServerTickEvent.Every1200Ticks event6000 = new ServerTickEvent.Every1200Ticks(totalTicks);
             for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_6000_TICKS) {
                 consumer.accept(event6000);
@@ -152,7 +153,7 @@ public class EventRegistrar {
         }
 
         // Fire daily tick (24000 ticks = 1 minecraft day)
-        if (totalTicks % 24000 == 0) {
+        if (totalTicks+5 % 24000 == 0) {
             ServerTickEvent.DailyTick eventDaily = new ServerTickEvent.DailyTick(totalTicks);
             for (Consumer<ServerTickEvent.DailyTick> consumer : ON_DAILY_TICK) {
                 consumer.accept(eventDaily);

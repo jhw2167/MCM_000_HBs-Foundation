@@ -270,6 +270,7 @@ public class ManagedPlayer {
         } catch (Exception e) {
             LoggerBase.logError(null, "004003", "Error deserializing ManagedPlayer: " + e.getMessage());
         }
+        PLAYERS.put(this.getId(), this);
     }
 
     private void save() {

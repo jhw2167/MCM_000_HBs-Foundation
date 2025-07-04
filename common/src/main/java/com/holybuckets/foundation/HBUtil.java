@@ -1,11 +1,10 @@
 package com.holybuckets.foundation;
 
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
+import com.google.gson.*;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.exception.NoDefaultConfig;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
@@ -14,6 +13,7 @@ import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
@@ -25,6 +25,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -38,6 +39,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -127,6 +129,43 @@ public class HBUtil {
 
     }
 
+    public static class ItemUtil {
+
+        public static String itemToString(Item item) {
+            if( item == null ) {
+                LoggerBase.logError( null, "004000", "Error parsing item to string, item is null");
+                return null;
+            }
+            return item.toString().replace("Item{", "").replace("}", "");
+        }
+
+        public static Item itemNameToItem(String qualifiedItemName) {
+            String[] parts = qualifiedItemName.split(":");
+            if( parts.length < 2 ) {
+             return itemNameToItem("minecraft", qualifiedItemName);
+            }
+            return itemNameToItem(parts[0], parts[1]);
+        }
+
+        public static Item itemNameToItem(String nameSpace, String itemName)
+        {
+            if( itemName == null || itemName.isEmpty() ) {
+                LoggerBase.logError( null, "004001", "Error parsing item name as string into a Minecraft Item type, " +
+                    "type provided was null or provided as empty string");
+                return null;
+            }
+
+            ResourceLocation itemKey = new ResourceLocation(nameSpace.trim(), itemName.trim());
+            Item item = BuiltInRegistries.ITEM.get(itemKey);
+
+            if( item == null ) {
+                LoggerBase.logError( null, "004002", "Error parsing item name as string into a Minecraft Item type, " +
+                    "item name provided was not found in Minecraft Item registry: " + itemName);
+            }
+
+            return item;
+        }
+    }
 
     public static class BlockUtil {
 
@@ -1070,6 +1109,53 @@ public class HBUtil {
 
         }
         //END loadJsonOreConfigs
+
+        /**
+         * Attempts to load a json file or a default alternative, short circuits
+         * if the default isnt found
+         * @param userConfigFile
+         * @param defaultConfigFile
+         * @return
+         * @throws IOException
+         * @throws NoDefaultConfig
+         */
+        public static JsonObject loadJsonOrDefault(File userConfigFile, File defaultConfigFile) throws IOException, NoDefaultConfig
+        {
+            // Fail fast if default isnt found
+            JsonObject defaultJson;
+            try (FileReader reader = new FileReader(defaultConfigFile)) {
+                defaultJson = JsonParser.parseReader(reader).getAsJsonObject();
+            } catch (Exception e) {
+                throw new NoDefaultConfig("Failed to load or parse default config file: " + defaultConfigFile.getAbsolutePath(), e);
+            }
+
+            // Call your loadJsonConfigs with an anonymous IStringSerializable
+            String jsonString = loadJsonConfigs(
+                userConfigFile,
+                defaultConfigFile,
+                new IStringSerializable() {
+                    @Override
+                    public String serialize() { return "";}
+                    @Override
+                    public void deserialize(String jsonString) {}
+                }
+            );
+
+            // Parse the returned JSON string into a JsonObject
+            JsonObject configJson = JsonParser.parseString(jsonString).getAsJsonObject();
+
+            // Iterate through default properties, add missing ones
+            for (String key : defaultJson.keySet()) {
+                if (!configJson.has(key)) {
+                    JsonElement defaultVal = defaultJson.get(key);
+                    configJson.add(key, defaultVal);
+                }
+            }
+
+            // Return merged config
+            return configJson;
+        }
+
 
         public static boolean serializeJsonConfigs(File configFile, String jsonData)
         {

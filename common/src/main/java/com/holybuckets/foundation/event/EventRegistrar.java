@@ -76,7 +76,7 @@ public class EventRegistrar {
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
     final Set<Consumer<PlayerChangedDimensionEvent>> ON_PLAYER_CHANGED_DIMENSION = new ConcurrentSet<>();
-
+    final Set<Consumer<PlayerRespawnEvent>> ON_PLAYER_RESPAWN = new ConcurrentSet<>();
 
 
     /**
@@ -309,6 +309,11 @@ public class EventRegistrar {
     public void registerOnPlayerChangedDimension(Consumer<PlayerChangedDimensionEvent> function) { registerOnPlayerChangedDimension(function, EventPriority.Normal); }
     public void registerOnPlayerChangedDimension(Consumer<PlayerChangedDimensionEvent> function, EventPriority priority) {
         generalRegister(function, ON_PLAYER_CHANGED_DIMENSION, priority);
+    }
+
+    public void registerOnPlayerRespawn(Consumer<PlayerRespawnEvent> function) { registerOnPlayerRespawn(function, EventPriority.Normal); }
+    public void registerOnPlayerRespawn(Consumer<PlayerRespawnEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_RESPAWN, priority);
     }
 
 

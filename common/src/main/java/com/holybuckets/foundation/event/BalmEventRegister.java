@@ -117,6 +117,10 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        events.ON_PLAYER_RESPAWN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(PlayerRespawnEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
 
     }
 

@@ -27,6 +27,11 @@ public interface IManagedPlayer {
      * Called when player leaves
      */  
     void handlePlayerLeave(Player player);
+    
+    /**
+     * Called when player respawns
+     */
+    void handlePlayerRespawn(Player player);
 
     CompoundTag serializeNBT();
 

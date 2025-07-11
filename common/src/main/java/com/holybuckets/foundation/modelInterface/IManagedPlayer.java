@@ -18,19 +18,10 @@ public interface IManagedPlayer {
      */
     IManagedPlayer getStaticInstance(Player player, String id);
 
-    /**
-     * Called when player joins
-     */
     void handlePlayerJoin(Player player);
 
-    /**
-     * Called when player leaves
-     */  
     void handlePlayerLeave(Player player);
-    
-    /**
-     * Called when player respawns
-     */
+
     void handlePlayerRespawn(Player player);
 
     CompoundTag serializeNBT();

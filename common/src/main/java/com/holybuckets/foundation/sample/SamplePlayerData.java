@@ -68,6 +68,18 @@ public class SamplePlayerData implements IManagedPlayer {
     }
 
     @Override
+    public void handlePlayerRespawn(Player player) {
+        if( player != null)
+            playerDataMap.remove(player);
+        playerDataMap.put(player, this);
+    }
+
+    @Override
+    public void handlePlayerDeath(Player player) {
+
+    }
+
+    @Override
     public CompoundTag serializeNBT() {
         CompoundTag nbt = new CompoundTag();
         nbt.putInt("blocksBroken", blocksBroken);

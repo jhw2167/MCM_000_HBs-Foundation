@@ -13,9 +13,11 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+
 
 public class ManagedPlayer {
     public static final String CLASS_ID = "004";
@@ -74,6 +76,22 @@ public class ManagedPlayer {
         }
 
         PLAYERS.put(this.id, this);
+    }
+
+    public void setPlayer(Player p)
+    {
+        this.player = p;
+        if (p instanceof ServerPlayer) {
+            this.serverPlayer = (ServerPlayer) p;
+        } else {
+            this.serverPlayer = null; // Reset serverPlayer if not a ServerPlayer
+        }
+        String id = HBUtil.PlayerUtil.getId(p);
+        PLAYERS.put(id, this);
+        //setPlayer for all subsclasses
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            data.setPlayer(p);
+        }
     }
 
     public String getId() {
@@ -156,6 +174,29 @@ public class ManagedPlayer {
         }
     }
 
+
+    private void onPlayerRespawn() {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerRespawn(player);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player respawn for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004009", msg);
+            }
+        }
+    }
+
+    private void handlePlayerDeath(Player player) {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerDeath(player);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player death for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004011", msg);
+            }
+        }
+    }
+
     //** Utility
     public static ManagedPlayer getManagedPlayer(Player player) {
         String id = HBUtil.PlayerUtil.getId(player);
@@ -163,6 +204,13 @@ public class ManagedPlayer {
             return PLAYERS.get(id);
         }
         return PLAYERS.getOrDefault(id, new ManagedPlayer(player));
+    }
+
+    @Nullable
+    public static ManagedPlayer removeManagedPlayer(Player player)
+    {
+        String id = HBUtil.PlayerUtil.getId(player);
+        return PLAYERS.remove(id);
     }
 
     private void initSubclassesFromMemory()
@@ -318,14 +366,32 @@ public class ManagedPlayer {
         }
     }
 
-    public static void onServerStopped(ServerStoppedEvent event) {
-        for (ManagedPlayer player : PLAYERS.values()) {
-            player.save();
+    private static void onPlayerRespawn(PlayerRespawnEvent event)
+    {
+        PENDING_PLAYERS.remove(event.getOldPlayer());
+        ManagedPlayer mp = removeManagedPlayer(event.getOldPlayer());
+        if(mp == null) {
+            LoggerBase.logError(null, "004008", "ManagedPlayer not found for respawn event");
+            return;
         }
-        PLAYERS.clear();
-        PENDING_PLAYERS.clear();
+        Player p = event.getNewPlayer();
+        mp.setPlayer(p);
+        mp.onPlayerRespawn();
     }
 
+    private static void onPlayerDeath(LivingDeathEvent event)
+    {
+        if(!(event.getEntity() instanceof Player)) return;
+
+        Player player = (Player) event.getEntity();
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerDeath(player);
+        } else {
+            LoggerBase.logError(null, "004010", "ManagedPlayer not found for death event");
+        }
+    }
 
 
     public static void onServerTick(ServerTickEvent e)
@@ -346,11 +412,22 @@ public class ManagedPlayer {
 
     }
 
+    public static void onServerStopped(ServerStoppedEvent event) {
+        for (ManagedPlayer player : PLAYERS.values()) {
+            player.save();
+        }
+        PLAYERS.clear();
+        PENDING_PLAYERS.clear();
+    }
+
 
     public static void init(EventRegistrar reg) {
+        reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Lowest);
+        reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         reg.registerOnServerTick(EventRegistrar.TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
     }
+
 }

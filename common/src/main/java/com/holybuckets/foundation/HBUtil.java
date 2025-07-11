@@ -169,7 +169,7 @@ public class HBUtil {
 
     public static class BlockUtil {
 
-        public static Vec3 toVec3(BlockPos pos ) {
+        public static Vec3 toVec3(Vec3i pos ) {
             if( pos == null ) return null;
             return new Vec3(pos.getX(), pos.getY(), pos.getZ());
         }
@@ -1144,16 +1144,21 @@ public class HBUtil {
             // Parse the returned JSON string into a JsonObject
             JsonObject configJson = JsonParser.parseString(jsonString).getAsJsonObject();
 
+            return loadJsonOrDefault(configJson, defaultJson);
+        }
+
+        public static JsonObject loadJsonOrDefault(JsonObject config, JsonObject defaultConfig)
+        {
             // Iterate through default properties, add missing ones
-            for (String key : defaultJson.keySet()) {
-                if (!configJson.has(key)) {
-                    JsonElement defaultVal = defaultJson.get(key);
-                    configJson.add(key, defaultVal);
+            for (String key : defaultConfig.keySet()) {
+                if (!config.has(key)) {
+                    JsonElement defaultVal = defaultConfig.get(key);
+                    config.add(key, defaultVal);
                 }
             }
 
             // Return merged config
-            return configJson;
+            return config;
         }
 
 

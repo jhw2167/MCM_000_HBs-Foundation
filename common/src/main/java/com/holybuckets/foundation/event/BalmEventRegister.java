@@ -122,6 +122,11 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        events.ON_PLAYER_DEATH.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(LivingEntityDeathEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
     }
 
 

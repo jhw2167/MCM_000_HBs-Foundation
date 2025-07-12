@@ -78,6 +78,7 @@ public class EventRegistrar {
     final Set<Consumer<PlayerChangedDimensionEvent>> ON_PLAYER_CHANGED_DIMENSION = new ConcurrentSet<>();
     final Set<Consumer<PlayerRespawnEvent>> ON_PLAYER_RESPAWN = new ConcurrentSet<>();
     final Set<Consumer<LivingDeathEvent>> ON_PLAYER_DEATH = new ConcurrentSet<>();
+    final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
 
 
     /**
@@ -322,6 +323,10 @@ public class EventRegistrar {
         generalRegister(function, ON_PLAYER_DEATH, priority);
     }
 
+    public void registerOnUseBlock(Consumer<UseBlockEvent> function) { registerOnUseBlock(function, EventPriority.Normal); }
+    public void registerOnUseBlock(Consumer<UseBlockEvent> function, EventPriority priority) {
+        generalRegister(function, ON_USE_BLOCK, priority);
+    }
 
 }
 //END CLASS

@@ -127,6 +127,11 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        events.ON_USE_BLOCK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(UseBlockEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
     }
 
 

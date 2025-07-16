@@ -29,6 +29,11 @@ public interface IManagedPlayer {
      */
     void handlePlayerDeath(Player player);
 
+    /**
+     * Called when player attacks an entity
+     */
+    void handlePlayerAttack(Player player, Entity target);
+
     CompoundTag serializeNBT();
 
     void deserializeNBT(CompoundTag nbt);

@@ -132,6 +132,16 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        events.ON_PLAYER_ATTACK_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(PlayerAttackEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_DIG_SPEED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(DigSpeedEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
     }
 
 

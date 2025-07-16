@@ -79,6 +79,8 @@ public class EventRegistrar {
     final Set<Consumer<PlayerRespawnEvent>> ON_PLAYER_RESPAWN = new ConcurrentSet<>();
     final Set<Consumer<LivingDeathEvent>> ON_PLAYER_DEATH = new ConcurrentSet<>();
     final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
+    final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
+    final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
 
 
     /**
@@ -326,6 +328,16 @@ public class EventRegistrar {
     public void registerOnUseBlock(Consumer<UseBlockEvent> function) { registerOnUseBlock(function, EventPriority.Normal); }
     public void registerOnUseBlock(Consumer<UseBlockEvent> function, EventPriority priority) {
         generalRegister(function, ON_USE_BLOCK, priority);
+    }
+
+    public void registerOnPlayerAttackEvent(Consumer<PlayerAttackEvent> function) { registerOnPlayerAttackEvent(function, EventPriority.Normal); }
+    public void registerOnPlayerAttackEvent(Consumer<PlayerAttackEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_ATTACK_EVENT, priority);
+    }
+
+    public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function) { registerOnDigSpeedEvent(function, EventPriority.Normal); }
+    public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DIG_SPEED_EVENT, priority);
     }
 
 }

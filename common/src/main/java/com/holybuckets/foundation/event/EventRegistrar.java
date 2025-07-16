@@ -81,6 +81,9 @@ public class EventRegistrar {
     final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
+    final Set<Consumer<PlayerInteractEvent>> ON_PLAYER_INTERACT = new ConcurrentSet<>();
+    final Set<Consumer<PlayerTickEvent>> ON_PLAYER_TICK = new ConcurrentSet<>();
+    final Set<Consumer<LivingTickEvent>> ON_LIVING_TICK = new ConcurrentSet<>();
 
 
     /**
@@ -338,6 +341,21 @@ public class EventRegistrar {
     public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function) { registerOnDigSpeedEvent(function, EventPriority.Normal); }
     public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function, EventPriority priority) {
         generalRegister(function, ON_DIG_SPEED_EVENT, priority);
+    }
+
+    public void registerOnPlayerInteract(Consumer<PlayerInteractEvent> function) { registerOnPlayerInteract(function, EventPriority.Normal); }
+    public void registerOnPlayerInteract(Consumer<PlayerInteractEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_INTERACT, priority);
+    }
+
+    public void registerOnPlayerTick(Consumer<PlayerTickEvent> function) { registerOnPlayerTick(function, EventPriority.Normal); }
+    public void registerOnPlayerTick(Consumer<PlayerTickEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_TICK, priority);
+    }
+
+    public void registerOnLivingTick(Consumer<LivingTickEvent> function) { registerOnLivingTick(function, EventPriority.Normal); }
+    public void registerOnLivingTick(Consumer<LivingTickEvent> function, EventPriority priority) {
+        generalRegister(function, ON_LIVING_TICK, priority);
     }
 
 }

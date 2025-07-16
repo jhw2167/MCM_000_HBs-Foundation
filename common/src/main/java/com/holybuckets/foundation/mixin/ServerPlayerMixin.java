@@ -12,6 +12,7 @@ public class ServerPlayerMixin {
     
     @Inject(method = "attack", at = @At("HEAD"))
     private void onAttack(Entity target, CallbackInfo ci) {
-        // Add your attack handling logic here
+        ServerPlayer player = (ServerPlayer)(Object)this;
+        ManagedPlayer.getManagedPlayer(player).handlePlayerAttack(player, target);
     }
 }

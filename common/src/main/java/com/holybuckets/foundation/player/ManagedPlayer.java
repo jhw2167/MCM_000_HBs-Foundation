@@ -198,6 +198,17 @@ public class ManagedPlayer {
         }
     }
 
+    public void handlePlayerAttack(Player player, Entity target) {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerAttack(player, target);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player attack for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004012", msg);
+            }
+        }
+    }
+
     //** Utility
     public static ManagedPlayer getManagedPlayer(Player player) {
         String id = HBUtil.PlayerUtil.getId(player);

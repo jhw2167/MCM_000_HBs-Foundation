@@ -7,7 +7,8 @@
     "mixins": [
         "ClientLevelMixin",
         "ServerLevelMixin",
-        "MinecraftServerMixin"
+        "MinecraftServerMixin",
+        "ServerPlayerMixin"
     ],
     "client": [
         "MixinTitleScreen"

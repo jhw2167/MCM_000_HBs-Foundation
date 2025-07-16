@@ -11,6 +11,7 @@ import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
@@ -405,6 +406,20 @@ public class ManagedPlayer {
         }
     }
 
+    private static void onPlayerAttack(PlayerAttackEvent playerAttackEvent) {
+        Player player = playerAttackEvent.getPlayer();
+        Entity target = playerAttackEvent.getTarget();
+        if(player == null || target == null) return;
+
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerAttack(player, target);
+        } else {
+            LoggerBase.logError(null, "004013", "ManagedPlayer not found for attack event");
+        }
+    }
+
 
     public static void onServerTick(ServerTickEvent e)
     {
@@ -434,6 +449,7 @@ public class ManagedPlayer {
 
 
     public static void init(EventRegistrar reg) {
+        reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
         reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);
         reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
@@ -441,5 +457,7 @@ public class ManagedPlayer {
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         reg.registerOnServerTick(EventRegistrar.TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
     }
+
+
 
 }

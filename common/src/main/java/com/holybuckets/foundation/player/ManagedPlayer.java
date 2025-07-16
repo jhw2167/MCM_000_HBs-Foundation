@@ -406,6 +406,30 @@ public class ManagedPlayer {
         }
     }
 
+    private void handlePlayerDigSpeed(Player player, float originalSpeed) {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerDigSpeed(player, originalSpeed);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player dig speed for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
+            }
+        }
+    }
+
+    private static void onDigSpeed(DigSpeedEvent event) {
+        Player player = event.getPlayer();
+        if(player == null) return;
+
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerDigSpeed(player, event.getOriginalSpeed());
+        } else {
+            LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
+        }
+    }
+
     private static void onPlayerAttack(PlayerAttackEvent playerAttackEvent) {
         Player player = playerAttackEvent.getPlayer();
         Entity target = playerAttackEvent.getTarget();
@@ -450,6 +474,7 @@ public class ManagedPlayer {
 
     public static void init(EventRegistrar reg) {
         reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
+        reg.registerOnDigSpeedEvent(ManagedPlayer::onDigSpeed, EventPriority.High);
         reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);
         reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);

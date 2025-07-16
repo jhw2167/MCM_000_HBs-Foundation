@@ -35,6 +35,11 @@ public interface IManagedPlayer {
      */
     void handlePlayerAttack(Player player, Entity target);
 
+    /**
+     * Called when player's dig speed is calculated
+     */
+    void handlePlayerDigSpeed(Player player, float originalSpeed);
+
     CompoundTag serializeNBT();
 
     void deserializeNBT(CompoundTag nbt);

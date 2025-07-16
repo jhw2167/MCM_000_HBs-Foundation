@@ -186,7 +186,8 @@ public class ManagedPlayer {
         }
     }
 
-    private void handlePlayerDeath(Player player) {
+    private void handlePlayerDeath(Player player)
+    {
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
                 data.handlePlayerDeath(player);
@@ -422,7 +423,7 @@ public class ManagedPlayer {
 
 
     public static void init(EventRegistrar reg) {
-        reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Lowest);
+        reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);
         reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);

@@ -38,7 +38,7 @@ public interface IManagedPlayer {
     /**
      * Called when player's dig speed is calculated
      */
-    void handlePlayerDigSpeed(Player player, float originalSpeed);
+    void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed);
 
     CompoundTag serializeNBT();
 

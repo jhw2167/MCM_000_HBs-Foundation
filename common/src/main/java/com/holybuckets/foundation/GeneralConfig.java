@@ -17,8 +17,11 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelData;
 
@@ -157,14 +160,31 @@ public class GeneralConfig {
 
     /** Level Events **/
 
+    public  static final ResourceLocation OVERWORLD_LOC = new ResourceLocation("minecraft", "overworld");
+    public static final ResourceLocation NETHER_LOC = new ResourceLocation("minecraft", "the_nether");
+    public static final ResourceLocation END_LOC = new ResourceLocation("minecraft", "the_end");
+    public static ServerLevel OVERWORLD;
+    public static ServerLevel NETHER;
+    public static ServerLevel END;
     public void onLoadLevel(LevelLoadingEvent.Load event)
     {
-        LevelAccessor level = event.getLevel();
+        Level level = (Level) event.getLevel();
         this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
         LevelData data = level.getLevelData();
         BlockPos spawn = new BlockPos(data.getXSpawn(), data.getYSpawn(), data.getZSpawn());
         this.WORLD_SPAWNS.put(level, spawn);
         //if( level.isClientSide() ) return;
+
+        if (level instanceof ServerLevel serverLevel)
+        {
+            if (HBUtil.LevelUtil.testLevel(level, OVERWORLD_LOC)) {
+                OVERWORLD = serverLevel;
+            } else if (HBUtil.LevelUtil.testLevel(level, NETHER_LOC)) {
+                NETHER = serverLevel;
+            } else if (HBUtil.LevelUtil.testLevel(level, END_LOC)) {
+                END = serverLevel;
+            }
+        }
     }
 
     public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
@@ -219,6 +239,10 @@ public class GeneralConfig {
 
     public long getTotalTickCount() {
         return dataStore.getTotalTickCount() + server.getTickCount();
+    }
+
+    public long getSessionTickCount() {
+        return server.getTickCount();
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {

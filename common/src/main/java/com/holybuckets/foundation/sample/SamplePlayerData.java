@@ -8,6 +8,7 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.PlayerChangedDimensionEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.HashMap;
@@ -76,6 +77,16 @@ public class SamplePlayerData implements IManagedPlayer {
 
     @Override
     public void handlePlayerDeath(Player player) {
+
+    }
+
+    @Override
+    public void handlePlayerAttack(Player player, Entity target) {
+
+    }
+
+    @Override
+    public void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed) {
 
     }
 

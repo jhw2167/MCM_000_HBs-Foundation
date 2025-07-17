@@ -8,7 +8,6 @@
         "ClientLevelMixin",
         "ServerLevelMixin",
         "MinecraftServerMixin",
-        "ServerPlayerMixin"
     ],
     "client": [
         "MixinTitleScreen"

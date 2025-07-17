@@ -406,13 +406,13 @@ public class ManagedPlayer {
         }
     }
 
-    private void handlePlayerDigSpeed(Player player, float originalSpeed) {
+    private void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed) {
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
-                data.handlePlayerDigSpeed(player, originalSpeed);
+                data.handlePlayerDigSpeed(player, originalSpeed, newSpeed);
             } catch (Exception e) {
-                String msg = String.format("Error handling player dig speed for player %s, class: %s", player.getDisplayName(), data.getClass() );
-                LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
+                //String msg = String.format("Error handling player dig speed for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                //LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
             }
         }
     }
@@ -424,9 +424,9 @@ public class ManagedPlayer {
         String id = HBUtil.PlayerUtil.getId(player);
         ManagedPlayer mp = PLAYERS.get(id);
         if(mp != null) {
-            mp.handlePlayerDigSpeed(player, event.getOriginalSpeed());
+            mp.handlePlayerDigSpeed(player, event.getSpeed(), event.getSpeedOverride());
         } else {
-            LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
+            //LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
         }
     }
 
@@ -440,7 +440,7 @@ public class ManagedPlayer {
         if(mp != null) {
             mp.handlePlayerAttack(player, target);
         } else {
-            LoggerBase.logError(null, "004013", "ManagedPlayer not found for attack event");
+            //LoggerBase.logError(null, "004013", "ManagedPlayer not found for attack event");
         }
     }
 

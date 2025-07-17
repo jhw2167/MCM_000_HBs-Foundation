@@ -142,20 +142,6 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
-        events.ON_PLAYER_INTERACT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerInteractEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_PLAYER_TICK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerTickEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_LIVING_TICK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(LivingTickEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
 
     }
 

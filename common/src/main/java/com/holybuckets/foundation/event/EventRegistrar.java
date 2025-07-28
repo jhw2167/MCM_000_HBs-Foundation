@@ -69,9 +69,9 @@ public class EventRegistrar {
     final Set<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentSet<>();
     final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
 
-    final Map<TickScheme, Consumer<ServerTickEvent>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<TickScheme, Consumer<ClientTickEvent>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<TickScheme, Consumer<ClientLevelTickEvent>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
 
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
@@ -108,9 +108,10 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    private <T extends TickEventType> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<T>> map, TickType type, EventPriority priority) {
+    @SuppressWarnings("unchecked")
+    private <T extends TickEventType> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
         TickScheme scheme = new TickScheme(function, type);
-        map.put(scheme, function);
+        map.put(scheme, (Consumer<?>) function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 
@@ -360,7 +361,7 @@ public class EventRegistrar {
 
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                consumer.accept(event);
+                ((Consumer<ServerTickEvent>) consumer).accept(event);
             }
         });
     }

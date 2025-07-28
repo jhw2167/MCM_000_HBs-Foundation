@@ -111,7 +111,7 @@ public class EventRegistrar {
     @SuppressWarnings("unchecked")
     private <T extends TickEventType> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
         TickScheme scheme = new TickScheme(function, type);
-        map.put(scheme, (Consumer<?>) function);
+        map.put(scheme, (Consumer<? extends TickEventType>) function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 

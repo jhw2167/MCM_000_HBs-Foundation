@@ -10,6 +10,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
@@ -116,64 +117,6 @@ public class EventRegistrar {
         instance = new EventRegistrar();
     }
 
-    /** Custom Events **/
-
-    public void dataSaveEvent()
-    {
-        DatastoreSaveEvent event = DatastoreSaveEvent.create();
-        for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
-            saver.accept(event);
-        }
-        event.getDataStore().save();
-    }
-
-    public void onServerTick(MinecraftServer server)
-    {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        
-        // Fire single tick event
-        ServerTickEvent.SingleTick singleTickEvent = new ServerTickEvent.SingleTick(totalTicks);
-        for (Consumer<ServerTickEvent.SingleTick> consumer : ON_SINGLE_TICK) {
-            consumer.accept(singleTickEvent);
-        }
-        //** TICKS OFFSET TO AVOID ALL OCCURRING AT THE SAME TIME **//
-
-        // Fire every 20 ticks
-        if ((totalTicks+1) % 20 == 0) {
-            ServerTickEvent.Every20Ticks event20 = new ServerTickEvent.Every20Ticks(totalTicks);
-            for (Consumer<ServerTickEvent.Every20Ticks> consumer : ON_20_TICKS) {
-                consumer.accept(event20);
-            }
-        }
-
-        // Fire every 120 ticks
-        if ((totalTicks+2) % 120 == 0) {
-            ServerTickEvent.Every120Ticks event120 = new ServerTickEvent.Every120Ticks(totalTicks);
-            for (Consumer<ServerTickEvent.Every120Ticks> consumer : ON_120_TICKS) {
-                consumer.accept(event120);
-            }
-        }
-
-        // Fire every 1200 ticks
-        if ((totalTicks+3) % 1200 == 0) {
-            ServerTickEvent.Every1200Ticks event1200 = new ServerTickEvent.Every1200Ticks(totalTicks);
-            for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_1200_TICKS) {
-                consumer.accept(event1200);
-            }
-        }
-
-
-        // Fire daily tick (24000 ticks = 1 minecraft day)
-        if (totalTicks+5 % 24000 == 0) {
-            ServerTickEvent.DailyTick eventDaily = new ServerTickEvent.DailyTick(totalTicks);
-            for (Consumer<ServerTickEvent.DailyTick> consumer : ON_DAILY_TICK) {
-                consumer.accept(eventDaily);
-            }
-        }
-    }
-
-    /** ############### **/
-
 
 
     //Create public methods for pushing functions onto each function event
@@ -264,6 +207,13 @@ public class EventRegistrar {
     }
 
 
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DATA_SAVE, priority);
+    }
+
+
+    //** TICK EVENTS
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function) {
@@ -299,19 +249,19 @@ public class EventRegistrar {
     @SuppressWarnings("unchecked")
     public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function, EventPriority priority) {
         switch (type) {
-            case ON_CLIENT_SINGLE_TICK:
+            case ON_SINGLE_TICK:
                 generalRegister((Consumer<ClientTickEvent.SingleTick>) function, ON_CLIENT_SINGLE_TICK, priority);
                 break;
-            case ON_CLIENT_20_TICKS:
+            case ON_20_TICKS:
                 generalRegister((Consumer<ClientTickEvent.Every20Ticks>) function, ON_CLIENT_20_TICKS, priority);
                 break;
-            case ON_CLIENT_120_TICKS:
+            case ON_120_TICKS:
                 generalRegister((Consumer<ClientTickEvent.Every120Ticks>) function, ON_CLIENT_120_TICKS, priority);
                 break;
-            case ON_CLIENT_1200_TICKS:
+            case ON_1200_TICKS:
                 generalRegister((Consumer<ClientTickEvent.Every1200Ticks>) function, ON_CLIENT_1200_TICKS, priority);
                 break;
-            case ON_CLIENT_DAILY_TICK:
+            case DAILY_TICK:
                 generalRegister((Consumer<ClientTickEvent.DailyTick>) function, ON_CLIENT_DAILY_TICKS, priority);
                 break;
         }
@@ -325,28 +275,26 @@ public class EventRegistrar {
     @SuppressWarnings("unchecked")
     public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
         switch (type) {
-            case ON_CLIENT_LEVEL_SINGLE_TICK:
+            case ON_SINGLE_TICK:
                 generalRegister((Consumer<ClientLevelTickEvent.SingleTick>) function, ON_CLIENT_LEVEL_SINGLE_TICK, priority);
                 break;
-            case ON_CLIENT_LEVEL_20_TICKS:
+            case ON_20_TICKS:
                 generalRegister((Consumer<ClientLevelTickEvent.Every20Ticks>) function, ON_CLIENT_LEVEL_20_TICKS, priority);
                 break;
-            case ON_CLIENT_LEVEL_120_TICKS:
+            case ON_120_TICKS:
                 generalRegister((Consumer<ClientLevelTickEvent.Every120Ticks>) function, ON_CLIENT_LEVEL_120_TICKS, priority);
                 break;
-            case ON_CLIENT_LEVEL_1200_TICKS:
+            case ON_1200_TICKS:
                 generalRegister((Consumer<ClientLevelTickEvent.Every1200Ticks>) function, ON_CLIENT_LEVEL_1200_TICKS, priority);
                 break;
-            case ON_CLIENT_LEVEL_DAILY_TICK:
+            case DAILY_TICK:
                 generalRegister((Consumer<ClientLevelTickEvent.DailyTick>) function, ON_CLIENT_LEVEL_DAILY_TICK, priority);
                 break;
         }
     }
 
-    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) { registerOnDataSave(function, EventPriority.Normal);}
-    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
-        generalRegister(function, ON_DATA_SAVE, priority);
-    }
+
+
 
     //** PLAYER EVENTS
 
@@ -390,6 +338,59 @@ public class EventRegistrar {
         generalRegister(function, ON_DIG_SPEED_EVENT, priority);
     }
 
+
+
+
+    /** Custom Events **/
+
+    public void dataSaveEvent()
+    {
+        DatastoreSaveEvent event = DatastoreSaveEvent.create();
+        for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
+            saver.accept(event);
+        }
+        event.getDataStore().save();
+    }
+
+    public void onServerTick(MinecraftServer server)
+    {
+        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+
+        ServerTickEvent event = new ServerTickEvent(totalTicks);
+        for ( TickScheme scheme : SERVER_TICK_EVENTS.keySet()) {
+            if (totalTicks % scheme.getFrequency() == scheme.offset)
+                SERVER_TICK_EVENTS.get(scheme).accept(event);
+        }
+    }
+
+    /** ############### **/
+
+    private class TickScheme {
+        int offset;
+        TickType frequency;
+
+        <T> TickScheme(Consumer<T> func, TickType frequency) {
+            this.frequency = frequency;
+            this.offset = (func.hashCode() % getFrequency());
+        }
+
+        int getFrequency() {
+            switch (frequency) {
+                case ON_SINGLE_TICK:
+                    return 1;
+                case ON_20_TICKS:
+                    return 20;
+                case ON_120_TICKS:
+                    return 120;
+                case ON_1200_TICKS:
+                    return 1200;
+                case DAILY_TICK:
+                    return 24000; // 1 day in ticks
+                default:
+                    return 1;
+            }
+
+    }
 
 }
 //END CLASS

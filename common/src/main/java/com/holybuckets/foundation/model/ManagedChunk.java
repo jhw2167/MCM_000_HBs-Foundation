@@ -2,6 +2,7 @@ package com.holybuckets.foundation.model;
 
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.client.ClientInput;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.HBUtil;

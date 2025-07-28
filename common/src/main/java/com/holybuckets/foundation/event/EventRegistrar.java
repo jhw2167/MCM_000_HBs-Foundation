@@ -13,6 +13,7 @@ import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
+import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
@@ -28,6 +29,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 import java.util.*;
@@ -377,7 +379,7 @@ public class EventRegistrar {
     public void onServerTick(MinecraftServer s) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ServerTickEvent event = new ServerTickEvent(totalTicks);
-        LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
+        //LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ServerTickEvent>) consumer).accept(event);
@@ -386,6 +388,7 @@ public class EventRegistrar {
     }
 
     public void onServerLevelTick(Level level) {
+        if( level == null ) return;
         ManagedChunkEvents.onWorldTickStart(level);
     }
 
@@ -403,6 +406,8 @@ public class EventRegistrar {
     public void onClientLevelTick(ClientLevel level) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
+        if(level == null) return;
+
         ManagedChunkEvents.onWorldTickStart(level);
         //LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
         CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
@@ -412,8 +417,16 @@ public class EventRegistrar {
         });
     }
 
-    public void onClientInput(Player player, ClientInputMessage message) {
-        ClientInputEvent event = new ClientInputEvent(player, message);
+    public void onClientInput(ClientInputMessage message) {
+        GeneralConfig config = GeneralConfig.getInstance();
+        Player p;
+        if(config.isClientSide())
+            p = config.getClient().player;
+        else {
+            p = config.getServer().getPlayerList().getPlayer(message.playerId);
+        }
+        ClientInputEvent event = new ClientInputEvent(p, message);
+
         ON_CLIENT_INPUT.forEach(consumer -> consumer.accept(event));
     }
 

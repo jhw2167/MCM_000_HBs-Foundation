@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.world.entity.player.Player;
 
@@ -15,11 +16,11 @@ public class ClientInputMessageHandler {
             return;
         }
         
-        // Fire the client input event
-        EventRegistrar.getInstance().onClientInput(player, message);
-        
         String key = InputConstants.getKey(0, message.code).getName();
         LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
+
+        // Fire the client input event
+        EventRegistrar.getInstance().onClientInput(message);
     }
 
 }

@@ -51,7 +51,8 @@ public class GeneralConfig {
     private DataStore dataStore;
     private ExecutorService watchExecutorService;
     private volatile boolean running = true;
-    private Boolean isClientSide;
+    private boolean isClientSide;
+    private boolean isServerSide;
 
     private MinecraftServer server;
     private final Map<String, LevelAccessor> LEVELS;
@@ -61,6 +62,7 @@ public class GeneralConfig {
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
     private Minecraft client;
+
 
     /**
      * Constructor
@@ -85,6 +87,7 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
+        reg.registerOnPlayerLogin(instance::onPlayerLogin, EventPriority.Highest);
         reg.registerOnConnectedToServer(instance::onPlayerLoginToServerEvent, EventPriority.Highest);
         reg.registerOnDisconnectedFromServer(instance::onPlayerDisconnectedFromServerEvent, EventPriority.Lowest);
 
@@ -117,19 +120,22 @@ public class GeneralConfig {
 
 
     /** Server Events **/
-
-    public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
+    public void onPlayerLogin(PlayerLoginEvent event) {
         this.isClientSide = true;
         this.client = Minecraft.getInstance();
         this.initPerformanceConfig();
     }
 
+    public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
+
+    }
+
     public void onPlayerDisconnectedFromServerEvent(DisconnectedFromServerEvent event) {
-        this.isClientSide = null;
+        this.isClientSide = false;
     }
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
-        this.isClientSide = false;
+        this.isServerSide = true;
         this.initPerformanceConfig();
 
 
@@ -158,7 +164,8 @@ public class GeneralConfig {
         this.dataStore.onServerStopped(event);
         this.dataStore = null;
         this.server = null;
-        this.isClientSide = null;
+        this.isClientSide = false;
+        this.isServerSide = false;
     }
 
     /** Level Events **/
@@ -236,18 +243,35 @@ public class GeneralConfig {
         return isPlayerLoaded;
     }
 
+    public boolean isClientSide() {
+        return this.isClientSide;
+    }
+    public boolean isServerSide() {
+        return this.isServerSide;
+    }
+
+    public boolean isIntegrated() {
+        return this.isServerSide && this.isClientSide;
+    }
+
+
+    @Nullable
     public MinecraftServer getServer() {
         return server;
     }
 
+    @Nullable
+    public Minecraft getClient() { return this.client; }
+
+
     public long getTotalTickCount() {
-        if(this.isClientSide)
-            return dataStore.getTotalTickCount() + client.player.tickCount;
-        return dataStore.getTotalTickCount() + server.getTickCount();
+        if(!this.isServerSide)
+            return dataStore.getTotalTickCount() + server.getTickCount();
+        return dataStore.getTotalTickCount() + client.player.tickCount;
     }
 
     public long getSessionTickCount() {
-        if(this.isClientSide)
+        if(!this.isServerSide)
             return client.player.tickCount;
         return server.getTickCount();
     }
@@ -293,5 +317,7 @@ public class GeneralConfig {
             }
         }
 
-    }
+
+
+}
 //END CLASS

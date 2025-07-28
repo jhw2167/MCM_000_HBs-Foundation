@@ -2,12 +2,14 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
+import com.holybuckets.foundation.client.ClientInput;
 import com.holybuckets.foundation.client.ModRenderers;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.ModItems;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
@@ -37,6 +39,8 @@ public class FoundationInitializers {
 
     static void initClient(){
         initRenderers();
+        EventRegistrar reg = EventRegistrar.getInstance();
+        ClientInput.init(reg);
     }
 
     /**
@@ -64,6 +68,8 @@ public class FoundationInitializers {
         //SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
+        //ClientInput.init(reg);
+
         BalmEventRegister.registerEvents();
     }
 
@@ -78,6 +84,7 @@ public class FoundationInitializers {
         BalmNetworking networking = Balm.getNetworking();
         Handlers.init();
         networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
+        networking.registerServerboundPacket(id(ClientInputMessage.LOCATION), ClientInputMessage.class, Codecs::encodeClientInput, Codecs::decodeClientInput, Handlers::handleClientInput);
     }
 
     private static void initBlocks() {

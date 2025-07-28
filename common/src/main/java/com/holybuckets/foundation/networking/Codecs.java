@@ -5,22 +5,24 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import static com.holybuckets.foundation.networking.ClientInputMessage.InputType;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class Codecs {
     
     public static final FriendlyByteBuf encodeClientInput(ClientInputMessage object, FriendlyByteBuf buf) {
         buf.writeUUID(object.playerId);
-        buf.writeUtf(object.inputType);
+        buf.writeUtf(InputType.valueOf(object.inputType.name()).name());
         buf.writeInt(object.code);
         return buf;
     }
 
     public static final ClientInputMessage decodeClientInput(FriendlyByteBuf buf) {
         UUID playerId = buf.readUUID();
-        String inputType = buf.readUtf();
+        InputType inputType = InputType.valueOf(buf.readUtf());
         int code = buf.readInt();
         return new ClientInputMessage(playerId, inputType, code);
     }

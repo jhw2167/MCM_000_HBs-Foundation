@@ -19,6 +19,11 @@ public class Handlers {
         //Initializing class
     }
 
+    public static void handleClientInput(Player p, ClientInputMessage m) {
+        RECEIVED++;
+        POOL.submit(() -> ClientInputMessageHandler.handle(p, m));
+    }
+
     public static void handleBlockStateUpdates(Player p, BlockStateUpdatesMessage m) {
         RECEIVED++;
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));

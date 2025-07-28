@@ -10,6 +10,20 @@ import java.util.List;
 import java.util.Map;
 
 public class Codecs {
+    
+    public static final FriendlyByteBuf encodeClientInput(ClientInputMessage object, FriendlyByteBuf buf) {
+        buf.writeUUID(object.playerId);
+        buf.writeUtf(object.inputType);
+        buf.writeInt(object.code);
+        return buf;
+    }
+
+    public static final ClientInputMessage decodeClientInput(FriendlyByteBuf buf) {
+        UUID playerId = buf.readUUID();
+        String inputType = buf.readUtf();
+        int code = buf.readInt();
+        return new ClientInputMessage(playerId, inputType, code);
+    }
 
     //ManagedChunk
     public static final FriendlyByteBuf encodeBlockStateUpdates(BlockStateUpdatesMessage object, FriendlyByteBuf buf) {

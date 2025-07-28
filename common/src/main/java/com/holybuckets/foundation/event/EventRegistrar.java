@@ -7,8 +7,7 @@ package com.holybuckets.foundation.event;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
-import com.holybuckets.foundation.event.custom.ClientTickEvent;
+import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import net.blay09.mods.balm.api.event.*;
@@ -265,28 +264,6 @@ public class EventRegistrar {
     }
 
 
-    public enum TickType {
-        ON_SINGLE_TICK,
-        ON_20_TICKS,
-        ON_120_TICKS,
-        ON_1200_TICKS,
-        ON_6000_TICKS,
-        DAILY_TICK,
-        
-        // Client tick types
-        ON_CLIENT_SINGLE_TICK,
-        ON_CLIENT_20_TICKS,
-        ON_CLIENT_120_TICKS,
-        ON_CLIENT_1200_TICKS,
-        
-        // Client level tick types
-        ON_CLIENT_LEVEL_SINGLE_TICK,
-        ON_CLIENT_LEVEL_20_TICKS,
-        ON_CLIENT_LEVEL_120_TICKS,
-        ON_CLIENT_LEVEL_1200_TICKS,
-        ON_CLIENT_LEVEL_DAILY_TICK,
-        ON_CLIENT_DAILY_TICK
-    }
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function) {

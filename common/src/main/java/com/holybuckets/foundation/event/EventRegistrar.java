@@ -384,7 +384,7 @@ public class EventRegistrar {
     public void onClientTick(Minecraft client) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ClientTickEvent event = new ClientTickEvent(client, totalTicks);
-        LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
+        //LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
         CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ClientTickEvent>) consumer).accept(event);
@@ -396,7 +396,7 @@ public class EventRegistrar {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
         ManagedChunkEvents.onWorldTickStart(level);
-        LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
+        //LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
         CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ClientLevelTickEvent>) consumer).accept(event);

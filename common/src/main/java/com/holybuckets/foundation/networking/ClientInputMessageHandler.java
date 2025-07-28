@@ -1,34 +1,21 @@
 package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.LoggerBase;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.world.entity.player.Player;
 
 public class ClientInputMessageHandler {
+
+    public static String CLASS_ID = "015";
+
     public static void handle(Player player, ClientInputMessage message) {
         // Validate that the message is from the correct player
         if (!player.getUUID().equals(message.playerId)) {
-            LoggerBase.warn("Received client input message from wrong player!");
+            LoggerBase.logError(null, "015002", "Received input message from player " + message.playerId + " but expected " + player.getUUID());
             return;
         }
-
-        // Handle the input
-        switch (message.inputType) {
-            case "KEY":
-                handleKeyPress(player, message.code);
-                break;
-            case "MOUSE":
-                handleMouseClick(player, message.code);
-                break;
-        }
+        String key = InputConstants.getKey(0, message.code).getName();
+        LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
     }
 
-    private static void handleKeyPress(Player player, int keyCode) {
-        // Handle key press on server side
-        LoggerBase.info("Player " + player.getName().getString() + " pressed key: " + keyCode);
-    }
-
-    private static void handleMouseClick(Player player, int button) {
-        // Handle mouse click on server side
-        LoggerBase.info("Player " + player.getName().getString() + " clicked button: " + button);
-    }
 }

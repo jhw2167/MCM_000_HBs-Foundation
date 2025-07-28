@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.event;
 
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.command.BalmCommands;
 import net.blay09.mods.balm.api.event.*;
@@ -12,6 +13,7 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -64,6 +66,7 @@ public class BalmEventRegister {
             registry.onEvent( ServerStoppedEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
+
 
         /** LEVEL & CHUNK EVENTS **/
 
@@ -151,6 +154,29 @@ public class BalmEventRegister {
         commands.register(CommandRegistry::register);
     }
 
+    static void registerOnTickEvents()
+    {
+
+        //** TICK EVENTS **//
+        BalmEvents registry = Balm.getEvents();
+        //do not register each event I added, instead register the invidual onServerTick, onClientTick, etc methods
+        if (registeredEvents.add(Objects.hash("onServerTick"))) {
+            registry.onTickEvent(TickType.Server, TickPhase.End, events::onServerTick);
+        }
+
+        if (registeredEvents.add(Objects.hash("onServerLevelTick"))) {
+            registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, events::onServerLevelTick);
+        }
+
+        if (registeredEvents.add(Objects.hash("onClientTick"))) {
+            registry.onTickEvent(TickType.Client, TickPhase.End, events::onClientTick);
+        }
+
+        if (registeredEvents.add(Objects.hash("onClientLevelTick"))) {
+            registry.onTickEvent(TickType.ClientLevel, TickPhase.Start, events::onClientLevelTick);
+        }
+
+    }
 
 
 }

@@ -11,6 +11,9 @@ import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkEvents;
+import com.mojang.authlib.minecraft.client.MinecraftClient;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
@@ -21,7 +24,11 @@ import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -99,6 +106,11 @@ public class EventRegistrar {
 
     public static void init() {
         instance = new EventRegistrar();
+        instance.registerOnBeforeServerStarted(instance::beforeServerStarted);
+    }
+
+    private void beforeServerStarted(ServerStartingEvent event) {
+        BalmEventRegister.registerOnTickEvents();
     }
 
 
@@ -354,10 +366,10 @@ public class EventRegistrar {
         event.getDataStore().save();
     }
 
-    public void onServerTick(MinecraftServer server) {
+    public void onServerTick(MinecraftServer s) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ServerTickEvent event = new ServerTickEvent(totalTicks);
-
+        LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ServerTickEvent>) consumer).accept(event);
@@ -365,10 +377,14 @@ public class EventRegistrar {
         });
     }
 
-    public void onClientTick() {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientTickEvent event = new ClientTickEvent(totalTicks);
+    public void onServerLevelTick(Level level) {
+        ManagedChunkEvents.onWorldTickStart(level);
+    }
 
+    public void onClientTick(Minecraft client) {
+        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+        ClientTickEvent event = new ClientTickEvent(client, totalTicks);
+        LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
         CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ClientTickEvent>) consumer).accept(event);
@@ -376,16 +392,18 @@ public class EventRegistrar {
         });
     }
 
-    public void onClientLevelTick() {
+    public void onClientLevelTick(ClientLevel level) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientLevelTickEvent event = new ClientLevelTickEvent(totalTicks);
-
+        ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
+        ManagedChunkEvents.onWorldTickStart(level);
+        LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
         CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
                 ((Consumer<ClientLevelTickEvent>) consumer).accept(event);
             }
         });
     }
+
 
     /**
      * ###############

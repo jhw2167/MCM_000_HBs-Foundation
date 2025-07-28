@@ -58,7 +58,7 @@ public class CommonClass {
         //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         BalmEvents registry = Balm.getEvents();
         reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
-        //reg.registerOnServerTick(EventRegistrar.TickType.ON_1200_TICKS , CommonClass::onServerTick);
+        //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 
     private static void onPlayerLogin(PlayerLoginEvent event) {

@@ -5,6 +5,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.*;
@@ -480,7 +481,7 @@ public class ManagedPlayer {
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
-        reg.registerOnServerTick(EventRegistrar.TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
+        reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
     }
 
 

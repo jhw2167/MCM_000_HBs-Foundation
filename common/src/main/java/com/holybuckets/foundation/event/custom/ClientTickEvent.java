@@ -1,9 +1,13 @@
 package com.holybuckets.foundation.event.custom;
 
+import net.minecraft.client.Minecraft;
+
 public class ClientTickEvent {
     private final long tickCount;
+    private final Minecraft client;
 
-    public ClientTickEvent(long tickCount) {
+    public ClientTickEvent(Minecraft client, long tickCount) {
+        this.client = client;
         this.tickCount = tickCount;
     }
 
@@ -11,27 +15,4 @@ public class ClientTickEvent {
         return tickCount;
     }
 
-    public static class SingleTick extends ClientTickEvent {
-        public SingleTick(long tickCount) {
-            super(tickCount);
-        }
-    }
-
-    public static class Every20Ticks extends ClientTickEvent {
-        public Every20Ticks(long tickCount) {
-            super(tickCount);
-        }
-    }
-
-    public static class Every120Ticks extends ClientTickEvent {
-        public Every120Ticks(long tickCount) {
-            super(tickCount);
-        }
-    }
-
-    public static class Every1200Ticks extends ClientTickEvent {
-        public Every1200Ticks(long tickCount) {
-            super(tickCount);
-        }
-    }
 }

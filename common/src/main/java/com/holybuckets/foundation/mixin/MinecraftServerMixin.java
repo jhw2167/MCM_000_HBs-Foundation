@@ -23,7 +23,7 @@ public class MinecraftServerMixin {
         MinecraftServer server = (MinecraftServer) (Object) this;
         if(MixinManager.isEnabled("MinecraftServerMixin::onTickChildren")) {
             try {
-                EventRegistrar.getInstance().onServerTick(server);
+                //EventRegistrar.getInstance().onServerTick(server);
             } catch (Exception e) {
                 MixinManager.recordError("MinecraftServerMixin::onTickChildren", e);
             }

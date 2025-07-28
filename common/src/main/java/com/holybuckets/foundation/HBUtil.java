@@ -985,6 +985,8 @@ public class HBUtil {
         private static final Queue<Runnable> PENDING_TASKS = new LinkedBlockingQueue<>();
         public static final ThreadPoolExecutor POOL = new ThreadPoolExecutor(1, 1, 60L, java.util.concurrent.TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
+        //** SERVER TO CLIENT
+
         private static <T> void sendHandler(Runnable r)
         {
             if( CLIENT_STARTED ) {
@@ -1017,6 +1019,8 @@ public class HBUtil {
             server = GeneralConfig.getInstance().getServer();
         }
 
+
+        //** CLIENT NETWORKING
         private static void onPlayerLoginEvent(PlayerLoginEvent event)
         {
             CLIENT_STARTED = true;
@@ -1025,6 +1029,10 @@ public class HBUtil {
             while ((task = PENDING_TASKS.poll()) != null) {
                 POOL.submit(task);
             }
+        }
+
+        public static synchronized <T> void clientSendToServer(T message) {
+            networking.sendToServer(message);
         }
     }
 

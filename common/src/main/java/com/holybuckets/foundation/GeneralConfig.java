@@ -15,6 +15,7 @@ import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
@@ -59,6 +60,7 @@ public class GeneralConfig {
     private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
+    private Minecraft client;
 
     /**
      * Constructor
@@ -118,6 +120,7 @@ public class GeneralConfig {
 
     public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
         this.isClientSide = true;
+        this.client = Minecraft.getInstance();
         this.initPerformanceConfig();
     }
 
@@ -238,10 +241,14 @@ public class GeneralConfig {
     }
 
     public long getTotalTickCount() {
+        if(this.isClientSide)
+            return dataStore.getTotalTickCount() + client.player.tickCount;
         return dataStore.getTotalTickCount() + server.getTickCount();
     }
 
     public long getSessionTickCount() {
+        if(this.isClientSide)
+            return client.player.tickCount;
         return server.getTickCount();
     }
 

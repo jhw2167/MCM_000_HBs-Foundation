@@ -11,6 +11,7 @@ import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.foundation.util.MixinManager;
@@ -56,7 +57,7 @@ public class ManagedChunkEvents {
         reg.registerOnChunkLoad(ManagedChunkEvents::onChunkLoad);
         reg.registerOnChunkUnload(ManagedChunkEvents::onChunkUnload);
 
-        EventRegistrar.TickType tickType = EventRegistrar.TickType.ON_1200_TICKS;
+        TickType tickType = TickType.ON_1200_TICKS;
         reg.registerOnServerTick(tickType, ManagedChunkEvents::onServerTick1200);
     }
 

@@ -13,6 +13,7 @@ import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import net.blay09.mods.balm.api.event.client.ClientTickHandler;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;

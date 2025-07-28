@@ -125,6 +125,12 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    private <T> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<T>> map, TickType type, EventPriority priority) {
+        TickScheme scheme = new TickScheme(function, type);
+        map.put(scheme, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
     public void registerOnPlayerLogin(Consumer<PlayerLoginEvent> function) { registerOnPlayerLogin(function, EventPriority.Normal);}
     public void registerOnPlayerLogin(Consumer<PlayerLoginEvent> function, EventPriority priority) {
         generalRegister(function, ON_PLAYER_LOGIN, priority);
@@ -222,23 +228,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
-        switch (type) {
-            case ON_SINGLE_TICK:
-                generalRegister((Consumer<ServerTickEvent.SingleTick>) function, ON_SINGLE_TICK, priority);
-                break;
-            case ON_20_TICKS:
-                generalRegister((Consumer<ServerTickEvent.Every20Ticks>) function, ON_20_TICKS, priority);
-                break;
-            case ON_120_TICKS:
-                generalRegister((Consumer<ServerTickEvent.Every120Ticks>) function, ON_120_TICKS, priority);
-                break;
-            case ON_1200_TICKS:
-                generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_1200_TICKS, priority);
-                break;
-            case DAILY_TICK:
-                generalRegister((Consumer<ServerTickEvent.DailyTick>) function, ON_DAILY_TICK, priority);
-                break;
-        }
+        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
     @SuppressWarnings("unchecked")
@@ -248,23 +238,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function, EventPriority priority) {
-        switch (type) {
-            case ON_SINGLE_TICK:
-                generalRegister((Consumer<ClientTickEvent.SingleTick>) function, ON_CLIENT_SINGLE_TICK, priority);
-                break;
-            case ON_20_TICKS:
-                generalRegister((Consumer<ClientTickEvent.Every20Ticks>) function, ON_CLIENT_20_TICKS, priority);
-                break;
-            case ON_120_TICKS:
-                generalRegister((Consumer<ClientTickEvent.Every120Ticks>) function, ON_CLIENT_120_TICKS, priority);
-                break;
-            case ON_1200_TICKS:
-                generalRegister((Consumer<ClientTickEvent.Every1200Ticks>) function, ON_CLIENT_1200_TICKS, priority);
-                break;
-            case DAILY_TICK:
-                generalRegister((Consumer<ClientTickEvent.DailyTick>) function, ON_CLIENT_DAILY_TICKS, priority);
-                break;
-        }
+        generalTickEventRegister(function, CLIENT_TICK_EVENTS, type, priority);
     }
 
     @SuppressWarnings("unchecked")
@@ -274,23 +248,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
-        switch (type) {
-            case ON_SINGLE_TICK:
-                generalRegister((Consumer<ClientLevelTickEvent.SingleTick>) function, ON_CLIENT_LEVEL_SINGLE_TICK, priority);
-                break;
-            case ON_20_TICKS:
-                generalRegister((Consumer<ClientLevelTickEvent.Every20Ticks>) function, ON_CLIENT_LEVEL_20_TICKS, priority);
-                break;
-            case ON_120_TICKS:
-                generalRegister((Consumer<ClientLevelTickEvent.Every120Ticks>) function, ON_CLIENT_LEVEL_120_TICKS, priority);
-                break;
-            case ON_1200_TICKS:
-                generalRegister((Consumer<ClientLevelTickEvent.Every1200Ticks>) function, ON_CLIENT_LEVEL_1200_TICKS, priority);
-                break;
-            case DAILY_TICK:
-                generalRegister((Consumer<ClientLevelTickEvent.DailyTick>) function, ON_CLIENT_LEVEL_DAILY_TICK, priority);
-                break;
-        }
+        generalTickEventRegister(function, CLIENT_LEVEL_TICK_EVENTS, type, priority);
     }
 
 
@@ -352,15 +310,15 @@ public class EventRegistrar {
         event.getDataStore().save();
     }
 
-    public void onServerTick(MinecraftServer server)
-    {
+    public void onServerTick(MinecraftServer server) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-
         ServerTickEvent event = new ServerTickEvent(totalTicks);
-        for ( TickScheme scheme : SERVER_TICK_EVENTS.keySet()) {
-            if (totalTicks % scheme.getFrequency() == scheme.offset)
-                SERVER_TICK_EVENTS.get(scheme).accept(event);
-        }
+        
+        SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
+            if (totalTicks % scheme.getFrequency() == scheme.offset) {
+                consumer.accept(event);
+            }
+        });
     }
 
     /** ############### **/

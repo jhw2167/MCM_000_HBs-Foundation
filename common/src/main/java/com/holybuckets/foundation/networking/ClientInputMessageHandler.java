@@ -14,6 +14,10 @@ public class ClientInputMessageHandler {
             LoggerBase.logError(null, "015002", "Received input message from player " + message.playerId + " but expected " + player.getUUID());
             return;
         }
+        
+        // Fire the client input event
+        EventRegistrar.getInstance().onClientInput(player, message);
+        
         String key = InputConstants.getKey(0, message.code).getName();
         LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
     }

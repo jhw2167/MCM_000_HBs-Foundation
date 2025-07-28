@@ -73,6 +73,15 @@ public class EventRegistrar {
     final Set<Consumer<ServerTickEvent.Every1200Ticks>> ON_6000_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.DailyTick>> ON_DAILY_TICK = new ConcurrentSet<>();
 
+    final Set<Consumer<ClientTickEvent.SingleTick>> ON_CLIENT_SINGLE_TICK = new ConcurrentSet<>();
+    final Set<Consumer<ClientTickEvent.Every20Ticks>> ON_CLIENT_20_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientTickEvent.Every120Ticks>> ON_CLIENT_120_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientTickEvent.Every1200Ticks>> ON_CLIENT_1200_TICKS = new ConcurrentSet<>();
+
+    final Set<Consumer<ClientLevelTickEvent.SingleTick>> ON_CLIENT_LEVEL_SINGLE_TICK = new ConcurrentSet<>();
+    final Set<Consumer<ClientLevelTickEvent.Every20Ticks>> ON_CLIENT_LEVEL_20_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientLevelTickEvent.Every120Ticks>> ON_CLIENT_LEVEL_120_TICKS = new ConcurrentSet<>();
+
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -263,7 +272,18 @@ public class EventRegistrar {
         ON_120_TICKS,
         ON_1200_TICKS,
         ON_6000_TICKS,
-        DAILY_TICK
+        DAILY_TICK,
+        
+        // Client tick types
+        ON_CLIENT_SINGLE_TICK,
+        ON_CLIENT_20_TICKS,
+        ON_CLIENT_120_TICKS,
+        ON_CLIENT_1200_TICKS,
+        
+        // Client level tick types
+        ON_CLIENT_LEVEL_SINGLE_TICK,
+        ON_CLIENT_LEVEL_20_TICKS,
+        ON_CLIENT_LEVEL_120_TICKS
     }
 
     @SuppressWarnings("unchecked")
@@ -291,6 +311,49 @@ public class EventRegistrar {
                 break;
             case DAILY_TICK:
                 generalRegister((Consumer<ServerTickEvent.DailyTick>) function, ON_DAILY_TICK, priority);
+                break;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function) {
+        registerOnClientTick(type, function, EventPriority.Normal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function, EventPriority priority) {
+        switch (type) {
+            case ON_CLIENT_SINGLE_TICK:
+                generalRegister((Consumer<ClientTickEvent.SingleTick>) function, ON_CLIENT_SINGLE_TICK, priority);
+                break;
+            case ON_CLIENT_20_TICKS:
+                generalRegister((Consumer<ClientTickEvent.Every20Ticks>) function, ON_CLIENT_20_TICKS, priority);
+                break;
+            case ON_CLIENT_120_TICKS:
+                generalRegister((Consumer<ClientTickEvent.Every120Ticks>) function, ON_CLIENT_120_TICKS, priority);
+                break;
+            case ON_CLIENT_1200_TICKS:
+                generalRegister((Consumer<ClientTickEvent.Every1200Ticks>) function, ON_CLIENT_1200_TICKS, priority);
+                break;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function) {
+        registerOnClientLevelTick(type, function, EventPriority.Normal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
+        switch (type) {
+            case ON_CLIENT_LEVEL_SINGLE_TICK:
+                generalRegister((Consumer<ClientLevelTickEvent.SingleTick>) function, ON_CLIENT_LEVEL_SINGLE_TICK, priority);
+                break;
+            case ON_CLIENT_LEVEL_20_TICKS:
+                generalRegister((Consumer<ClientLevelTickEvent.Every20Ticks>) function, ON_CLIENT_LEVEL_20_TICKS, priority);
+                break;
+            case ON_CLIENT_LEVEL_120_TICKS:
+                generalRegister((Consumer<ClientLevelTickEvent.Every120Ticks>) function, ON_CLIENT_LEVEL_120_TICKS, priority);
                 break;
         }
     }

@@ -108,7 +108,7 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    private <T> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<T>> map, TickType type, EventPriority priority) {
+    private <T extends TickEventType> void generalTickEventRegister(Consumer<T> function, Map<TickScheme, Consumer<T>> map, TickType type, EventPriority priority) {
         TickScheme scheme = new TickScheme(function, type);
         map.put(scheme, function);
         PRIORITIES.put(function.hashCode(), priority);

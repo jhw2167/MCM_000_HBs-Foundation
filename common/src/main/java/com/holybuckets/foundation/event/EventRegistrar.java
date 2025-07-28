@@ -365,6 +365,28 @@ public class EventRegistrar {
         });
     }
 
+    public void onClientTick() {
+        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+        ClientTickEvent event = new ClientTickEvent(totalTicks);
+
+        CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
+            if (totalTicks % scheme.getFrequency() == scheme.offset) {
+                ((Consumer<ClientTickEvent>) consumer).accept(event);
+            }
+        });
+    }
+
+    public void onClientLevelTick() {
+        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+        ClientLevelTickEvent event = new ClientLevelTickEvent(totalTicks);
+
+        CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
+            if (totalTicks % scheme.getFrequency() == scheme.offset) {
+                ((Consumer<ClientLevelTickEvent>) consumer).accept(event);
+            }
+        });
+    }
+
     /**
      * ###############
      **/

@@ -163,13 +163,6 @@ public class EventRegistrar {
             }
         }
 
-        // Fire every 6000 ticks
-        if ((totalTicks+4) % 6000 == 0) {
-            ServerTickEvent.Every1200Ticks event6000 = new ServerTickEvent.Every1200Ticks(totalTicks);
-            for (Consumer<ServerTickEvent.Every1200Ticks> consumer : ON_6000_TICKS) {
-                consumer.accept(event6000);
-            }
-        }
 
         // Fire daily tick (24000 ticks = 1 minecraft day)
         if (totalTicks+5 % 24000 == 0) {
@@ -315,9 +308,6 @@ public class EventRegistrar {
             case ON_1200_TICKS:
                 generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_1200_TICKS, priority);
                 break;
-            case ON_6000_TICKS:
-                generalRegister((Consumer<ServerTickEvent.Every1200Ticks>) function, ON_6000_TICKS, priority);
-                break;
             case DAILY_TICK:
                 generalRegister((Consumer<ServerTickEvent.DailyTick>) function, ON_DAILY_TICK, priority);
                 break;
@@ -380,6 +370,8 @@ public class EventRegistrar {
     public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
         generalRegister(function, ON_DATA_SAVE, priority);
     }
+
+    //** PLAYER EVENTS
 
     public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function) { registerOnPlayerAttack(function, EventPriority.Normal); }
     public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function, EventPriority priority) {

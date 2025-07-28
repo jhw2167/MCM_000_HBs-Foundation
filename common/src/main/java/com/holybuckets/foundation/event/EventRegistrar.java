@@ -7,6 +7,8 @@ package com.holybuckets.foundation.event;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
+import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import net.blay09.mods.balm.api.event.*;
@@ -70,17 +72,21 @@ public class EventRegistrar {
     final Set<Consumer<ServerTickEvent.Every20Ticks>> ON_20_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.Every120Ticks>> ON_120_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.Every1200Ticks>> ON_1200_TICKS = new ConcurrentSet<>();
-    final Set<Consumer<ServerTickEvent.Every1200Ticks>> ON_6000_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ServerTickEvent.DailyTick>> ON_DAILY_TICK = new ConcurrentSet<>();
 
     final Set<Consumer<ClientTickEvent.SingleTick>> ON_CLIENT_SINGLE_TICK = new ConcurrentSet<>();
     final Set<Consumer<ClientTickEvent.Every20Ticks>> ON_CLIENT_20_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ClientTickEvent.Every120Ticks>> ON_CLIENT_120_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ClientTickEvent.Every1200Ticks>> ON_CLIENT_1200_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientTickEvent.DailyTick>> ON_CLIENT_DAILY_TICKS = new ConcurrentSet<>();
+
+
 
     final Set<Consumer<ClientLevelTickEvent.SingleTick>> ON_CLIENT_LEVEL_SINGLE_TICK = new ConcurrentSet<>();
     final Set<Consumer<ClientLevelTickEvent.Every20Ticks>> ON_CLIENT_LEVEL_20_TICKS = new ConcurrentSet<>();
     final Set<Consumer<ClientLevelTickEvent.Every120Ticks>> ON_CLIENT_LEVEL_120_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientLevelTickEvent.Every1200Ticks>> ON_CLIENT_LEVEL_1200_TICKS = new ConcurrentSet<>();
+    final Set<Consumer<ClientLevelTickEvent.DailyTick>> ON_CLIENT_LEVEL_DAILY_TICK = new ConcurrentSet<>();
 
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();

@@ -289,7 +289,10 @@ public class EventRegistrar {
         // Client level tick types
         ON_CLIENT_LEVEL_SINGLE_TICK,
         ON_CLIENT_LEVEL_20_TICKS,
-        ON_CLIENT_LEVEL_120_TICKS
+        ON_CLIENT_LEVEL_120_TICKS,
+        ON_CLIENT_LEVEL_1200_TICKS,
+        ON_CLIENT_LEVEL_DAILY_TICK,
+        ON_CLIENT_DAILY_TICK
     }
 
     @SuppressWarnings("unchecked")
@@ -341,6 +344,9 @@ public class EventRegistrar {
             case ON_CLIENT_1200_TICKS:
                 generalRegister((Consumer<ClientTickEvent.Every1200Ticks>) function, ON_CLIENT_1200_TICKS, priority);
                 break;
+            case ON_CLIENT_DAILY_TICK:
+                generalRegister((Consumer<ClientTickEvent.DailyTick>) function, ON_CLIENT_DAILY_TICKS, priority);
+                break;
         }
     }
 
@@ -360,6 +366,12 @@ public class EventRegistrar {
                 break;
             case ON_CLIENT_LEVEL_120_TICKS:
                 generalRegister((Consumer<ClientLevelTickEvent.Every120Ticks>) function, ON_CLIENT_LEVEL_120_TICKS, priority);
+                break;
+            case ON_CLIENT_LEVEL_1200_TICKS:
+                generalRegister((Consumer<ClientLevelTickEvent.Every1200Ticks>) function, ON_CLIENT_LEVEL_1200_TICKS, priority);
+                break;
+            case ON_CLIENT_LEVEL_DAILY_TICK:
+                generalRegister((Consumer<ClientLevelTickEvent.DailyTick>) function, ON_CLIENT_LEVEL_DAILY_TICK, priority);
                 break;
         }
     }

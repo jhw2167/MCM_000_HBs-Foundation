@@ -265,15 +265,17 @@ public class GeneralConfig {
 
 
     public long getTotalTickCount() {
-        if(!this.isServerSide)
+        if(this.isServerSide)
             return dataStore.getTotalTickCount() + server.getTickCount();
-        return dataStore.getTotalTickCount() + client.player.tickCount;
+        if(client.player != null )
+            return dataStore.getTotalTickCount() + client.player.tickCount;
+        else return 0;
     }
 
     public long getSessionTickCount() {
-        if(!this.isServerSide)
-            return client.player.tickCount;
-        return server.getTickCount();
+        if(this.isServerSide)
+            return server.getTickCount();
+        return client.player.tickCount;
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {

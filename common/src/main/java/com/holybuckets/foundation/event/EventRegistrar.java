@@ -14,6 +14,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
+import com.holybuckets.foundation.util.MixinManager;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
@@ -382,7 +383,7 @@ public class EventRegistrar {
         //LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                ((Consumer<ServerTickEvent>) consumer).accept(event);
+                tryEvent((Consumer<ServerTickEvent>) consumer, event);
             }
         });
     }
@@ -398,7 +399,7 @@ public class EventRegistrar {
         //LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
         CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                ((Consumer<ClientTickEvent>) consumer).accept(event);
+                tryEvent((Consumer<ClientTickEvent>) consumer, event);
             }
         });
     }
@@ -412,7 +413,7 @@ public class EventRegistrar {
         //LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
         CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                ((Consumer<ClientLevelTickEvent>) consumer).accept(event);
+                tryEvent((Consumer<ClientLevelTickEvent>) consumer, event);
             }
         });
     }
@@ -420,15 +421,26 @@ public class EventRegistrar {
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();
         Player p;
-        if(config.isClientSide())
-            p = config.getClient().player;
-        else {
+        if(config.isServerSide()) { //server or integrated
             p = config.getServer().getPlayerList().getPlayer(message.playerId);
         }
+        else {
+            p = config.getClient().player;
+        }
         ClientInputEvent event = new ClientInputEvent(p, message);
-
-        ON_CLIENT_INPUT.forEach(consumer -> consumer.accept(event));
+        ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
     }
+
+        private <T> void tryEvent(Consumer<T> consumer, T event) {
+            String id = consumer.toString() + "::" + event.getClass().getName();
+            if( MixinManager.isEnabled(consumer.toString())) {
+                try {
+                    consumer.accept(event);
+                } catch (Exception e) {
+                    MixinManager.recordError(id, e);
+                }
+            }
+        }
 
 
     /**

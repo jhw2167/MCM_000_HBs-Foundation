@@ -16,8 +16,8 @@ public class ClientInputMessageHandler {
             return;
         }
         
-        String key = InputConstants.getKey(0, message.code).getName();
-        LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
+        String key = InputConstants.getKey(message.code, 0).getName();
+        //LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
 
         // Fire the client input event
         EventRegistrar.getInstance().onClientInput(message);

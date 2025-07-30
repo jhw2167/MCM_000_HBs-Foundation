@@ -5,6 +5,7 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.*;
@@ -421,7 +422,7 @@ public class EventRegistrar {
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();
         Player p;
-        if(config.isServerSide()) { //server or integrated
+        if(message.side == HBUtil.LevelUtil.LevelNameSpace.SERVER ) { //server or integrated
             p = config.getServer().getPlayerList().getPlayer(message.playerId);
         }
         else {

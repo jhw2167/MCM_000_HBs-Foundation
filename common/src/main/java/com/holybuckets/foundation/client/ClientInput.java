@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -24,7 +25,7 @@ public class ClientInput {
         Minecraft client = Minecraft.getInstance();
         int input = toIntKey(client);
 
-        if( input == -1 || input == prevInput) return;
+        if( input == -1 && prevInput == -1) return;
 
         handleKeyPress(input);
         prevInput = input;
@@ -32,10 +33,6 @@ public class ClientInput {
 
     public static void handleKeyPress(int keyCode) {
         ClientInputMessage.createAndFire(ClientInputMessage.InputType.KEY, keyCode);
-    }
-
-    public static void handleMouseClick(int button) {
-        ClientInputMessage.createAndFire(ClientInputMessage.InputType.MOUSE, button);
     }
 
 
@@ -57,6 +54,7 @@ public class ClientInput {
         if (client.options.keySprint.isDown()) {
             //skip
         }
+
         // Check for movement keys
         if (player.input.up) {
             return InputConstants.KEY_W; // Forward
@@ -70,11 +68,18 @@ public class ClientInput {
         if (player.input.right) {
             return InputConstants.KEY_D; // Right
         }
-
         // Check for other keys
-        if (client.options.keyShift.isDown()) {
-            return InputConstants.KEY_LEFT; // Left Arrow
+        if (client.options.keyInventory.isDown()) {
+            return InputConstants.KEY_E; // Inventory
         }
+        if (client.options.keyShift.isDown()) {
+            return InputConstants.KEY_LSHIFT; // Left Arrow
+        }
+        if (client.options.keyDrop.isDown()) {
+            return InputConstants.KEY_Q; // Drop
+        }
+
+
 
         return -1;
     }

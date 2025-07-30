@@ -6,6 +6,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import static com.holybuckets.foundation.networking.ClientInputMessage.InputType;
+import static com.holybuckets.foundation.HBUtil.LevelUtil.LevelNameSpace;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ public class Codecs {
         buf.writeUUID(object.playerId);
         buf.writeUtf(InputType.valueOf(object.inputType.name()).name());
         buf.writeInt(object.code);
+        buf.writeUtf(object.side.name());
         return buf;
     }
 
@@ -24,7 +26,8 @@ public class Codecs {
         UUID playerId = buf.readUUID();
         InputType inputType = InputType.valueOf(buf.readUtf());
         int code = buf.readInt();
-        return new ClientInputMessage(playerId, inputType, code);
+        LevelNameSpace side = LevelNameSpace.valueOf(buf.readUtf());
+        return new ClientInputMessage(playerId, inputType, code, side);
     }
 
     //ManagedChunk

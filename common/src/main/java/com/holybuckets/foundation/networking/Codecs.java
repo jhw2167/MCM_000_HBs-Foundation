@@ -8,16 +8,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import static com.holybuckets.foundation.networking.ClientInputMessage.InputType;
 import static com.holybuckets.foundation.HBUtil.LevelUtil.LevelNameSpace;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class Codecs {
     
     public static final FriendlyByteBuf encodeClientInput(ClientInputMessage object, FriendlyByteBuf buf) {
         buf.writeUUID(object.playerId);
         buf.writeUtf(InputType.valueOf(object.inputType.name()).name());
-        buf.writeInt(object.code);
+        // Write the set of key codes
+        buf.writeInt(object.keyCodes.size());
+        for (Integer keyCode : object.keyCodes) {
+            buf.writeInt(keyCode);
+        }
         buf.writeUtf(object.side.name());
         return buf;
     }
@@ -25,9 +27,14 @@ public class Codecs {
     public static final ClientInputMessage decodeClientInput(FriendlyByteBuf buf) {
         UUID playerId = buf.readUUID();
         InputType inputType = InputType.valueOf(buf.readUtf());
-        int code = buf.readInt();
+        // Read the set of key codes
+        int keyCount = buf.readInt();
+        Set<Integer> keyCodes = new HashSet<>();
+        for (int i = 0; i < keyCount; i++) {
+            keyCodes.add(buf.readInt());
+        }
         LevelNameSpace side = LevelNameSpace.valueOf(buf.readUtf());
-        return new ClientInputMessage(playerId, inputType, code, side);
+        return new ClientInputMessage(playerId, inputType, keyCodes, side);
     }
 
     //ManagedChunk

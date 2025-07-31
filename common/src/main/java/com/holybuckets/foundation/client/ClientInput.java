@@ -20,68 +20,66 @@ public class ClientInput {
         reg.registerOnClientTick(TickType.ON_SINGLE_TICK, ClientInput::onClientTick, EventPriority.Highest);
     }
 
-    private static int prevInput = -1;
+    private static Set<Integer> prevInputs = new HashSet<>();
+    
     public static void onClientTick(ClientTickEvent event) {
         Minecraft client = Minecraft.getInstance();
-        int input = toIntKey(client);
+        Set<Integer> currentInputs = collectKeys(client);
 
-        if( input == -1 && prevInput == -1) return;
+        if (currentInputs.equals(prevInputs)) return;
 
-        handleKeyPress(input);
-        prevInput = input;
+        handleKeyPresses(currentInputs);
+        prevInputs = currentInputs;
     }
 
-    public static void handleKeyPress(int keyCode) {
-        ClientInputMessage.createAndFire(ClientInputMessage.InputType.KEY, keyCode);
+    public static void handleKeyPresses(Set<Integer> keyCodes) {
+        ClientInputMessage.createAndFire(ClientInputMessage.InputType.KEY, keyCodes);
     }
 
 
-    static int toIntKey(Minecraft client) {
+    static Set<Integer> collectKeys(Minecraft client) {
+        Set<Integer> keys = new HashSet<>();
         LocalPlayer player = client.player;
         if (player == null) {
-            return -1; // No player is present
+            return keys;
         }
 
         if (client.options.keyAttack.isDown()) {
-            return InputConstants.MOUSE_BUTTON_LEFT;
+            keys.add(InputConstants.MOUSE_BUTTON_LEFT);
         }
         if (client.options.keyUse.isDown()) {
-            return InputConstants.MOUSE_BUTTON_RIGHT;
+            keys.add(InputConstants.MOUSE_BUTTON_RIGHT);
         }
         if (client.options.keyJump.isDown()) {
-            return InputConstants.KEY_SPACE;
-        }
-        if (client.options.keySprint.isDown()) {
-            //skip
+            keys.add(InputConstants.KEY_SPACE);
         }
 
-        // Check for movement keys
+        // Movement keys
         if (player.input.up) {
-            return InputConstants.KEY_W; // Forward
+            keys.add(InputConstants.KEY_W);
         }
         if (player.input.down) {
-            return InputConstants.KEY_S; // Backward
+            keys.add(InputConstants.KEY_S);
         }
         if (player.input.left) {
-            return InputConstants.KEY_A; // Left
+            keys.add(InputConstants.KEY_A);
         }
         if (player.input.right) {
-            return InputConstants.KEY_D; // Right
+            keys.add(InputConstants.KEY_D);
         }
-        // Check for other keys
+
+        // Other keys
         if (client.options.keyInventory.isDown()) {
-            return InputConstants.KEY_E; // Inventory
+            keys.add(InputConstants.KEY_E);
         }
         if (client.options.keyShift.isDown()) {
-            return InputConstants.KEY_LSHIFT; // Left Arrow
+            keys.add(InputConstants.KEY_LSHIFT);
         }
         if (client.options.keyDrop.isDown()) {
-            return InputConstants.KEY_Q; // Drop
+            keys.add(InputConstants.KEY_Q);
         }
 
-
-
-        return -1;
+        return keys;
     }
 
 }

@@ -16,8 +16,13 @@ public class ClientInputMessageHandler {
             return;
         }
         
-        String key = InputConstants.getKey(message.code, 0).getName();
-        //LoggerBase.logInfo(null, "015000",  "Player " + player + " pressed " + key);
+        // For debugging purposes
+        if (!message.keyCodes.isEmpty()) {
+            String keys = message.keyCodes.stream()
+                .map(code -> InputConstants.getKey(code, 0).getName())
+                .collect(Collectors.joining(", "));
+            //LoggerBase.logInfo(null, "015000", "Player " + player + " pressed keys: " + keys);
+        }
 
         // Fire the client input event
         EventRegistrar.getInstance().onClientInput(message);

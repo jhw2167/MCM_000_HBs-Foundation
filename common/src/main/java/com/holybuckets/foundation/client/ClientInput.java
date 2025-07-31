@@ -40,11 +40,11 @@ public class ClientInput {
     }
 
 
-    static int collectKeys(Minecraft client) {
-        Set<Integer> keys = new HashSet<>();
+    static int collectKeys(Set<Integer> keys) {
+        Minecraft client = Minecraft.getInstance();
         LocalPlayer player = client.player;
         if (player == null) {
-            return keys;
+            return -1;
         }
 
         if (client.options.keyAttack.isDown()) {
@@ -82,7 +82,7 @@ public class ClientInput {
             keys.add(InputConstants.KEY_Q);
         }
 
-        return keys;
+        return keys.isEmpty() ? -1 : keys.iterator().next();
     }
 
 }

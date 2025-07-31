@@ -13,6 +13,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.client.KeyMapping;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ClientInput {
 
     public static void init(EventRegistrar reg) {
@@ -20,16 +23,16 @@ public class ClientInput {
         reg.registerOnClientTick(TickType.ON_SINGLE_TICK, ClientInput::onClientTick, EventPriority.Highest);
     }
 
-    private static Set<Integer> prevInputs = new HashSet<>();
+    private static int prevInput = -1;
     
     public static void onClientTick(ClientTickEvent event) {
-        Minecraft client = Minecraft.getInstance();
-        Set<Integer> currentInputs = collectKeys(client);
 
-        if (currentInputs.equals(prevInputs)) return;
+        Set<Integer> currentInputs = new HashSet<>();
+        prevInput = collectKeys(currentInputs);
+        if (prevInput == -1) return;
 
         handleKeyPresses(currentInputs);
-        prevInputs = currentInputs;
+
     }
 
     public static void handleKeyPresses(Set<Integer> keyCodes) {
@@ -37,7 +40,7 @@ public class ClientInput {
     }
 
 
-    static Set<Integer> collectKeys(Minecraft client) {
+    static int collectKeys(Minecraft client) {
         Set<Integer> keys = new HashSet<>();
         LocalPlayer player = client.player;
         if (player == null) {

@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.minecraftforge.fml.common.Mod;
@@ -14,7 +15,14 @@ public class FoundationMain {
         super();
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClass::initClient));
+        
+        // Subscribe to client input events
+        EventRegistrar.getInstance().registerOnClientInput(this::onClientInput);
         LoggerBase.logInit( null, "001000", this.getClass().getName() );
+    }
+
+    private void onClientInput(ClientInputEvent event) {
+        LoggerBase.logInfo(null, "001001", "Client Input Event - Keys pressed: " + event.getKeyCodes());
     }
 
 }

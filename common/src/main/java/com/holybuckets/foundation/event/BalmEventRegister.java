@@ -33,22 +33,6 @@ public class BalmEventRegister {
         BalmEvents registry = Balm.getEvents();
         events = EventRegistrar.getInstance();
 
-        //** CLIENT EVENTS **/
-
-        events.ON_CLIENT_STARTED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ClientStartedEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_CONNECTED_TO_SERVER.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ConnectedToServerEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_DISCONNECTED_FROM_SERVER.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( DisconnectedFromServerEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
 
         //** SERVER EVENTS **/
 
@@ -168,13 +152,6 @@ public class BalmEventRegister {
             registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, events::onServerLevelTick);
         }
 
-        if (registeredEvents.add(Objects.hash("onClientTick"))) {
-            registry.onTickEvent(TickType.Client, TickPhase.End, events::onClientTick);
-        }
-
-        if (registeredEvents.add(Objects.hash("onClientLevelTick"))) {
-            registry.onTickEvent(TickType.ClientLevel, TickPhase.Start, events::onClientLevelTick);
-        }
 
     }
 

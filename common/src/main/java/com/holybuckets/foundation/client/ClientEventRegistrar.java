@@ -50,9 +50,6 @@ public class ClientEventRegistrar {
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
 
 
-    final Set<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentSet<>();
-    final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
 
     /**
      * Constructor

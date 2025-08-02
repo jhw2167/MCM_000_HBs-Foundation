@@ -195,13 +195,6 @@ public class EventRegistrar {
     }
     */
 
-    public void registerOnClientStarted(Consumer<ClientStartedEvent> function) {
-        registerOnClientStarted(function, EventPriority.Normal);
-    }
-
-    public void registerOnClientStarted(Consumer<ClientStartedEvent> function, EventPriority priority) {
-        generalRegister(function, ON_CLIENT_STARTED_EVENT, priority);
-    }
 
     public void registerOnBeforeServerStarted(Consumer<ServerStartingEvent> function) {
         registerOnBeforeServerStarted(function, EventPriority.Normal);
@@ -267,25 +260,6 @@ public class EventRegistrar {
     }
 
 
-    @SuppressWarnings("unchecked")
-    public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function) {
-        registerOnClientTick(type, function, EventPriority.Normal);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function, EventPriority priority) {
-        generalTickEventRegister(function, CLIENT_TICK_EVENTS, type, priority);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function) {
-        registerOnClientLevelTick(type, function, EventPriority.Normal);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
-        generalTickEventRegister(function, CLIENT_LEVEL_TICK_EVENTS, type, priority);
-    }
 
 
     //** PLAYER EVENTS
@@ -390,30 +364,6 @@ public class EventRegistrar {
         ManagedChunkEvents.onWorldTickStart(level);
     }
 
-    public void onClientTick(Minecraft client) {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientTickEvent event = new ClientTickEvent(totalTicks);
-        //LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
-        CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
-            if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                tryEvent((Consumer<ClientTickEvent>) consumer, event);
-            }
-        });
-    }
-
-    public void onClientLevelTick(Level level) {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
-        if(level == null) return;
-
-        ManagedChunkEvents.onWorldTickStart(level);
-        //LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);
-        CLIENT_LEVEL_TICK_EVENTS.forEach((scheme, consumer) -> {
-            if (totalTicks % scheme.getFrequency() == scheme.offset) {
-                tryEvent((Consumer<ClientLevelTickEvent>) consumer, event);
-            }
-        });
-    }
 
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();

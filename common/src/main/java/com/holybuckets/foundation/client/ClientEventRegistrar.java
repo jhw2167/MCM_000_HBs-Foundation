@@ -48,7 +48,10 @@ public class ClientEventRegistrar {
      **/
     private static ClientEventRegistrar instance;
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
-
+    
+    final Set<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentSet<>();
+    final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
 
 
     /**
@@ -69,14 +72,6 @@ public class ClientEventRegistrar {
         instance = new ClientEventRegistrar();
     }
 
-    private void beforeServerStarted(ServerStartingEvent event) {
-        this.registerClientTickEvents();
-    }
-
-
-    private void registerClientTickEvents() {
-
-    }
 
     //Create public methods for pushing functions onto each function event
     private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {

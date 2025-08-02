@@ -26,6 +26,16 @@ public class ClientBalmEventRegister {
             registry.onEvent(ClientStartedEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
+
+        events.ON_CONNECTED_TO_SERVER.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(ConnectedToServerEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_DISCONNECTED_FROM_SERVER.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(DisconnectedFromServerEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
     }
 
     static void registerClientTickEvents() {

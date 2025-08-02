@@ -50,6 +50,8 @@ public class ClientEventRegistrar {
     final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
     
     final Set<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentSet<>();
+    final Set<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentSet<>();
+    final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
     final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
     final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
 
@@ -92,6 +94,22 @@ public class ClientEventRegistrar {
 
     public void registerOnClientStarted(Consumer<ClientStartedEvent> function, EventPriority priority) {
         generalRegister(function, ON_CLIENT_STARTED_EVENT, priority);
+    }
+
+    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function) {
+        registerOnConnectedToServer(function, EventPriority.Normal);
+    }
+
+    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function, EventPriority priority) {
+        generalRegister(function, ON_CONNECTED_TO_SERVER, priority);
+    }
+
+    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function) {
+        registerOnDisconnectedFromServer(function, EventPriority.Normal);
+    }
+
+    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
 

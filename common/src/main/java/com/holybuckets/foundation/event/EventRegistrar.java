@@ -73,8 +73,6 @@ public class EventRegistrar {
     final Set<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentSet<>();
     final Set<Consumer<ServerStartedEvent>> ON_SERVER_START = new ConcurrentSet<>();
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
-    final Set<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentSet<>();
-    final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
     final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
@@ -221,21 +219,6 @@ public class EventRegistrar {
         generalRegister(function, ON_SERVER_STOP, priority);
     }
 
-    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function) {
-        registerOnConnectedToServer(function, EventPriority.Normal);
-    }
-
-    public void registerOnConnectedToServer(Consumer<ConnectedToServerEvent> function, EventPriority priority) {
-        generalRegister(function, ON_CONNECTED_TO_SERVER, priority);
-    }
-
-    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function) {
-        registerOnDisconnectedFromServer(function, EventPriority.Normal);
-    }
-
-    public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function, EventPriority priority) {
-        generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
-    }
 
 
     public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) {

@@ -1,18 +1,14 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.Services;
-import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -44,10 +40,6 @@ public class CommonClass {
         //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
         isInitialized = true;
-    }
-
-    public static void initClient() {
-        FoundationInitializers.initClient();
     }
 
     /**

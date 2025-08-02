@@ -2,7 +2,6 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
-import com.holybuckets.foundation.client.ClientInput;
 import com.holybuckets.foundation.client.ModRenderers;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.BalmEventRegister;
@@ -14,7 +13,6 @@ import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
 import com.holybuckets.foundation.player.ManagedPlayer;
-import com.holybuckets.foundation.sample.SamplePlayerData;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.network.BalmNetworking;
@@ -37,11 +35,6 @@ public class FoundationInitializers {
         initItems();
     }
 
-    static void initClient(){
-        initRenderers();
-        EventRegistrar reg = EventRegistrar.getInstance();
-        ClientInput.init(reg);
-    }
 
     /**
      * Description: Initialize common HB utilities that must support all mods prior to mod initialization
@@ -97,10 +90,8 @@ public class FoundationInitializers {
     }
 
 
-
     //** CLIENT INITIALIZERS **//
-
-    private static void initRenderers() {
+    public static void initRenderers() {
         ModRenderers.clientInitialize(BalmClient.getRenderers());
     }
 

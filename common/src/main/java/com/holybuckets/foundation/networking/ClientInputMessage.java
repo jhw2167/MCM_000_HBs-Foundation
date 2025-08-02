@@ -2,7 +2,6 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
-import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import static com.holybuckets.foundation.HBUtil.LevelUtil.LevelNameSpace;
 
@@ -41,9 +40,8 @@ public class ClientInputMessage {
         this.side = side;
     }
 
-    public static void createAndFire(InputType type, Set<Integer> keyCodes) {
-        Player p = Minecraft.getInstance().player;
-        // Limit to MAX_KEYS
+    public static void createAndFire(InputType type, Set<Integer> keyCodes, Player p) {
+
         Set<Integer> limitedKeys = keyCodes.stream()
             .limit(MAX_KEYS)
             .collect(Collectors.toSet());

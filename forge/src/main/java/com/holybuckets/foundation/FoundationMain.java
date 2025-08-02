@@ -1,6 +1,6 @@
 package com.holybuckets.foundation;
 
-import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.client.CommonClassClient;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
@@ -14,8 +14,8 @@ public class FoundationMain {
     public FoundationMain() {
         super();
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
-        DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClass::initClient));
-        
+        DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClassClient::initClient));
+
         LoggerBase.logInit( null, "001000", this.getClass().getName() );
     }
 

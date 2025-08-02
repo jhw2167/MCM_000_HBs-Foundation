@@ -7,11 +7,10 @@ import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.mojang.blaze3d.platform.InputConstants;
+import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.client.KeyMapping;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +35,7 @@ public class ClientInput {
     }
 
     public static void handleKeyPresses(Set<Integer> keyCodes) {
-        ClientInputMessage.createAndFire(ClientInputMessage.InputType.KEY, keyCodes);
+        ClientInputMessage.createAndFire(ClientInputMessage.InputType.KEY, keyCodes, Minecraft.getInstance().player);
     }
 
 

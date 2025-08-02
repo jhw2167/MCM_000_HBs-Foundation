@@ -12,25 +12,20 @@ import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
-import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.util.MixinManager;
-import com.mojang.authlib.minecraft.client.MinecraftClient;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
-import net.blay09.mods.balm.api.event.client.ClientTickHandler;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -405,7 +400,7 @@ public class EventRegistrar {
         });
     }
 
-    public void onClientLevelTick(ClientLevel level) {
+    public void onClientLevelTick(Level level) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
         if(level == null) return;

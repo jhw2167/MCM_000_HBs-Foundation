@@ -15,6 +15,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.util.MixinManager;
+import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
@@ -391,7 +392,7 @@ public class EventRegistrar {
 
     public void onClientTick(Minecraft client) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientTickEvent event = new ClientTickEvent(client, totalTicks);
+        ClientTickEvent event = new ClientTickEvent(totalTicks);
         //LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
         CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (totalTicks % scheme.getFrequency() == scheme.offset) {
@@ -416,12 +417,12 @@ public class EventRegistrar {
 
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();
-        Player p;
+        Player p = null;
         if(message.side == HBUtil.LevelUtil.LevelNameSpace.SERVER ) { //server or integrated
             p = config.getServer().getPlayerList().getPlayer(message.playerId);
         }
         else {
-            p = Minecraft.getInstance().player;
+            p = Balm.getProxy().getClientPlayer();
         }
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));

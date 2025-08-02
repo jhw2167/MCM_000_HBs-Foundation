@@ -15,10 +15,9 @@ public class Codecs {
     public static final FriendlyByteBuf encodeClientInput(ClientInputMessage object, FriendlyByteBuf buf) {
         buf.writeUUID(object.playerId);
         buf.writeUtf(InputType.valueOf(object.inputType.name()).name());
-        // Write the set of key codes
-        buf.writeInt(object.keyCodes.size());
-        for (Integer keyCode : object.keyCodes) {
-            buf.writeInt(keyCode);
+        List<Integer> arr = new ArrayList<>(object.keyCodes);
+        for (int i =0; i < ClientInputMessage.MAX_KEYS; i++) {
+                buf.writeInt( (arr.size() <= i) ? -1 : arr.get(i) );
         }
         buf.writeUtf(object.side.name());
         return buf;
@@ -27,11 +26,13 @@ public class Codecs {
     public static final ClientInputMessage decodeClientInput(FriendlyByteBuf buf) {
         UUID playerId = buf.readUUID();
         InputType inputType = InputType.valueOf(buf.readUtf());
-        // Read the set of key codes
-        int keyCount = buf.readInt();
+
         Set<Integer> keyCodes = new HashSet<>();
-        for (int i = 0; i < keyCount; i++) {
-            keyCodes.add(buf.readInt());
+        for (int i = 0; i < ClientInputMessage.MAX_KEYS; i++) {
+            int code = buf.readInt();
+            if (code != -1) {
+                keyCodes.add(code);
+            }
         }
         LevelNameSpace side = LevelNameSpace.valueOf(buf.readUtf());
         return new ClientInputMessage(playerId, inputType, keyCodes, side);

@@ -15,14 +15,9 @@ public class FoundationMain implements ModInitializer {
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         FoundationAttachments.init();
         
-        // Subscribe to client input events
-        EventRegistrar.getInstance().registerOnClientInput(this::onClientInput);
-    }
-
-    private void onClientInput(ClientInputEvent event) {
-        LoggerBase.logInfo(null, "001001", "Client Input Event - Keys pressed: " + event.getKeyCodes());
 
     }
+
 
 
 }

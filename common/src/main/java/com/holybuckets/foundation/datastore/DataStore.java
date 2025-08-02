@@ -185,16 +185,17 @@ public class DataStore implements IStringSerializable {
     }
     public void shutdown(ServerStoppedEvent s)
     {
-        WorldSaveData worldData = this.getOrCreateWorldSaveData(Constants.MOD_ID);
         GeneralConfig config = GeneralConfig.getInstance();
-
-        {
-            Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
+        config.stopAutoSaveThread();
+        try {
+            WorldSaveData worldData = this.getOrCreateWorldSaveData(Constants.MOD_ID);
+            Long currentTicks = config.getTotalTickCount();
             worldData.addProperty("totalTicks", parse(currentTicks) );
+            this.save();
+        } catch (Exception e) {
+            // If the world data is not initialized, we cannot save it
+            return;
         }
-
-        GeneralConfig.getInstance().stopAutoSaveThread();
-        this.save();
 
     }
 

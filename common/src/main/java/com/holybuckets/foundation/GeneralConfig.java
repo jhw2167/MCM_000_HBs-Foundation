@@ -11,6 +11,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -87,7 +88,7 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
-        reg.registerOnPlayerLogin(instance::onPlayerLogin, EventPriority.Highest);
+        reg.registerOnClientStarted(instance::onClientStartedEvent, EventPriority.Highest);
         reg.registerOnConnectedToServer(instance::onPlayerLoginToServerEvent, EventPriority.Highest);
         reg.registerOnDisconnectedFromServer(instance::onPlayerDisconnectedFromServerEvent, EventPriority.Lowest);
 
@@ -96,8 +97,6 @@ public class GeneralConfig {
 
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
-
-        reg.registerOnPlayerLogin(instance::initPlayerConfigs, EventPriority.Highest);
 
     }
 
@@ -120,14 +119,24 @@ public class GeneralConfig {
 
 
     /** Server Events **/
-    public void onPlayerLogin(PlayerLoginEvent event) {
+    public void onClientStartedEvent(ClientStartedEvent event) {
         this.isClientSide = true;
-        this.client = Minecraft.getInstance();
+        this.client = event.getMinecraft();
+        isPlayerLoaded = true;
+        //Player p = event.getMinecraft().player;
         this.initPerformanceConfig();
     }
 
+    /**
+     * Does not fire on Integrated Server
+     * @param event
+     */
     public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
-
+        if( this.isClientSide ) {
+            Player player = this.client.player;
+        } else {
+            int i = 0;
+        }
     }
 
     public void onPlayerDisconnectedFromServerEvent(DisconnectedFromServerEvent event) {
@@ -206,12 +215,6 @@ public class GeneralConfig {
         return this.isWorldConfigInit;
     }
 
-    public void initPlayerConfigs(PlayerLoginEvent event)
-    {
-        isPlayerLoaded = true;
-        Player p = event.getPlayer();
-        LoggerBase.logDebug( null,"006001", "Player Logged In " + p.getName() + " | " + p.getUUID() );
-    }
 
     /**
      * Getters
@@ -261,7 +264,11 @@ public class GeneralConfig {
     }
 
     @Nullable
-    public Minecraft getClient() { return this.client; }
+    public Minecraft getClient() {
+        if(this.isClientSide)
+            return Minecraft.getInstance();
+        return null;
+    }
 
 
     public long getTotalTickCount() {

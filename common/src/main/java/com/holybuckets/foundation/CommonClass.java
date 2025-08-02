@@ -3,6 +3,7 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
@@ -56,9 +57,17 @@ public class CommonClass {
     {
         //reg.registerOnChunkLoad(CommonClass::onChunkLoad);
         //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
-        BalmEvents registry = Balm.getEvents();
-        reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
+        //reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
+        //reg.registerOnClientInput(CommonClass::onClientInput);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
+    }
+
+    // Subscribe to client input events
+
+
+    private static void onClientInput(ClientInputEvent event) {
+        LoggerBase.logInfo(null, "001001", "Client Input Event - Keys pressed: " + event.getKeyCodes());
+
     }
 
     private static void onPlayerLogin(PlayerLoginEvent event) {

@@ -426,7 +426,7 @@ public class EventRegistrar {
             p = config.getServer().getPlayerList().getPlayer(message.playerId);
         }
         else {
-            p = config.getClient().player;
+            p = Minecraft.getInstance().player;
         }
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));

@@ -16,8 +16,6 @@ public class FoundationMain {
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClass::initClient));
         
-        // Subscribe to client input events
-        EventRegistrar.getInstance().registerOnClientInput(this::onClientInput);
         LoggerBase.logInit( null, "001000", this.getClass().getName() );
     }
 

@@ -5,6 +5,8 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.stream.Collectors;
+
 public class ClientInputMessageHandler {
 
     public static String CLASS_ID = "015";

@@ -28,11 +28,11 @@ public class ClientInput {
     public static void onClientTick(ClientTickEvent event) {
 
         Set<Integer> currentInputs = new HashSet<>();
-        prevInput = collectKeys(currentInputs);
-        if (prevInput == -1) return;
+        int input = collectKeys(currentInputs);
+        if (input ==-1 && prevInput == -1 ) return;
 
         handleKeyPresses(currentInputs);
-
+        prevInput = input;
     }
 
     public static void handleKeyPresses(Set<Integer> keyCodes) {

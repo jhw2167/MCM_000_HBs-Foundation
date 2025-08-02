@@ -90,11 +90,6 @@ public class FoundationInitializers {
     }
 
 
-    //** CLIENT INITIALIZERS **//
-    public static void initRenderers() {
-        ModRenderers.clientInitialize(BalmClient.getRenderers());
-    }
-
 
 
     private static ResourceLocation id(String location) {

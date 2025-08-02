@@ -7,6 +7,8 @@ import net.blay09.mods.balm.api.event.BalmEvents;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.TickPhase;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
+import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 
 import java.util.Objects;
 import java.util.Set;
@@ -42,11 +44,15 @@ public class ClientBalmEventRegister {
         BalmEvents registry = Balm.getEvents();
 
         if (registeredEvents.add(Objects.hash("onClientTick"))) {
-            registry.onTickEvent(TickType.Client, TickPhase.End, events::onClientTick);
+            registry.onTickEvent(
+                net.blay09.mods.balm.api.event.TickType.Client,
+             TickPhase.End, events::onClientTick);
         }
 
         if (registeredEvents.add(Objects.hash("onClientLevelTick"))) {
-            registry.onTickEvent(TickType.ClientLevel, TickPhase.Start, events::onClientLevelTick);
+            registry.onTickEvent(
+                net.blay09.mods.balm.api.event.TickType.ClientLevel,
+                 TickPhase.Start, events::onClientLevelTick);
         }
     }
 }

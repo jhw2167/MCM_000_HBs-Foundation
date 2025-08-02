@@ -4,10 +4,8 @@ import net.minecraft.client.Minecraft;
 
 public class ClientTickEvent {
     private final long tickCount;
-    private final Minecraft client;
 
-    public ClientTickEvent(Minecraft client, long tickCount) {
-        this.client = client;
+    public ClientTickEvent(long tickCount) {
         this.tickCount = tickCount;
     }
 

@@ -10,19 +10,13 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
-import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelData;
@@ -62,7 +56,6 @@ public class GeneralConfig {
     private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
-    private Minecraft client;
 
 
     /**
@@ -87,10 +80,6 @@ public class GeneralConfig {
             return;
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
-
-        reg.registerOnClientStarted(instance::onClientStartedEvent, EventPriority.Highest);
-        reg.registerOnConnectedToServer(instance::onPlayerLoginToServerEvent, EventPriority.Highest);
-        reg.registerOnDisconnectedFromServer(instance::onPlayerDisconnectedFromServerEvent, EventPriority.Lowest);
 
         reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(instance::onServerStopped, EventPriority.Lowest);
@@ -119,29 +108,6 @@ public class GeneralConfig {
 
 
     /** Server Events **/
-    public void onClientStartedEvent(ClientStartedEvent event) {
-        this.isClientSide = true;
-        this.client = event.getMinecraft();
-        isPlayerLoaded = true;
-        //Player p = event.getMinecraft().player;
-        this.initPerformanceConfig();
-    }
-
-    /**
-     * Does not fire on Integrated Server
-     * @param event
-     */
-    public void onPlayerLoginToServerEvent(ConnectedToServerEvent event) {
-        if( this.isClientSide ) {
-            Player player = this.client.player;
-        } else {
-            int i = 0;
-        }
-    }
-
-    public void onPlayerDisconnectedFromServerEvent(DisconnectedFromServerEvent event) {
-        this.isClientSide = false;
-    }
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;
@@ -263,26 +229,18 @@ public class GeneralConfig {
         return server;
     }
 
-    @Nullable
-    public Minecraft getClient() {
-        if(this.isClientSide)
-            return Minecraft.getInstance();
-        return null;
-    }
 
 
     public long getTotalTickCount() {
         if(this.isServerSide)
             return dataStore.getTotalTickCount() + server.getTickCount();
-        if(client.player != null )
-            return dataStore.getTotalTickCount() + client.player.tickCount;
         else return 0;
     }
 
     public long getSessionTickCount() {
         if(this.isServerSide)
             return server.getTickCount();
-        return client.player.tickCount;
+        return -1;
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {

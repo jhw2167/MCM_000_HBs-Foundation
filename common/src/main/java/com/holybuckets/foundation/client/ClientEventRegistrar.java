@@ -67,11 +67,17 @@ public class ClientEventRegistrar {
     }
 
     public static ClientEventRegistrar getInstance() {
+        if( instance == null ) init();
         return instance;
     }
 
-    public static void init() {
+    private static void init() {
         instance = new ClientEventRegistrar();
+        instance.registerOnClientStarted(ClientEventRegistrar::registerOnClientStarted);
+    }
+
+    private static void registerOnClientStarted(ClientStartedEvent event) {
+        ClientBalmEventRegister.registerClientTickEvents();
     }
 
 

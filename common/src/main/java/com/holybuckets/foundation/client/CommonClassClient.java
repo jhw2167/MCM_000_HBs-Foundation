@@ -1,16 +1,25 @@
 package com.holybuckets.foundation.client;
-
-import com.holybuckets.foundation.FoundationInitializers;
-import com.holybuckets.foundation.event.EventRegistrar;
-
-import static com.holybuckets.foundation.FoundationInitializers.initRenderers;
+import net.blay09.mods.balm.api.client.BalmClient;
 
 public class CommonClassClient {
 
 
     public static void initClient() {
+        initClientEvents();
         initRenderers();
-        EventRegistrar reg = EventRegistrar.getInstance();
-        com.holybuckets.foundation.client.ClientInput.init(reg);
     }
+
+    //** CLIENT INITIALIZERS **//
+    private static void initClientEvents() {
+        ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
+        ClientInput.init(reg);
+
+        ClientBalmEventRegister.registerEvents();
+    }
+
+    private static void initRenderers() {
+        ModRenderers.clientInitialize(BalmClient.getRenderers());
+    }
+
+
 }

@@ -140,7 +140,6 @@ public class BalmEventRegister {
 
     static void registerOnTickEvents()
     {
-
         //** TICK EVENTS **//
         BalmEvents registry = Balm.getEvents();
         //do not register each event I added, instead register the invidual onServerTick, onClientTick, etc methods
@@ -154,6 +153,5 @@ public class BalmEventRegister {
 
 
     }
-
 
 }

@@ -17,7 +17,7 @@ import java.util.Set;
 
 public class ClientInput {
 
-    public static void init(EventRegistrar reg) {
+    public static void init(ClientEventRegistrar reg) {
         // Register the client input handler
         reg.registerOnClientTick(TickType.ON_SINGLE_TICK, ClientInput::onClientTick, EventPriority.Highest);
     }

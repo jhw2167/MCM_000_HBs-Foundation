@@ -43,6 +43,7 @@ import java.util.function.Consumer;
 public class ClientEventRegistrar {
     public static final String CLASS_ID = "010";
 
+
     /**
      * World Data
      **/
@@ -54,6 +55,7 @@ public class ClientEventRegistrar {
     final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
     final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
     final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
 
 
     /**
@@ -118,6 +120,14 @@ public class ClientEventRegistrar {
         generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
     }
 
+    public void registerOnClientInput(Consumer<ClientInputEvent> function) {
+        registerOnClientInput(function, EventPriority.Normal);
+    }
+
+    public void registerOnClientInput(Consumer<ClientInputEvent> function, EventPriority priority) {
+        generalRegister(function, ON_CLIENT_INPUT, priority);
+    }
+
 
     //** TICK EVENTS
     @SuppressWarnings("unchecked")
@@ -175,6 +185,12 @@ public class ClientEventRegistrar {
         });
     }
 
+    public void onClientInput(ClientInputMessage message) {
+        Player p =  Balm.getProxy().getClientPlayer();
+        ClientInputEvent event = new ClientInputEvent(p, message);
+        ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
+    }
+
 
         private <T> void tryEvent(Consumer<T> consumer, T event) {
             String id = consumer.toString() + "::" + event.getClass().getName();
@@ -186,6 +202,7 @@ public class ClientEventRegistrar {
                 }
             }
         }
+
 
 
     /**

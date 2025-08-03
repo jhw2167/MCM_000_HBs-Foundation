@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.minecraft.world.entity.player.Player;
 import static com.holybuckets.foundation.HBUtil.LevelUtil.LevelNameSpace;
@@ -46,7 +47,7 @@ public class ClientInputMessage {
             .limit(MAX_KEYS)
             .collect(Collectors.toSet());
         ClientInputMessage clientMessage = new ClientInputMessage(p.getUUID(), type, limitedKeys, LevelNameSpace.CLIENT);
-        EventRegistrar.getInstance().onClientInput(clientMessage);
+        ClientEventRegistrar.getInstance().onClientInput(clientMessage);
         ClientInputMessage serverMessage = new ClientInputMessage(clientMessage, LevelNameSpace.SERVER);
         HBUtil.NetworkUtil.clientSendToServer(serverMessage);
     }

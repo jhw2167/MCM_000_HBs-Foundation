@@ -341,13 +341,7 @@ public class EventRegistrar {
 
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();
-        Player p = null;
-        if(message.side == HBUtil.LevelUtil.LevelNameSpace.SERVER ) { //server or integrated
-            p = config.getServer().getPlayerList().getPlayer(message.playerId);
-        }
-        else {
-            p = Balm.getProxy().getClientPlayer();
-        }
+        Player p = config.getServer().getPlayerList().getPlayer(message.playerId);
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
     }

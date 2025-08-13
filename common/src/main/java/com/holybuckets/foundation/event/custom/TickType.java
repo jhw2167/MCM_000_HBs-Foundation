@@ -6,5 +6,6 @@ public enum TickType {
     ON_120_TICKS,
     ON_1200_TICKS,
     ON_6000_TICKS,
-    DAILY_TICK
+    DAILY_TICK,
+    DAILY_TICK_WITH_SLEEP
 }

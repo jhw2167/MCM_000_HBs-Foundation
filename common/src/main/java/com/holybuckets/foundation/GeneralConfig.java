@@ -237,6 +237,12 @@ public class GeneralConfig {
         else return 0;
     }
 
+    public long getTotalTickCountWithSleep() {
+        if(this.isServerSide)
+            return dataStore.getTotalTickCount() + server.getTickCount();
+        else return 0;
+    }
+
     public long getSessionTickCount() {
         if(this.isServerSide)
             return server.getTickCount();

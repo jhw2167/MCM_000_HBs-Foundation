@@ -327,7 +327,7 @@ public class EventRegistrar {
         ServerTickEvent event = new ServerTickEvent(totalTicks);
         //LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
-            if (totalTicks % scheme.getFrequency() == scheme.offset) {
+            if (scheme.shouldTrigger(totalTicks)) {
                 tryEvent((Consumer<ServerTickEvent>) consumer, event);
             }
         });
@@ -383,10 +383,22 @@ public class EventRegistrar {
                     return 1200;
                 case DAILY_TICK:
                     return 24000; // 1 day in ticks
+                case DAILY_TICK_WITH_SLEEP:
+                    return 24000; // 1 day in ticks but also checks sleep
                 default:
                     return 1;
             }
+        }
 
+        boolean shouldTrigger(long totalTicks) {
+            if (frequency == TickType.DAILY_TICK_WITH_SLEEP) {
+                // Check if any players are sleeping
+                if (GeneralConfig.getInstance().getServer().getPlayerList().getPlayers().stream()
+                    .anyMatch(player -> player.isSleeping())) {
+                    return false; // Skip if players are sleeping
+                }
+            }
+            return totalTicks % getFrequency() == offset;
         }
 
     }

@@ -16,7 +16,7 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "com.holybuckets.foundation.FoundationMain"
+            "com.holybuckets.foundation.FoundationMainFabric"
         ],
         "client": [
             "com.holybuckets.foundation.FoundationMainClientFabric"

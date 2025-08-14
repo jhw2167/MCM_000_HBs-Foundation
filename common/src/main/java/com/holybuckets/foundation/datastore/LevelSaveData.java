@@ -2,6 +2,7 @@ package com.holybuckets.foundation.datastore;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import net.minecraft.world.level.LevelAccessor;
 
 import java.util.Map;
@@ -34,6 +35,7 @@ public class LevelSaveData {
         this.levelId = LevelUtil.toLevelId(level);
         this.properties = new ConcurrentHashMap<>();
 
+        this.init();
     }
 
     public LevelSaveData(JsonObject json)
@@ -43,6 +45,12 @@ public class LevelSaveData {
         this.level = null;
         this.properties = new ConcurrentHashMap<>();
         this.fromJson(json);
+    }
+
+    //Initialize default properties
+    private void init() {
+        this.addProperty("levelId", new JsonPrimitive(levelId));
+        this.addProperty("totalSleeps", new JsonPrimitive(0));
     }
 
     public LevelAccessor getLevel() {

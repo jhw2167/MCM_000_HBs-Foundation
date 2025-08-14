@@ -21,11 +21,13 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -165,6 +167,58 @@ public class HBUtil {
 
             return item;
         }
+
+
+        public static final List<String> ENCHANT_LEVEL_STRINGS = List.of(
+            "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+            "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+            "XXI", "XXII", "XXIII", "XXIV", "XXV"
+        );
+
+        @Nullable
+        public static Enchantment enchantNameToEnchant(String qualifiedStringEnchant)
+        {
+            String nmspc;
+            String enchantName = qualifiedStringEnchant;
+            int lvl = 1;
+
+            if( enchantName.contains("#") )
+            {
+                String[] parts = enchantName.split("#");
+                enchantName = parts[0];
+            }
+
+            if( !qualifiedStringEnchant.contains(":") ) {
+                nmspc = "minecraft";
+            } else {
+                nmspc = qualifiedStringEnchant.split(":")[0];
+                enchantName = qualifiedStringEnchant.split(":")[1];
+            }
+
+            return enchantNameToEnchant(nmspc, enchantName);
+        }
+
+
+        @Nullable
+        public static Enchantment enchantNameToEnchant(String namespace, String enchantName) {
+         ResourceLocation key = new ResourceLocation(namespace.trim(), enchantName.trim());
+         return BuiltInRegistries.ENCHANTMENT.get(key);
+        }
+
+        public static int getEnchantLevel(String enchant) {
+            if( enchant.contains("#") )
+            {
+                String[] parts = enchant.split("#");
+                enchant = parts[0];
+                String eLevel = parts[1].trim();
+                int lvl = ENCHANT_LEVEL_STRINGS.indexOf(eLevel);
+                if(lvl > 0) return lvl;
+            }
+            return  1;
+        }
+
+
+
     }
 
     public static class BlockUtil {
@@ -711,6 +765,49 @@ public class HBUtil {
              */
         }
 
+
+        private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
+         Comparator.comparingInt( s -> s.hashCode() ) );
+        private static Set<String> forceLoadedChunks = new HashSet<>();
+        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId)
+        {
+            String id = LevelUtil.toLevelId(level) + ":" + chunkId;
+            if( forceLoadedChunks.contains(id) ) return;
+
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            level.getChunkSource().addRegionTicket(
+                MOD_TICKET,
+                chunkPos,
+                1,
+                ticketId
+            );
+
+            forceLoadedChunks.add(id);
+        }
+
+        public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId)
+        {
+            String id = LevelUtil.toLevelId(level) + ":" + chunkId;
+            if( !forceLoadedChunks.contains(id) ) return;
+
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            level.getChunkSource().removeRegionTicket(
+                MOD_TICKET,
+                chunkPos,
+                1,
+                ticketId
+            );
+
+            forceLoadedChunks.remove(id);
+        }
+
+        public static boolean isChunkForceLoaded(ServerLevel level, String chunkId) {
+            return forceLoadedChunks.contains(LevelUtil.toLevelId(level) + ":" + chunkId);
+        }
+
+        public static boolean isChunkForceLoaded(ServerLevel level, ChunkPos chunkPos) {
+            return isChunkForceLoaded(level, getId(chunkPos));
+        }
 
 
     }

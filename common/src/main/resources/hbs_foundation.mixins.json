@@ -11,7 +11,7 @@
         "MixinTitleScreen"
     ],
     "server": [
-
+        "ServerLevelMixin"
     ],
     "injectors": {
         "defaultRequire": 1

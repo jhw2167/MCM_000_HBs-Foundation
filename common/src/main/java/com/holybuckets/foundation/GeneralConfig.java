@@ -5,10 +5,12 @@ package com.holybuckets.foundation;
 //Forge Imports
 
 import com.google.gson.Gson;
+import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -244,10 +246,8 @@ public class GeneralConfig {
         else return 0;
     }
 
-    public long getTotalTickCountWithSleep() {
-        if(this.isServerSide)
-            return dataStore.getTotalTickCount() + server.getTickCount();
-        else return 0;
+    public long getTotalTickCountWithSleep(Level level) {
+         return level.getGameTime();
     }
 
     public long getSessionTickCount() {
@@ -258,7 +258,6 @@ public class GeneralConfig {
 
     public int getTotalSleeps(Level level) {
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
-        Player p;
         return lsd.get("totalSleeps").getAsInt();
     }
 

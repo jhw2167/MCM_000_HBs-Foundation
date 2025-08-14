@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.mixin;
 
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.util.MixinManager;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import net.minecraft.server.level.ServerLevel;
@@ -37,7 +38,6 @@ public class ServerLevelMixin {
         if (MixinManager.isEnabled("ServerLevelMixin::onWakeUpAllPlayers")) {
             try {
                 ServerLevel level = (ServerLevel) (Object) this;
-                // Your custom handler here
                 EventRegistrar.getInstance().onWakeUpAllPlayers(level);
             }
             catch (Exception e) {

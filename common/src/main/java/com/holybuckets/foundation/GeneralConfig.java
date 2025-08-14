@@ -87,7 +87,13 @@ public class GeneralConfig {
 
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
+        reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
+    }
 
+    private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
+        int newTotal = event.getTotalSleeps() + 1;
+        lsd.addProperty("totalSleeps", new JsonPrimitive(newTotal));
     }
 
     private void initPerformanceConfig() {

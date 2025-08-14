@@ -80,7 +80,7 @@ public class EventRegistrar {
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
-    final Set<Consumer<ServerLevel>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
+    final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
 
     /**
      * Constructor
@@ -312,11 +312,11 @@ public class EventRegistrar {
         generalRegister(function, ON_CLIENT_INPUT, priority);
     }
 
-    public void registerOnWakeUpAllPlayers(Consumer<ServerLevel> function) {
+    public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function) {
         registerOnWakeUpAllPlayers(function, EventPriority.Normal);
     }
 
-    public void registerOnWakeUpAllPlayers(Consumer<ServerLevel> function, EventPriority priority) {
+    public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function, EventPriority priority) {
         generalRegister(function, ON_WAKE_UP_ALL_PLAYERS, priority);
     }
 
@@ -350,7 +350,9 @@ public class EventRegistrar {
 
 
     public void onWakeUpAllPlayers(ServerLevel level) {
-        ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, level));
+        int totalSleeps = GeneralConfig.getInstance().getTotalSleeps(level);
+        WakeUpAllPlayersEvent event = new WakeUpAllPlayersEvent(level, totalSleeps);
+        ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, event));
     }
 
     public void onClientInput(ClientInputMessage message) {

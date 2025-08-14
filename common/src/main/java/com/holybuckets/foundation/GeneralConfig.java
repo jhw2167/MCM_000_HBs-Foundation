@@ -7,6 +7,7 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
+import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -249,6 +250,12 @@ public class GeneralConfig {
         return -1;
     }
 
+    public int getTotalSleeps(Level level) {
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+        Player p;
+        return lsd.get("totalSleeps").getAsInt();
+    }
+
     public PerformanceImpactConfig getPerformanceImpactConfig() {
         if(this.performanceImpactConfig == null)
             this.initPerformanceConfig();
@@ -288,9 +295,17 @@ public class GeneralConfig {
         } catch (InterruptedException e) {
             LoggerBase.logError(null, "006002", "Error stopping AutoSaveThread");
             }
-        }
+    }
 
 
+    //** SUBCLASSES
+
+    /**
+     * Metadata config for particular levels
+     */
+    public static class LevelConfig {
+        static int totalSleeps = 0;
+    }
 
 }
 //END CLASS

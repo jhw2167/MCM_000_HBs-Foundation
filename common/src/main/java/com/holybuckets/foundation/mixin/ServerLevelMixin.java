@@ -13,6 +13,8 @@ import java.util.function.BooleanSupplier;
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin {
 
+
+    /*
     private int serverTickCounter = 0;
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -28,6 +30,20 @@ public class ServerLevelMixin {
 
         }
 
+    }*/
+
+    @Inject(method = "wakeUpAllPlayers", at = @At("HEAD"))
+    private void onWakeUpAllPlayers(CallbackInfo ci) {
+        if (MixinManager.isEnabled("ServerLevelMixin::onWakeUpAllPlayers")) {
+            try {
+                ServerLevel level = (ServerLevel) (Object) this;
+                // Your custom handler here
+                ManagedChunkEvents.onWakeUpAllPlayers(level);
+            }
+            catch (Exception e) {
+                MixinManager.recordError("ServerLevelMixin::onWakeUpAllPlayers", e);
+            }
+        }
     }
 
     /*

@@ -38,7 +38,7 @@ public class ServerLevelMixin {
             try {
                 ServerLevel level = (ServerLevel) (Object) this;
                 // Your custom handler here
-                ManagedChunkEvents.onWakeUpAllPlayers(level);
+                EventRegistrar.getInstance().onWakeUpAllPlayers(level);
             }
             catch (Exception e) {
                 MixinManager.recordError("ServerLevelMixin::onWakeUpAllPlayers", e);

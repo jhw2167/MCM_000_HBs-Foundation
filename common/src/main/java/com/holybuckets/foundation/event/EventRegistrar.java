@@ -79,6 +79,7 @@ public class EventRegistrar {
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
+    final Set<Consumer<ServerLevel>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
 
     /**
      * Constructor
@@ -310,6 +311,14 @@ public class EventRegistrar {
         generalRegister(function, ON_CLIENT_INPUT, priority);
     }
 
+    public void registerOnWakeUpAllPlayers(Consumer<ServerLevel> function) {
+        registerOnWakeUpAllPlayers(function, EventPriority.Normal);
+    }
+
+    public void registerOnWakeUpAllPlayers(Consumer<ServerLevel> function, EventPriority priority) {
+        generalRegister(function, ON_WAKE_UP_ALL_PLAYERS, priority);
+    }
+
     /**
      * Custom Events
      **/
@@ -338,6 +347,10 @@ public class EventRegistrar {
         ManagedChunkEvents.onWorldTickStart(level);
     }
 
+
+    public void onWakeUpAllPlayers(ServerLevel level) {
+        ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, level));
+    }
 
     public void onClientInput(ClientInputMessage message) {
         GeneralConfig config = GeneralConfig.getInstance();

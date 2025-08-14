@@ -129,6 +129,11 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        // Track wake up event registrations even though it's not a Balm event
+        events.ON_WAKE_UP_ALL_PLAYERS.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registeredEvents.add(c.hashCode());
+        });
+
 
     }
 

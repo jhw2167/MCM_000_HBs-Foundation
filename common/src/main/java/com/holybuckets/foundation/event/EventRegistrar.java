@@ -20,11 +20,13 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -240,8 +242,16 @@ public class EventRegistrar {
         registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
 
-    public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
-        DAILY_TICK_EVENTS.put(function, dimension != null ? dimension : new ResourceLocation("minecraft", "overworld"));
+    /**
+     * registers a consumer to a specific dimension for day changes.
+     * This event is triggered when the number of ticks in a day have passed
+     * OR when the player wakes up in the specified dimension.
+     * @param dimension
+     * @param function
+     * @param priority
+     */
+    public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
+        DAILY_TICK_EVENTS.put(function, dimension != null ? dimension : new ResourceLocation("minecraft", ""));
         PRIORITIES.put(function.hashCode(), priority);
     }
 

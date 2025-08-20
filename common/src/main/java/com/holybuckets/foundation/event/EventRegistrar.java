@@ -70,6 +70,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<TickScheme, Consumer<?>> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -232,7 +233,11 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
-        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
+        if (type == TickType.DAILY_TICK) {
+            generalTickEventRegister(function, DAILY_TICK_EVENTS, type, priority);
+        } else {
+            generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
+        }
     }
 
 
@@ -336,19 +341,22 @@ public class EventRegistrar {
         GeneralConfig config = GeneralConfig.getInstance();
         long totalTicks = config.getTotalTickCount();
         ServerTickEvent event = new ServerTickEvent(totalTicks);
-        //LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
+        
+        // Handle regular tick events
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (scheme.shouldTrigger(totalTicks)) {
                 tryEvent((Consumer<ServerTickEvent>) consumer, event);
-                return;
             }
-            if(scheme.shouldTriggerDailyTick( config.OVERWORLD )) {
+        });
+
+        // Handle daily tick events
+        if (config.OVERWORLD != null) {
+            DAILY_TICK_EVENTS.forEach((scheme, consumer) -> {
                 long sleepTicks = config.getTotalTickCountWithSleep(config.OVERWORLD);
                 DailyTick dailyTickEvent = new DailyTick(totalTicks, sleepTicks, config.OVERWORLD, false);
                 tryEvent((Consumer<ServerTickEvent>) consumer, dailyTickEvent);
-            }
-
-        });
+            });
+        }
     }
 
     public void onServerLevelTick(Level level) {

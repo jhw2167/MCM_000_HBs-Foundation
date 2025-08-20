@@ -5,10 +5,8 @@ package com.holybuckets.foundation.client;
 //Forge Imports
 
 import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
@@ -19,11 +17,7 @@ import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -228,7 +222,7 @@ public class ClientEventRegistrar {
                     return 120;
                 case ON_1200_TICKS:
                     return 1200;
-                case DAILY_TICK:
+                case ON_24000_TICKS:
                     return 24000; // 1 day in ticks
                 default:
                     return 1;

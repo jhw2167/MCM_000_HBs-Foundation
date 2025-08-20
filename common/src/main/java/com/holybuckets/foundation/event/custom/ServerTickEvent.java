@@ -1,5 +1,7 @@
 package com.holybuckets.foundation.event.custom;
 
+import net.minecraft.world.level.Level;
+
 public class ServerTickEvent {
     private final long tickCount;
 
@@ -36,8 +38,26 @@ public class ServerTickEvent {
     }
 
     public static class DailyTick extends ServerTickEvent {
-        public DailyTick(long tickCount) {
+        private Level level;
+        private boolean triggeredByWakeUp;
+        private long tickCountWithSleeps;
+        public DailyTick(long tickCount, long tickCountWithSleeps, Level level, boolean triggeredByWakeUp) {
             super(tickCount);
+            this.tickCountWithSleeps = tickCountWithSleeps;
+            this.level = level;
+            this.triggeredByWakeUp = triggeredByWakeUp;
+        }
+
+        public long getTickCountWithSleeps() {
+            return tickCountWithSleeps;
+        }
+
+        public boolean isTriggeredByWakeUp() {
+            return triggeredByWakeUp;
+        }
+
+        public Level getLevel() {
+            return level;
         }
     }
 }

@@ -18,4 +18,8 @@ public class WakeUpAllPlayersEvent {
     public int getTotalSleeps() {
         return totalSleeps;
     }
+
+    public long getDimensionTicks() {
+        return level.getGameTime();
+    }
 }

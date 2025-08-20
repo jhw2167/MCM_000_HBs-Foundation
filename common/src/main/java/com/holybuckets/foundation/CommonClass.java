@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
+import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
@@ -11,6 +12,7 @@ import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -38,7 +40,7 @@ public class CommonClass {
         }
 
         FoundationInitializers.init();
-        //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
+        test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
         isInitialized = true;
     }
@@ -58,9 +60,10 @@ public class CommonClass {
 
     private static void on120Ticks(ServerTickEvent event) {
         GeneralConfig config = GeneralConfig.getInstance();
-        Level level = config.getServer().overworld();
-        Constants.LOG.info("120 Tick Event - Total Ticks: " + config.getTotalTickCount() + 
-                         " Total Ticks With Sleep: " + config.getTotalTickCountWithSleep(level));
+        LoggerBase.logDebug(null, "001090", "Server ticks: " + config.getTotalTickCount());
+        LoggerBase.logDebug(null, "001091", "Overworld ticks: " + config.getTotalTickCountWithSleep(GeneralConfig.OVERWORLD) );
+        LoggerBase.logDebug(null, "001092", "Nether ticks: " + config.getTotalTickCountWithSleep(GeneralConfig.NETHER) );
+
     }
 
     // Subscribe to client input events

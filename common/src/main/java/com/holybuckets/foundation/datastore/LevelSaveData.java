@@ -51,6 +51,7 @@ public class LevelSaveData {
     private void init() {
         this.addProperty("levelId", new JsonPrimitive(levelId));
         this.addProperty("totalSleeps", new JsonPrimitive(0));
+        this.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
     }
 
     public LevelAccessor getLevel() {

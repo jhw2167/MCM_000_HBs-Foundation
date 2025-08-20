@@ -5,7 +5,6 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.GeneralConfig;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.*;
@@ -15,7 +14,6 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.util.MixinManager;
-import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
@@ -30,6 +28,8 @@ import net.minecraft.world.level.Level;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+
+import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTick;
 
 
 /**
@@ -333,13 +333,21 @@ public class EventRegistrar {
     }
 
     public void onServerTick(MinecraftServer s) {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+        GeneralConfig config = GeneralConfig.getInstance();
+        long totalTicks = config.getTotalTickCount();
         ServerTickEvent event = new ServerTickEvent(totalTicks);
         //LoggerBase.logDebug(null, "010001", "Server tick event: " + totalTicks);
         SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
             if (scheme.shouldTrigger(totalTicks)) {
                 tryEvent((Consumer<ServerTickEvent>) consumer, event);
+                return;
             }
+            if(scheme.shouldTriggerDailyTick( config.OVERWORLD )) {
+                long sleepTicks = config.getTotalTickCountWithSleep(config.OVERWORLD);
+                DailyTick dailyTickEvent = new DailyTick(totalTicks, sleepTicks, config.OVERWORLD, false);
+                tryEvent((Consumer<ServerTickEvent>) consumer, dailyTickEvent);
+            }
+
         });
     }
 
@@ -349,10 +357,25 @@ public class EventRegistrar {
     }
 
 
-    public void onWakeUpAllPlayers(ServerLevel level) {
-        int totalSleeps = GeneralConfig.getInstance().getTotalSleeps(level);
+    public void onWakeUpAllPlayers(ServerLevel level)
+    {
+        GeneralConfig config = GeneralConfig.getInstance();
+        int totalSleeps = config.getTotalSleeps(level);
         WakeUpAllPlayersEvent event = new WakeUpAllPlayersEvent(level, totalSleeps);
         ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, event));
+
+        // Trigger daily tick event if it is the first tick of the day
+        DailyTick dailyTickEvent = new DailyTick(
+                config.getTotalTickCount(),
+                config.getTotalTickCountWithSleep(level),
+                level,
+                true
+        );
+        SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
+            if(scheme.getTickType() == TickType.DAILY_TICK) {
+                tryEvent((Consumer<ServerTickEvent>) consumer, dailyTickEvent);
+            }
+        });
     }
 
     public void onClientInput(ClientInputMessage message) {
@@ -397,26 +420,28 @@ public class EventRegistrar {
                     return 120;
                 case ON_1200_TICKS:
                     return 1200;
-                case DAILY_TICK:
+                case ON_24000_TICKS:
                     return 24000; // 1 day in ticks
-                case DAILY_TICK_WITH_SLEEP:
-                    return 24000; // 1 day in ticks but also checks sleep
+                case DAILY_TICK:
+                    return 24000; // 1 day in ticks but fast forwards with sleep
                 default:
                     return 1;
             }
         }
 
+        public TickType getTickType() {
+            return frequency;
+        }
+
         boolean shouldTrigger(long totalTicks) {
-            if (frequency == TickType.DAILY_TICK_WITH_SLEEP) {
-                // Check if any players are sleeping
-                if (GeneralConfig.getInstance().getServer().getPlayerList().getPlayers().stream()
-                    .anyMatch(player -> player.isSleeping())) {
-                    return false; // Skip if players are sleeping
-                }
-            }
+            if( frequency == TickType.DAILY_TICK) return false;
             return totalTicks % getFrequency() == offset;
         }
 
+        public boolean shouldTriggerDailyTick(Level level) {
+            if( frequency != TickType.DAILY_TICK) return false;
+            return level.getDayTime() == 0L;
+        }
     }
 }
 //END CLASS

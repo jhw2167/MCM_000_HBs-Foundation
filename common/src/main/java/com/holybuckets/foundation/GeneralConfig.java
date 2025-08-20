@@ -182,7 +182,11 @@ public class GeneralConfig {
     }
 
     public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
-        //not implemented
+        if(event.getLevel().isClientSide()) return;
+
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
+        long gameTime = this.getTotalTickCountWithSleep((Level) event.getLevel());
+        lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(gameTime));
     }
 
 
@@ -246,8 +250,10 @@ public class GeneralConfig {
         else return 0;
     }
 
+    public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
-         return level.getGameTime();
+        int totalSleeps = this.getTotalSleeps(level);
+        return (TICKS_PER_DAY * totalSleeps) + level.getDayTime();
     }
 
     public long getSessionTickCount() {
@@ -305,12 +311,6 @@ public class GeneralConfig {
 
     //** SUBCLASSES
 
-    /**
-     * Metadata config for particular levels
-     */
-    public static class LevelConfig {
-        static int totalSleeps = 0;
-    }
 
 }
 //END CLASS

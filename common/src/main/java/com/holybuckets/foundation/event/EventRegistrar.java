@@ -27,6 +27,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nullable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -72,7 +74,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<Consumer<DailyTickEvent>, ResourceLocation> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Multimap<ResourceLocation, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = HashMultimap.create();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -251,7 +253,8 @@ public class EventRegistrar {
      * @param priority
      */
     public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
-        DAILY_TICK_EVENTS.put(function, dimension != null ? dimension : new ResourceLocation("minecraft", ""));
+        ResourceLocation dimLoc = dimension != null ? dimension : new ResourceLocation("minecraft", "overworld");
+        DAILY_TICK_EVENTS.put(dimLoc, function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 
@@ -367,13 +370,13 @@ public class EventRegistrar {
         // Handle daily tick events
 
         Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
-        DAILY_TICK_EVENTS.forEach((consumer, dimLoc) -> {
+        DAILY_TICK_EVENTS.asMap().forEach((dimLoc, consumers) -> {
             Level level = s.getLevel(dimLoc);
             if (level != null && config.getNextDailyTick(level) > totalTicks) {
                 long sleepTicks = config.getTotalTickCountWithSleep(level);
                 DailyTickEvent dailyTickEvent = cache.computeIfAbsent(dimLoc,
                     k -> new DailyTickEvent(totalTicks, sleepTicks, level, false));
-                tryEvent(consumer, dailyTickEvent);
+                consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent));
             }
         });
     }
@@ -399,11 +402,10 @@ public class EventRegistrar {
                 true
         );
 
-        DAILY_TICK_EVENTS.forEach((l, consumer) -> {
-            if (l == level) {
-                tryEvent(consumer, dailyTickEvent);
-            }
-        });
+        ResourceLocation levelId = level.dimension().location();
+        DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> 
+            tryEvent(consumer, dailyTickEvent)
+        );
     }
 
     public void onClientInput(ClientInputMessage message) {

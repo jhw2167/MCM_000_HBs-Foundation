@@ -12,7 +12,6 @@ import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -55,6 +54,7 @@ public class CommonClass {
         //reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
         //reg.registerOnClientInput(CommonClass::onClientInput);
         reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
+        reg.registerOnServerTick(TickType.DAILY_TICK, CommonClass::onDailyTick);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 
@@ -64,6 +64,12 @@ public class CommonClass {
         LoggerBase.logDebug(null, "001091", "Overworld ticks: " + config.getTotalTickCountWithSleep(GeneralConfig.OVERWORLD) );
         LoggerBase.logDebug(null, "001092", "Nether ticks: " + config.getTotalTickCountWithSleep(GeneralConfig.NETHER) );
 
+    }
+
+    private static void onDailyTick(ServerTickEvent.DailyTickEvent event) {
+        GeneralConfig config = GeneralConfig.getInstance();
+        LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getTickCountWithSleeps());
+        LoggerBase.logDebug(null, "001100", "Daily tick: " + event.isTriggeredByWakeUp() );
     }
 
     // Subscribe to client input events

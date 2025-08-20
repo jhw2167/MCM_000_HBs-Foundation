@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTick;
+import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTickEvent;
 
 
 /**
@@ -70,7 +70,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<TickScheme, Consumer<?>> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<Level, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -233,11 +233,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
-        if (type == TickType.DAILY_TICK) {
-            generalTickEventRegister(function, DAILY_TICK_EVENTS, type, priority);
-        } else {
-            generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
-        }
+        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
 
@@ -350,13 +346,15 @@ public class EventRegistrar {
         });
 
         // Handle daily tick events
-        if (config.OVERWORLD != null) {
-            DAILY_TICK_EVENTS.forEach((scheme, consumer) -> {
-                long sleepTicks = config.getTotalTickCountWithSleep(config.OVERWORLD);
-                DailyTick dailyTickEvent = new DailyTick(totalTicks, sleepTicks, config.OVERWORLD, false);
-                tryEvent((Consumer<ServerTickEvent>) consumer, dailyTickEvent);
-            });
-        }
+
+        Map<Level, DailyTickEvent> cache = new HashMap<>();
+        DAILY_TICK_EVENTS.forEach((l, consumer) -> {
+            if(config.getNextDailyTick(l) > totalTicks) {
+                long sleepTicks = config.getTotalTickCountWithSleep(l);
+                DailyTickEvent dailyTickEvent = cache.getOrDefault(l, new DailyTickEvent(totalTicks, sleepTicks, l, false));
+                tryEvent( consumer, dailyTickEvent);
+            }
+        });
     }
 
     public void onServerLevelTick(Level level) {
@@ -373,15 +371,16 @@ public class EventRegistrar {
         ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, event));
 
         // Trigger daily tick event if it is the first tick of the day
-        DailyTick dailyTickEvent = new DailyTick(
+        DailyTickEvent dailyTickEvent = new DailyTickEvent(
                 config.getTotalTickCount(),
                 config.getTotalTickCountWithSleep(level),
                 level,
                 true
         );
-        SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
-            if(scheme.getTickType() == TickType.DAILY_TICK) {
-                tryEvent((Consumer<ServerTickEvent>) consumer, dailyTickEvent);
+
+        DAILY_TICK_EVENTS.forEach((l, consumer) -> {
+            if (l == level) {
+                tryEvent(consumer, dailyTickEvent);
             }
         });
     }
@@ -430,8 +429,6 @@ public class EventRegistrar {
                     return 1200;
                 case ON_24000_TICKS:
                     return 24000; // 1 day in ticks
-                case DAILY_TICK:
-                    return 24000; // 1 day in ticks but fast forwards with sleep
                 default:
                     return 1;
             }
@@ -442,7 +439,6 @@ public class EventRegistrar {
         }
 
         boolean shouldTrigger(long totalTicks) {
-            if( frequency == TickType.DAILY_TICK) return false;
             return totalTicks % getFrequency() == offset;
         }
 

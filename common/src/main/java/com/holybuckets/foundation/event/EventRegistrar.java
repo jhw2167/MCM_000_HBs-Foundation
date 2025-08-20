@@ -236,6 +236,15 @@ public class EventRegistrar {
         generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
+    public void registerOnDailyTick(Level level, Consumer<DailyTickEvent> function) {
+        registerOnDailyTick(level, function, EventPriority.Normal);
+    }
+
+    public void registerOnDailyTick(Level level, Consumer<DailyTickEvent> function, EventPriority priority) {
+        DAILY_TICK_EVENTS.put(level, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
 
 
 

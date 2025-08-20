@@ -54,7 +54,7 @@ public class CommonClass {
         //reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
         //reg.registerOnClientInput(CommonClass::onClientInput);
         reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
-        reg.registerOnDailyTick(GeneralConfig.OVERWORLD, CommonClass::onDailyTick);
+        reg.registerOnDailyTick(GeneralConfig.OVERWORLD_LOC, CommonClass::onDailyTick);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 

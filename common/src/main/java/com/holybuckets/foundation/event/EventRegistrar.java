@@ -70,7 +70,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Map<Level, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Map<Consumer<DailyTickEvent>, ResourceLocation> DAILY_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -236,12 +236,12 @@ public class EventRegistrar {
         generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
-    public void registerOnDailyTick(Level level, Consumer<DailyTickEvent> function) {
-        registerOnDailyTick(level, function, EventPriority.Normal);
+    public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
+        registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
 
-    public void registerOnDailyTick(Level level, Consumer<DailyTickEvent> function, EventPriority priority) {
-        DAILY_TICK_EVENTS.put(level, function);
+    public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
+        DAILY_TICK_EVENTS.put(function, dimension != null ? dimension : new ResourceLocation("minecraft", "overworld"));
         PRIORITIES.put(function.hashCode(), priority);
     }
 
@@ -356,12 +356,14 @@ public class EventRegistrar {
 
         // Handle daily tick events
 
-        Map<Level, DailyTickEvent> cache = new HashMap<>();
-        DAILY_TICK_EVENTS.forEach((l, consumer) -> {
-            if(config.getNextDailyTick(l) > totalTicks) {
-                long sleepTicks = config.getTotalTickCountWithSleep(l);
-                DailyTickEvent dailyTickEvent = cache.getOrDefault(l, new DailyTickEvent(totalTicks, sleepTicks, l, false));
-                tryEvent( consumer, dailyTickEvent);
+        Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
+        DAILY_TICK_EVENTS.forEach((consumer, dimLoc) -> {
+            Level level = s.getLevel(dimLoc);
+            if (level != null && config.getNextDailyTick(level) > totalTicks) {
+                long sleepTicks = config.getTotalTickCountWithSleep(level);
+                DailyTickEvent dailyTickEvent = cache.computeIfAbsent(dimLoc,
+                    k -> new DailyTickEvent(totalTicks, sleepTicks, level, false));
+                tryEvent(consumer, dailyTickEvent);
             }
         });
     }

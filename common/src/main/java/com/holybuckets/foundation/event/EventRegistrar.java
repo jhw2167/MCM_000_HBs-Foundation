@@ -438,10 +438,6 @@ public class EventRegistrar {
             return totalTicks % getFrequency() == offset;
         }
 
-        public boolean shouldTriggerDailyTick(Level level) {
-            if( frequency != TickType.DAILY_TICK) return false;
-            return level.getDayTime() == 0L;
-        }
     }
 }
 //END CLASS

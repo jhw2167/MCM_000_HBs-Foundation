@@ -4,6 +4,7 @@ import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.Services;
@@ -51,7 +52,15 @@ public class CommonClass {
         //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         //reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
         //reg.registerOnClientInput(CommonClass::onClientInput);
+        reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
+    }
+
+    private static void on120Ticks(ServerTickEvent event) {
+        GeneralConfig config = GeneralConfig.getInstance();
+        Level level = config.getServer().overworld();
+        Constants.LOG.info("120 Tick Event - Total Ticks: " + config.getTotalTickCount() + 
+                         " Total Ticks With Sleep: " + config.getTotalTickCountWithSleep(level));
     }
 
     // Subscribe to client input events

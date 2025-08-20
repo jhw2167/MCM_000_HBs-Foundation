@@ -150,7 +150,7 @@ public class BalmEventRegister {
         //do not register each event I added, instead register the invidual onServerTick, onClientTick, etc methods
         if (registeredEvents.add(Objects.hash("onServerTick"))) {
             registry.onTickEvent(TickType.Server, TickPhase.End, events::onServerTick);
-            registry.onTickEvent(TickType.ServerLevel, TickPhase.End, events::onServerTick);
+            registry.onTickEvent(TickType.ServerLevel, TickPhase.End, events::onServerLevelTick);
         }
 
         if (registeredEvents.add(Objects.hash("onServerLevelTick"))) {

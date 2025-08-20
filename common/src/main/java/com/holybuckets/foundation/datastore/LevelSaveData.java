@@ -8,6 +8,7 @@ import net.minecraft.world.level.LevelAccessor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.holybuckets.foundation.GeneralConfig.TICKS_PER_DAY;
 import static com.holybuckets.foundation.HBUtil.LevelUtil;
 
 /**
@@ -35,7 +36,7 @@ public class LevelSaveData {
         this.levelId = LevelUtil.toLevelId(level);
         this.properties = new ConcurrentHashMap<>();
 
-        this.init();
+        this.init(level);
     }
 
     public LevelSaveData(JsonObject json)
@@ -48,10 +49,12 @@ public class LevelSaveData {
     }
 
     //Initialize default properties
-    private void init() {
+    private void init(LevelAccessor l) {
         this.addProperty("levelId", new JsonPrimitive(levelId));
         this.addProperty("totalSleeps", new JsonPrimitive(0));
         this.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
+        long nextDailyTick = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+        this.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
 
     public LevelAccessor getLevel() {

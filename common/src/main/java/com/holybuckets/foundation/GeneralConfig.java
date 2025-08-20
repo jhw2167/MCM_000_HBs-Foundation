@@ -10,6 +10,8 @@ import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -90,6 +92,7 @@ public class GeneralConfig {
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
         reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
+        reg.registerOnServerTick(TickType.DAILY_TICK, instance::onDailyTick, EventPriority.Highest);
     }
 
     private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
@@ -97,6 +100,16 @@ public class GeneralConfig {
         int newTotal = event.getTotalSleeps() + 1;
         lsd.addProperty("totalSleeps", new JsonPrimitive(newTotal));
     }
+
+    private void onDailyTick(ServerTickEvent.DailyTickEvent event) {
+        Level l = event.getLevel();
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
+        long dayTickLength = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+        long nextDailyTick = event.getTickCount() + dayTickLength;
+
+        lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
+    }
+
 
     private void initPerformanceConfig() {
         this.performanceImpactConfig = new PerformanceImpactConfig();
@@ -265,6 +278,11 @@ public class GeneralConfig {
     public int getTotalSleeps(Level level) {
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
         return lsd.get("totalSleeps").getAsInt();
+    }
+
+    public long getNextDailyTick(Level level) {
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+        return lsd.get("nextDailyTick").getAsLong();
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {

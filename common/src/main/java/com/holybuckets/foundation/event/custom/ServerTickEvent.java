@@ -37,11 +37,11 @@ public class ServerTickEvent {
         }
     }
 
-    public static class DailyTick extends ServerTickEvent {
+    public static class DailyTickEvent extends ServerTickEvent {
         private Level level;
         private boolean triggeredByWakeUp;
         private long tickCountWithSleeps;
-        public DailyTick(long tickCount, long tickCountWithSleeps, Level level, boolean triggeredByWakeUp) {
+        public DailyTickEvent(long tickCount, long tickCountWithSleeps, Level level, boolean triggeredByWakeUp) {
             super(tickCount);
             this.tickCountWithSleeps = tickCountWithSleeps;
             this.level = level;

@@ -53,6 +53,7 @@ public class LevelSaveData {
         this.addProperty("levelId", new JsonPrimitive(levelId));
         this.addProperty("totalSleeps", new JsonPrimitive(0));
         this.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
+        this.addProperty("totalDays", new JsonPrimitive(0));
         long nextDailyTick = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
         this.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
@@ -125,6 +126,11 @@ public class LevelSaveData {
             long nextDailyTick = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
             long currentTick = worldData.get("totalTicks").getAsLong();
             props.put("nextDailyTick", new JsonPrimitive(nextDailyTick+currentTick));
+        }
+        if( !props.containsKey("totalDays")) {
+            long dayLength = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            long totalDays = data.level.getDayTime() / dayLength;
+            props.put("totalDays", new JsonPrimitive(totalDays));
         }
 
     }

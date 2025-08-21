@@ -106,7 +106,9 @@ public class GeneralConfig {
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
         long dayTickLength = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
         long nextDailyTick = event.getTickCount() + dayTickLength;
-
+        
+        int totalDays = lsd.get("totalDays").getAsInt() + 1;
+        lsd.addProperty("totalDays", new JsonPrimitive(totalDays));
         lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
 

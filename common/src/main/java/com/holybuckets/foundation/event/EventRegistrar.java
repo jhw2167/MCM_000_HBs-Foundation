@@ -374,10 +374,9 @@ public class EventRegistrar {
         });
 
         // Handle daily tick events
-
         Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
         List<Level> levels = config.getLevels().values().stream().toList();
-        // Iterate through all levels and check if they have a daily tick event
+
         for( Level l : levels)
         {
             if (config.getNextDailyTick(l) > totalTicks) continue;

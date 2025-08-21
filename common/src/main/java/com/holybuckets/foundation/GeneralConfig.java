@@ -280,7 +280,7 @@ public class GeneralConfig {
     public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
         int totalSleeps = this.getTotalDays(level);
-        return (TICKS_PER_DAY * totalSleeps) + level.getDayTime();
+        return (TICKS_PER_DAY * totalSleeps) + (level.getDayTime() % TICKS_PER_DAY);
     }
 
     public long getSessionTickCount() {

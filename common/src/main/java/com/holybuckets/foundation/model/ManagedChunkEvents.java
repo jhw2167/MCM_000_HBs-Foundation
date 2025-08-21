@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
@@ -12,34 +11,19 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
-import com.holybuckets.foundation.exception.InvalidId;
-import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 import com.holybuckets.foundation.util.MixinManager;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
-import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-import static com.holybuckets.foundation.model.ManagedChunk.GENERAL_CONFIG;
-import static com.holybuckets.foundation.model.ManagedChunk.MANAGED_SUBCLASSES;
 import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
 import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
 
@@ -68,7 +52,7 @@ public class ManagedChunkEvents {
 
     private static void onWorldLoad( final LevelLoadingEvent.Load event )
     {
-        LevelAccessor level = event.getLevel();
+        Level level = (Level) event.getLevel();
 
         if(LOADED_CHUNKS.get(level) == null) {
             LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
@@ -99,7 +83,7 @@ public class ManagedChunkEvents {
 
     private static void onWorldUnload( final LevelLoadingEvent.Unload event )
     {
-        LevelAccessor level = event.getLevel();
+        Level level = (Level) event.getLevel();
         if(level.isClientSide()) return;
         ManagedChunk.save(DatastoreSaveEvent.create(), level);
     }

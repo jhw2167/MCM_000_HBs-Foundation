@@ -3,6 +3,7 @@ package com.holybuckets.foundation.datastore;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
 import java.util.Map;
@@ -16,7 +17,7 @@ import static com.holybuckets.foundation.HBUtil.LevelUtil;
  */
 public class LevelSaveData {
     String levelId;
-    LevelAccessor level;
+    Level level;
     final Map<String, JsonElement> properties;
 
     /** STATICS **/
@@ -27,7 +28,7 @@ public class LevelSaveData {
 
     /** Constructors **/
 
-    public LevelSaveData(LevelAccessor level)
+    public LevelSaveData(Level level)
     {
         super();
         if(level == null)
@@ -111,9 +112,14 @@ public class LevelSaveData {
      * adds them if they are not
      * @param data
      */
-    public static void validate(LevelSaveData data, WorldSaveData worldData) {
+    public static void validate(LevelSaveData data, WorldSaveData worldData)
+    {
         if( data == null || data.properties == null ) return;
         Map<String, JsonElement> props = data.properties;
+
+        if(data.level == null) data.level = LevelUtil.toServerLevel(data.levelId);
+        if(data.level == null) return;
+
         if(!props.containsKey("levelId"))
             props.put("levelId", new JsonPrimitive(data.levelId));
         if( !props.containsKey("totalSleeps"))
@@ -129,7 +135,7 @@ public class LevelSaveData {
         }
         if( !props.containsKey("totalDays")) {
             long dayLength = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-            long totalDays = data.level.getDayTime() / dayLength;
+            long totalDays = data.level.getGameTime() / dayLength;
             props.put("totalDays", new JsonPrimitive(totalDays));
         }
 

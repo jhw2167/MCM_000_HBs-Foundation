@@ -353,7 +353,7 @@ public class ManagedChunk implements IMangedChunkData {
         MANAGED_SUBCLASSES.put(classObject, data);
     }
 
-    static void save(DatastoreSaveEvent event, LevelAccessor level)
+    static void save(DatastoreSaveEvent event, Level level)
     {
         //Write out initialzed chunks to levelSaveData
         DataStore ds = event.getDataStore();

@@ -20,6 +20,9 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -29,6 +32,8 @@ import net.minecraft.world.level.Level;
 import javax.annotation.Nullable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import net.minecraft.world.level.LevelAccessor;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -244,6 +249,7 @@ public class EventRegistrar {
         registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
 
+    private static final ResourceLocation EMPTY_LOC = new ResourceLocation("minecraft", "");
     /**
      * registers a consumer to a specific dimension for day changes.
      * This event is triggered when the number of ticks in a day have passed
@@ -253,7 +259,7 @@ public class EventRegistrar {
      * @param priority
      */
     public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
-        ResourceLocation dimLoc = dimension != null ? dimension : new ResourceLocation("minecraft", "overworld");
+        ResourceLocation dimLoc = dimension != null ? dimension : EMPTY_LOC;
         DAILY_TICK_EVENTS.put(dimLoc, function);
         PRIORITIES.put(function.hashCode(), priority);
     }
@@ -370,14 +376,27 @@ public class EventRegistrar {
         // Handle daily tick events
 
         Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
+        List<Level> levels = config.getLevels().values().stream().toList();
+        // Iterate through all levels and check if they have a daily tick event
+        for( Level l : levels)
+        {
+            if (config.getNextDailyTick(l) > totalTicks) continue;
+
+            ResourceLocation dimLoc = l.dimension().location();
+            long sleepTicks = config.getTotalTickCountWithSleep(l);
+            cache.put(dimLoc, new DailyTickEvent(totalTicks, sleepTicks, l, false));
+        }
+
+        cache.forEach((dim, dailyTickEvent) -> GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent));
         DAILY_TICK_EVENTS.asMap().forEach((dimLoc, consumers) -> {
-            Level level = s.getLevel(dimLoc);
-            if (level != null && config.getNextDailyTick(level) > totalTicks) {
-                long sleepTicks = config.getTotalTickCountWithSleep(level);
-                DailyTickEvent dailyTickEvent = cache.computeIfAbsent(dimLoc,
-                    k -> new DailyTickEvent(totalTicks, sleepTicks, level, false));
-                consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent));
+            if( dimLoc == EMPTY_LOC ) {
+             cache.forEach((dim, dailyTickEvent) -> consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent)) );
+             return;
             }
+           if( !cache.containsKey(dimLoc) ) return;
+
+           DailyTickEvent dailyTickEvent = cache.get(dimLoc);
+           consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent));
         });
     }
 
@@ -390,8 +409,9 @@ public class EventRegistrar {
     public void onWakeUpAllPlayers(ServerLevel level)
     {
         GeneralConfig config = GeneralConfig.getInstance();
-        int totalSleeps = config.getTotalSleeps(level);
+        int totalSleeps = config.getTotalSleeps(level)+1;
         WakeUpAllPlayersEvent event = new WakeUpAllPlayersEvent(level, totalSleeps);
+        GeneralConfig.fireEvent(WakeUpAllPlayersEvent.class, event);
         ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, event));
 
         // Trigger daily tick event if it is the first tick of the day
@@ -402,10 +422,10 @@ public class EventRegistrar {
                 true
         );
 
+        GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent);
+        DAILY_TICK_EVENTS.get(EMPTY_LOC).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
         ResourceLocation levelId = level.dimension().location();
-        DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> 
-            tryEvent(consumer, dailyTickEvent)
-        );
+        DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
     }
 
     public void onClientInput(ClientInputMessage message) {

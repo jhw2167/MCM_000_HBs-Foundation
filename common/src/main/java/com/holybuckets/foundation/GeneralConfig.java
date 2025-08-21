@@ -11,7 +11,6 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
-import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -91,14 +90,28 @@ public class GeneralConfig {
 
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
-        reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
-        reg.registerOnDailyTick(null,  instance::onDailyTick, EventPriority.Highest);
+
+        //trigger these manually to ensure order is followed
+        //reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
+        //reg.registerOnDailyTick(null,  instance::onDailyTick, EventPriority.Highest);
+    }
+
+    public static void fireEvent(Class<?> eventClass, Object event) {
+        if (instance == null) {
+            LoggerBase.logError(null, "000001", "GeneralConfig not initialized, cannot fire event: " + eventClass.getName());
+            return;
+        }
+        if(eventClass.equals(WakeUpAllPlayersEvent.class))
+            instance.onWakeUpAllPlayers((WakeUpAllPlayersEvent) event);
+
+        if(eventClass.equals(ServerTickEvent.DailyTickEvent.class))
+            instance.onDailyTick((ServerTickEvent.DailyTickEvent) event);
+
     }
 
     private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
-        int newTotal = event.getTotalSleeps() + 1;
-        lsd.addProperty("totalSleeps", new JsonPrimitive(newTotal));
+        lsd.addProperty("totalSleeps", new JsonPrimitive(event.getTotalSleeps()));
     }
 
     private void onDailyTick(ServerTickEvent.DailyTickEvent event) {
@@ -199,7 +212,7 @@ public class GeneralConfig {
     public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
         if(event.getLevel().isClientSide()) return;
 
-        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, (Level) event.getLevel());
         long gameTime = this.getTotalTickCountWithSleep((Level) event.getLevel());
         lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(gameTime));
     }
@@ -266,7 +279,7 @@ public class GeneralConfig {
 
     public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
-        int totalSleeps = this.getTotalSleeps(level);
+        int totalSleeps = this.getTotalDays(level);
         return (TICKS_PER_DAY * totalSleeps) + level.getDayTime();
     }
 
@@ -279,6 +292,11 @@ public class GeneralConfig {
     public int getTotalSleeps(Level level) {
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
         return lsd.get("totalSleeps").getAsInt();
+    }
+
+    public int getTotalDays(Level level) {
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+        return lsd.get("totalDays").getAsInt();
     }
 
     public long getNextDailyTick(Level level) {

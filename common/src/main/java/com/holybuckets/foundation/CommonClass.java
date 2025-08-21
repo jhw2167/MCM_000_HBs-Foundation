@@ -53,8 +53,8 @@ public class CommonClass {
         //reg.registerOnLevelLoad(CommonClass::onLevelLoad);
         //reg.registerOnPlayerLogin(CommonClass::onPlayerLogin);
         //reg.registerOnClientInput(CommonClass::onClientInput);
-        reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
-        reg.registerOnDailyTick(GeneralConfig.OVERWORLD_LOC, CommonClass::onDailyTick);
+        //reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
+        //reg.registerOnDailyTick(null, CommonClass::onDailyTick);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
     }
 
@@ -67,7 +67,7 @@ public class CommonClass {
     }
 
     private static void onDailyTick(ServerTickEvent.DailyTickEvent event) {
-        GeneralConfig config = GeneralConfig.getInstance();
+        LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getLevel().dimension().location() );
         LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getTickCountWithSleeps());
         LoggerBase.logDebug(null, "001100", "Daily tick: " + event.isTriggeredByWakeUp() );
     }

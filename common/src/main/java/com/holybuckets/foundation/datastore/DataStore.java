@@ -9,14 +9,13 @@ import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Class DataStore - manages a simple persisted json file used as a datastore that holds
@@ -74,7 +73,7 @@ public class DataStore implements IStringSerializable {
         return modData.getOrCreateWorldSaveData(currentWorldId);
     }
 
-    public LevelSaveData getOrCreateLevelSaveData(String modId, LevelAccessor level) {
+    public LevelSaveData getOrCreateLevelSaveData(String modId, Level level) {
         WorldSaveData worldData = getOrCreateWorldSaveData(modId);
         return worldData.getOrCreateLevelSaveData(level);
     }

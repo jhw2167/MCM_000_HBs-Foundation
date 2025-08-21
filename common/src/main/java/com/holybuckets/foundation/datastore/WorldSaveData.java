@@ -3,6 +3,7 @@ package com.holybuckets.foundation.datastore;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
 import java.util.Map;
@@ -55,9 +56,10 @@ public class WorldSaveData {
      * @param level
      * @return LevelSaveData object
      */
-    public LevelSaveData getOrCreateLevelSaveData(LevelAccessor level) {
+    public LevelSaveData getOrCreateLevelSaveData(Level level) {
         String id = LevelUtil.toLevelId(level);
         LevelSaveData data = levelData.getOrDefault(id, new LevelSaveData(level));
+        LevelSaveData.validate(data, this);
         levelData.put(id, data);
         return data;
     }

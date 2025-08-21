@@ -57,6 +57,7 @@ public class LevelSaveData {
         this.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
 
+
     public LevelAccessor getLevel() {
         return level;
     }
@@ -99,6 +100,33 @@ public class LevelSaveData {
         json.remove("levelId");
 
         this.properties.putAll(json.asMap());
+    }
+
+
+    //** STATICS
+
+    /**
+     * Validates that all of the default fields are present,
+     * adds them if they are not
+     * @param data
+     */
+    public static void validate(LevelSaveData data, WorldSaveData worldData) {
+        if( data == null || data.properties == null ) return;
+        Map<String, JsonElement> props = data.properties;
+        if(!props.containsKey("levelId"))
+            props.put("levelId", new JsonPrimitive(data.levelId));
+        if( !props.containsKey("totalSleeps"))
+            props.put("totalSleeps", new JsonPrimitive(0));
+        if( !props.containsKey("totalTicksWithSleep")) {
+            long currentTick = worldData.get("totalTicks").getAsLong();
+            props.put("totalTicksWithSleep", new JsonPrimitive(currentTick));
+        }
+        if( !props.containsKey("nextDailyTick")) {
+            long nextDailyTick = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            long currentTick = worldData.get("totalTicks").getAsLong();
+            props.put("nextDailyTick", new JsonPrimitive(nextDailyTick+currentTick));
+        }
+
     }
 
 

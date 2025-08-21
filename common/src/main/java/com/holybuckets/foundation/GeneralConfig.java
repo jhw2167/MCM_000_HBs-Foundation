@@ -55,8 +55,8 @@ public class GeneralConfig {
     private boolean isServerSide;
 
     private MinecraftServer server;
-    private final Map<String, LevelAccessor> LEVELS;
-    private Map<LevelAccessor, Vec3i> WORLD_SPAWNS;
+    private final Map<String, Level> LEVELS;
+    private Map<Level, Vec3i> WORLD_SPAWNS;
     private Long worldSeed;
     private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
@@ -92,7 +92,7 @@ public class GeneralConfig {
         reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
         reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
         reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
-        reg.registerOnServerTick(TickType.DAILY_TICK, instance::onDailyTick, EventPriority.Highest);
+        reg.registerOnDailyTick(null,  instance::onDailyTick, EventPriority.Highest);
     }
 
     private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
@@ -124,7 +124,7 @@ public class GeneralConfig {
         return dataStore;
     }
 
-    public Map<String,LevelAccessor> getLevels() {
+    public Map<String,Level> getLevels() {
         return new HashMap<>(LEVELS);
     }
 
@@ -254,7 +254,6 @@ public class GeneralConfig {
     public MinecraftServer getServer() {
         return server;
     }
-
 
 
     public long getTotalTickCount() {

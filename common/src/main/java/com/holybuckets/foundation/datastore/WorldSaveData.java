@@ -35,7 +35,8 @@ public class WorldSaveData {
         this.worldId = worldId;
         this.properties = new ConcurrentHashMap<>();
         this.levelData = new ConcurrentHashMap<>();
-
+        
+        init();
     }
 
     WorldSaveData(JsonObject json) {
@@ -110,6 +111,35 @@ public class WorldSaveData {
         json.remove("levelData");
 
         this.properties.putAll(json.asMap());
+        validate();
+    }
+
+    /**
+     * Initialize default world properties
+     */
+    private void init() {
+        this.addProperty("worldId", new JsonPrimitive(worldId));
+        this.addProperty("totalTicks", new JsonPrimitive(0L));
+        this.addProperty("lastSaveTime", new JsonPrimitive(System.currentTimeMillis()));
+        this.addProperty("saveCount", new JsonPrimitive(0));
+    }
+
+    /**
+     * Validates that all required properties exist with default values if missing
+     */
+    private void validate() {
+        if (!properties.containsKey("worldId")) {
+            properties.put("worldId", new JsonPrimitive(worldId));
+        }
+        if (!properties.containsKey("totalTicks")) {
+            properties.put("totalTicks", new JsonPrimitive(0L));
+        }
+        if (!properties.containsKey("lastSaveTime")) {
+            properties.put("lastSaveTime", new JsonPrimitive(System.currentTimeMillis()));
+        }
+        if (!properties.containsKey("saveCount")) {
+            properties.put("saveCount", new JsonPrimitive(0));
+        }
     }
 
 

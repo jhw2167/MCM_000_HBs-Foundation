@@ -102,6 +102,8 @@ public class GeneralConfig {
         if(eventClass.equals(ServerTickEvent.DailyTickEvent.class))
             instance.onDailyTick((ServerTickEvent.DailyTickEvent) event);
 
+
+
     }
 
     private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {

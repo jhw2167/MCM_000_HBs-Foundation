@@ -134,6 +134,18 @@ public class EventRegistrar {
         }
     }
 
+    void onServerStarted(ServerStartedEvent event) {
+        // Sort consumers by priority
+        List<Consumer<ServerStartedEvent>> sortedConsumers = ON_SERVER_START.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<ServerStartedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
     void onLevelLoad(LevelLoadingEvent.Load event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()

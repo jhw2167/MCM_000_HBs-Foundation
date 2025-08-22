@@ -112,9 +112,18 @@ public class BalmEventRegister {
 
     static void registerPriorityEvents()
     {
-        //** TICK EVENTS **//
         BalmEvents registry = Balm.getEvents();
-        //do not register each event I added, instead register the invidual onServerTick, onClientTick, etc methods
+
+        // Server lifecycle events with priority handling
+        registry.onEvent(ServerStartingEvent.class, events::onBeforeServerStarted, EventPriority.Highest);
+        registry.onEvent(ServerStartedEvent.class, events::onServerStarted, EventPriority.Highest);
+        registry.onEvent(ServerStoppedEvent.class, events::onServerStopped, EventPriority.Lowest);
+
+        // Level events with priority handling
+        registry.onEvent(LevelLoadingEvent.Load.class, events::onLevelLoad, EventPriority.High);
+        registry.onEvent(LevelLoadingEvent.Unload.class, events::onLevelUnload, EventPriority.Low);
+
+        // Tick events
         if (registeredEvents.add(Objects.hash("onServerTick"))) {
             registry.onTickEvent(TickType.Server, TickPhase.End, events::onServerTick);
         }
@@ -122,14 +131,6 @@ public class BalmEventRegister {
         if (registeredEvents.add(Objects.hash("onServerLevelTick"))) {
             registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, events::onServerLevelTick);
         }
-
-        // Register only the custom event handlers
-        registry.onEvent(ServerStartingEvent.class, events::onBeforeServerStarted, EventPriority.Normal);
-        registry.onEvent(ServerStoppedEvent.class, events::onServerStopped, EventPriority.Normal);
-
-        registry.onEvent(LevelLoadingEvent.Load.class, events::onLevelLoad, EventPriority.Normal);
-        registry.onEvent(LevelLoadingEvent.Unload.class, events::onLevelUnload, EventPriority.Normal);
-
     }
 
 

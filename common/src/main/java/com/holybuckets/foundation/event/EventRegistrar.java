@@ -112,7 +112,53 @@ public class EventRegistrar {
     }
 
     private void beforeServerStarted(ServerStartingEvent event) {
+        // Sort consumers by priority
+        List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<ServerStartingEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+        
         BalmEventRegister.registerOnTickEvents();
+    }
+
+    public void onServerStopped(ServerStoppedEvent event) {
+        // Sort consumers by priority
+        List<Consumer<ServerStoppedEvent>> sortedConsumers = ON_SERVER_STOP.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<ServerStoppedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onLevelLoad(LevelLoadingEvent.Load event) {
+        // Sort consumers by priority
+        List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<LevelLoadingEvent.Load> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onLevelUnload(LevelLoadingEvent.Unload event) {
+        // Sort consumers by priority
+        List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<LevelLoadingEvent.Unload> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
     }
 
 

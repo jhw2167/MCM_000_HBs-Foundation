@@ -36,33 +36,11 @@ public class BalmEventRegister {
 
         //** SERVER EVENTS **/
 
-        events.ON_BEFORE_SERVER_START.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( ServerStartingEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_SERVER_START.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ServerStartedEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_SERVER_STOP.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( ServerStoppedEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-
-        /** LEVEL & CHUNK EVENTS **/
-
-        events.ON_LEVEL_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( LevelLoadingEvent.Load.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
-        events.ON_LEVEL_UNLOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
-            registry.onEvent( LevelLoadingEvent.Unload.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        // Register only the custom event handlers
+        registry.onEvent(ServerStartingEvent.class, events::onBeforeServerStarted, EventPriority.Normal);
+        registry.onEvent(ServerStoppedEvent.class, events::onServerStopped, EventPriority.Normal);
+        registry.onEvent(LevelLoadingEvent.Load.class, events::onLevelLoad, EventPriority.Normal);
+        registry.onEvent(LevelLoadingEvent.Unload.class, events::onLevelUnload, EventPriority.Normal);
 
         events.ON_CHUNK_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
             registry.onEvent( ChunkLoadingEvent.Load.class, c, p(c));

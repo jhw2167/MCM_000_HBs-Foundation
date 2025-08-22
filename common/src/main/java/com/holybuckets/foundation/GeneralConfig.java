@@ -102,6 +102,20 @@ public class GeneralConfig {
         if(eventClass.equals(ServerTickEvent.DailyTickEvent.class))
             instance.onDailyTick((ServerTickEvent.DailyTickEvent) event);
 
+        if(eventClass.equals(ServerStartingEvent.class))
+            instance.onBeforeServerStarted((ServerStartingEvent) event);
+
+        if(eventClass.equals(ServerStartedEvent.class))
+            instance.onServerStarted((ServerStartedEvent) event);
+
+        if(eventClass.equals(ServerStoppedEvent.class))
+            instance.onServerStopped((ServerStoppedEvent) event);
+
+        if(eventClass.equals(LevelLoadingEvent.Load.class))
+            instance.onLoadLevel((LevelLoadingEvent.Load) event);
+
+        if(eventClass.equals(LevelLoadingEvent.Unload.class))
+            instance.onUnLoadLevel((LevelLoadingEvent.Unload) event);
 
 
     }

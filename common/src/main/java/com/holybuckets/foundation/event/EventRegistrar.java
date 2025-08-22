@@ -20,9 +20,6 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -32,7 +29,6 @@ import net.minecraft.world.level.Level;
 import javax.annotation.Nullable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import net.minecraft.world.level.LevelAccessor;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,10 +104,11 @@ public class EventRegistrar {
 
     public static void init() {
         instance = new EventRegistrar();
-        instance.registerOnBeforeServerStarted(instance::beforeServerStarted);
+
+        BalmEventRegister.registerPriorityEvents();
     }
 
-    private void beforeServerStarted(ServerStartingEvent event) {
+    void onBeforeServerStarted(ServerStartingEvent event) {
         // Sort consumers by priority
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
@@ -122,10 +119,10 @@ public class EventRegistrar {
             tryEvent(consumer, event);
         }
         
-        BalmEventRegister.registerOnTickEvents();
+
     }
 
-    public void onServerStopped(ServerStoppedEvent event) {
+    void onServerStopped(ServerStoppedEvent event) {
         // Sort consumers by priority
         List<Consumer<ServerStoppedEvent>> sortedConsumers = ON_SERVER_STOP.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
@@ -137,7 +134,7 @@ public class EventRegistrar {
         }
     }
 
-    public void onLevelLoad(LevelLoadingEvent.Load event) {
+    void onLevelLoad(LevelLoadingEvent.Load event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
@@ -149,7 +146,7 @@ public class EventRegistrar {
         }
     }
 
-    public void onLevelUnload(LevelLoadingEvent.Unload event) {
+    void onLevelUnload(LevelLoadingEvent.Unload event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))

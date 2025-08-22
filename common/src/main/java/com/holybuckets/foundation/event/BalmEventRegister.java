@@ -1,16 +1,11 @@
 package com.holybuckets.foundation.event;
 
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.command.BalmCommands;
 import net.blay09.mods.balm.api.event.*;
 
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
-import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
 import java.util.Objects;
@@ -35,12 +30,6 @@ public class BalmEventRegister {
 
 
         //** SERVER EVENTS **/
-
-        // Register only the custom event handlers
-        registry.onEvent(ServerStartingEvent.class, events::onBeforeServerStarted, EventPriority.Normal);
-        registry.onEvent(ServerStoppedEvent.class, events::onServerStopped, EventPriority.Normal);
-        registry.onEvent(LevelLoadingEvent.Load.class, events::onLevelLoad, EventPriority.Normal);
-        registry.onEvent(LevelLoadingEvent.Unload.class, events::onLevelUnload, EventPriority.Normal);
 
         events.ON_CHUNK_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach( c -> {
             registry.onEvent( ChunkLoadingEvent.Load.class, c, p(c));
@@ -121,7 +110,7 @@ public class BalmEventRegister {
         commands.register(CommandRegistry::register);
     }
 
-    static void registerOnTickEvents()
+    static void registerPriorityEvents()
     {
         //** TICK EVENTS **//
         BalmEvents registry = Balm.getEvents();
@@ -134,7 +123,14 @@ public class BalmEventRegister {
             registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, events::onServerLevelTick);
         }
 
+        // Register only the custom event handlers
+        registry.onEvent(ServerStartingEvent.class, events::onBeforeServerStarted, EventPriority.Normal);
+        registry.onEvent(ServerStoppedEvent.class, events::onServerStopped, EventPriority.Normal);
+
+        registry.onEvent(LevelLoadingEvent.Load.class, events::onLevelLoad, EventPriority.Normal);
+        registry.onEvent(LevelLoadingEvent.Unload.class, events::onLevelUnload, EventPriority.Normal);
 
     }
+
 
 }

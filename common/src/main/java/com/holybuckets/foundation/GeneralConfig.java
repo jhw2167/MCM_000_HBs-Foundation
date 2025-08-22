@@ -85,11 +85,6 @@ public class GeneralConfig {
         instance = new GeneralConfig();
         instance.dataStore = DataStore.init();
 
-        reg.registerOnBeforeServerStarted(instance::onBeforeServerStarted, EventPriority.Highest);
-        reg.registerOnServerStopped(instance::onServerStopped, EventPriority.Lowest);
-
-        reg.registerOnLevelLoad(instance::onLoadLevel, EventPriority.Highest);
-        reg.registerOnLevelUnload(instance::onUnLoadLevel, EventPriority.Lowest);
 
         //trigger these manually to ensure order is followed
         //reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);

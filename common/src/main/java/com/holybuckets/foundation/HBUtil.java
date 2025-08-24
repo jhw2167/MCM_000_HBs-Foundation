@@ -1490,7 +1490,40 @@ public class HBUtil {
     }
     //END VALIDATOR
 
+    public static class Math {
+        /**
+         * Clamps a value between a minimum and maximum
+         * @param value Value to clamp
+         * @param min Minimum allowed value
+         * @param max Maximum allowed value
+         * @return Clamped value
+         */
+        public static double clamp(double value, double min, double max) {
+            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+        }
 
+        /**
+         * Clamps a value between a minimum and maximum
+         * @param value Value to clamp
+         * @param min Minimum allowed value
+         * @param max Maximum allowed value
+         * @return Clamped value
+         */
+        public static float clamp(float value, float min, float max) {
+            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+        }
+
+        /**
+         * Clamps a value between a minimum and maximum
+         * @param value Value to clamp
+         * @param min Minimum allowed value
+         * @param max Maximum allowed value
+         * @return Clamped value
+         */
+        public static int clamp(int value, int min, int max) {
+            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+        }
+    }
 
     /**
     * Class: Fast3DArray

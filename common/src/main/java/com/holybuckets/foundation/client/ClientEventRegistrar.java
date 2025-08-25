@@ -148,12 +148,6 @@ public class ClientEventRegistrar {
      * Custom Events
      **/
 
-
-    public void onServerLevelTick(Level level) {
-        if( level == null ) return;
-        ManagedChunkEvents.onWorldTickStart(level);
-    }
-
     public void onClientTick(Minecraft client) {
         long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
         ClientTickEvent event = new ClientTickEvent(totalTicks);

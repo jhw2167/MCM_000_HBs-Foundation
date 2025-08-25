@@ -3,6 +3,7 @@ package com.holybuckets.foundation.datastore;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -120,8 +121,6 @@ public class WorldSaveData {
     private void init() {
         this.addProperty("worldId", new JsonPrimitive(worldId));
         this.addProperty("totalTicks", new JsonPrimitive(0L));
-        this.addProperty("lastSaveTime", new JsonPrimitive(System.currentTimeMillis()));
-        this.addProperty("saveCount", new JsonPrimitive(0));
     }
 
     /**
@@ -133,12 +132,6 @@ public class WorldSaveData {
         }
         if (!properties.containsKey("totalTicks")) {
             properties.put("totalTicks", new JsonPrimitive(0L));
-        }
-        if (!properties.containsKey("lastSaveTime")) {
-            properties.put("lastSaveTime", new JsonPrimitive(System.currentTimeMillis()));
-        }
-        if (!properties.containsKey("saveCount")) {
-            properties.put("saveCount", new JsonPrimitive(0));
         }
     }
 

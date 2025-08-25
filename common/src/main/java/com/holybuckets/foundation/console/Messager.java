@@ -3,9 +3,11 @@ package com.holybuckets.foundation.console;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ChatType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.OutgoingChatMessage;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Description: Messaging class handles user friendly messaging via console or popup
@@ -38,13 +40,20 @@ public class Messager {
     * @param player
     * @param message
     */
-    public void sendChat(ServerPlayer player, String message)
+    public void sendChat(Player player, String message)
     {
-        PlayerChatMessage msg = PlayerChatMessage.unsigned(player.getUUID(), message);
-        player.createCommandSourceStack().sendChatMessage(
-            new OutgoingChatMessage.Player( msg ),
-            false,
-            ChatType.bind(ChatType.CHAT, player));
+        if (player == null || message == null || message.isEmpty()) return;
+        if (player.level().isClientSide) return; // send only from server thread/side
+
+        // Avoid chat-signing; send as system messages. Also avoid '\n' by sending lines.
+        for (String line : message.split("\\R")) {
+            if (!line.isEmpty()) {
+                if(player instanceof ServerPlayer )
+                    player.sendSystemMessage(Component.literal(line));
+                else
+                    player.displayClientMessage(Component.literal(line), false);
+            }
+        }
     }
 
 

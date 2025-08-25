@@ -1490,7 +1490,7 @@ public class HBUtil {
     }
     //END VALIDATOR
 
-    public static class Math {
+    public static class HBMath {
         /**
          * Clamps a value between a minimum and maximum
          * @param value Value to clamp
@@ -1499,7 +1499,7 @@ public class HBUtil {
          * @return Clamped value
          */
         public static double clamp(double value, double min, double max) {
-            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+            return Math.max(min, Math.min(max, value));
         }
 
         /**
@@ -1510,7 +1510,7 @@ public class HBUtil {
          * @return Clamped value
          */
         public static float clamp(float value, float min, float max) {
-            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+            return Math.max(min, Math.min(max, value));
         }
 
         /**
@@ -1521,8 +1521,23 @@ public class HBUtil {
          * @return Clamped value
          */
         public static int clamp(int value, int min, int max) {
-            return java.lang.Math.max(min, java.lang.Math.min(max, value));
+            return Math.max(min, Math.min(max, value));
         }
+
+        /**
+         * Mixes the world seed with a passed seed to get a unique Random
+         *  ALG: worldSeed ^ seed
+         * @param seed
+         * @return
+         */
+        public static Random seededRandom(long seed) {
+            long worldSeed = GeneralConfig.getInstance().getWorldSeed();
+            if( worldSeed > -2 && worldSeed < 2 ) {
+                worldSeed = (new Random(worldSeed)).nextLong(-1000000, 1000000);
+            }
+            return new Random(worldSeed ^ seed);
+        }
+
     }
 
     /**

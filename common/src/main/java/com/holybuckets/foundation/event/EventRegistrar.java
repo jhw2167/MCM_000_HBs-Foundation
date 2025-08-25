@@ -104,8 +104,7 @@ public class EventRegistrar {
 
     public static void init() {
         instance = new EventRegistrar();
-
-        BalmEventRegister.registerPriorityEvents();
+        BalmEventRegister.registerPriorityEvents(instance);
     }
 
     void onBeforeServerStarted(ServerStartingEvent event) {
@@ -113,12 +112,12 @@ public class EventRegistrar {
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
             .toList();
-            
+
+        GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Execute in priority order
         for (Consumer<ServerStartingEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
-        
 
     }
 
@@ -132,6 +131,8 @@ public class EventRegistrar {
         for (Consumer<ServerStoppedEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
+
+        GeneralConfig.fireEvent(ServerStoppedEvent.class, event);
     }
 
     void onServerStarted(ServerStartedEvent event) {
@@ -151,7 +152,8 @@ public class EventRegistrar {
         List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
             .toList();
-            
+
+        GeneralConfig.fireEvent(LevelLoadingEvent.Load.class, event);
         // Execute in priority order
         for (Consumer<LevelLoadingEvent.Load> consumer : sortedConsumers) {
             tryEvent(consumer, event);
@@ -163,7 +165,8 @@ public class EventRegistrar {
         List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
             .toList();
-            
+
+        GeneralConfig.fireEvent(LevelLoadingEvent.Unload.class, event);
         // Execute in priority order
         for (Consumer<LevelLoadingEvent.Unload> consumer : sortedConsumers) {
             tryEvent(consumer, event);

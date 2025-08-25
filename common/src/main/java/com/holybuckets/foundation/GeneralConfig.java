@@ -12,7 +12,6 @@ import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
-import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -105,18 +104,14 @@ public class GeneralConfig {
         if(eventClass.equals(ServerStartingEvent.class))
             instance.onBeforeServerStarted((ServerStartingEvent) event);
 
-        if(eventClass.equals(ServerStartedEvent.class))
-            instance.onServerStarted((ServerStartedEvent) event);
-
         if(eventClass.equals(ServerStoppedEvent.class))
             instance.onServerStopped((ServerStoppedEvent) event);
 
         if(eventClass.equals(LevelLoadingEvent.Load.class))
-            instance.onLoadLevel((LevelLoadingEvent.Load) event);
+            instance.onLevelLoad((LevelLoadingEvent.Load) event);
 
         if(eventClass.equals(LevelLoadingEvent.Unload.class))
-            instance.onUnLoadLevel((LevelLoadingEvent.Unload) event);
-
+            instance.onLevelUnload((LevelLoadingEvent.Unload) event);
 
     }
 
@@ -199,7 +194,8 @@ public class GeneralConfig {
     public static ServerLevel OVERWORLD;
     public static ServerLevel NETHER;
     public static ServerLevel END;
-    public void onLoadLevel(LevelLoadingEvent.Load event)
+
+    public void onLevelLoad(LevelLoadingEvent.Load event)
     {
         Level level = (Level) event.getLevel();
         this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
@@ -220,7 +216,7 @@ public class GeneralConfig {
         }
     }
 
-    public void onUnLoadLevel(LevelLoadingEvent.Unload event)  {
+    public void onLevelUnload(LevelLoadingEvent.Unload event)  {
         if(event.getLevel().isClientSide()) return;
 
         LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, (Level) event.getLevel());

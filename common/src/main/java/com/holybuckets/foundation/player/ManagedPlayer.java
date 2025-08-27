@@ -134,8 +134,10 @@ public class ManagedPlayer {
         if (this.id != null && this.player != null)
         {
             try {
-                if (this.holdNbt != null )
+                if (this.holdNbt != null ) {
                     this.initSubclassesFromNbt(this.holdNbt);
+                }
+
                 this.holdNbt = null; // Clear the held NBT after processing
                 this.onPlayerJoinComplete();
             } catch (InvalidId e) {
@@ -342,7 +344,7 @@ public class ManagedPlayer {
             CompoundTag tag = this.serializeNBT();
             if(tag.isEmpty()) return;
             if(this.serverPlayer != null) {
-                serverPlayer.addAdditionalSaveData(tag);
+                //serverPlayer.addAdditionalSaveData(tag); //Does not add my data to the player, just saves other serverLevelData
             }
         } catch (Exception e) {
             LoggerBase.logError(null, "004004", "Error saving ManagedPlayer: " + e.getMessage());
@@ -375,7 +377,7 @@ public class ManagedPlayer {
         String id = HBUtil.PlayerUtil.getId(player);
         ManagedPlayer mp = PLAYERS.get(id);
         if(mp != null) {
-            mp.save();
+            //mp.save();
             mp.onPlayerLeave();
         }
     }
@@ -466,7 +468,7 @@ public class ManagedPlayer {
 
     public static void onServerStopped(ServerStoppedEvent event) {
         for (ManagedPlayer player : PLAYERS.values()) {
-            player.save();
+            //player.save();
         }
         PLAYERS.clear();
         PENDING_PLAYERS.clear();

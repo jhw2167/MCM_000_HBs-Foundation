@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -1492,10 +1493,11 @@ public class HBUtil {
 
     public static class HBMath {
         // Map to track existing UUIDs for collision detection
-        private static final Map<ResourceLocation, Set<Long>> existingUUIDs = new ConcurrentHashMap<>();
+        private static final Map<ResourceLocation, Map<Integer,Set<Long>>> existingUUIDs = new ConcurrentHashMap<>();
 
         /**
-         * Generates a unique ID of specified length from a string for a given namespace
+         * Generates a unique ID of specified length from a string for a given namespace. Should chiefly
+         * be used on initial startup because collision information is not persisted.
          * @param namespace ResourceLocation where this ID should be unique
          * @param input String to convert to unique ID
          * @param digits Maximum number of digits in resulting hash
@@ -1507,23 +1509,19 @@ public class HBUtil {
             }
 
             // Initialize set for this namespace if needed
-            existingUUIDs.putIfAbsent(namespace, ConcurrentHashMap.newKeySet());
-            Set<Long> usedIDs = existingUUIDs.get(namespace);
+            existingUUIDs.putIfAbsent(namespace, new ConcurrentHashMap<>());
+            Map<Integer, Set<Long>> ids = existingUUIDs.get(namespace);
+            ids.putIfAbsent(digits, ConcurrentHashMap.newKeySet());
 
-            // Generate initial hash
             long hash = Math.abs(input.hashCode());
-            
-            // Limit to specified number of digits
             long maxValue = (long)Math.pow(10, digits) - 1;
             hash = hash % maxValue;
-
-            // Handle collisions by incrementing until we find an unused ID
-            while (usedIDs.contains(hash)) {
+            //handle collisions
+            while (ids.get(digits).contains(hash) ) {
                 hash = (hash + 1) % maxValue;
             }
 
-            // Record this ID as used
-            usedIDs.add(hash);
+            ids.get(digits).add(hash);
             return hash;
         }
 

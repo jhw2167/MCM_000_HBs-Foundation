@@ -308,6 +308,33 @@ public class HBUtil {
             return b;
         }
 
+        /**
+         * Gets the ResourceLocation for a block from a string identifier
+         * @param blockId String block identifier (e.g. "minecraft:stone")
+         * @return ResourceLocation for the block, or null if invalid
+         */
+        public static ResourceLocation getBlockResourceLocation(String blockId) {
+            if (blockId == null || blockId.isEmpty()) {
+                return null;
+            }
+            String[] parts = blockId.split(":");
+            String namespace = parts.length > 1 ? parts[0] : "minecraft";
+            String path = parts.length > 1 ? parts[1] : parts[0];
+            return new ResourceLocation(namespace.trim(), path.trim());
+        }
+
+        /**
+         * Gets the ResourceLocation for a block
+         * @param block Block to get ResourceLocation for
+         * @return ResourceLocation for the block, or null if block is null
+         */
+        public static ResourceLocation getBlockResourceLocation(Block block) {
+            if (block == null) {
+                return null;
+            }
+            return BuiltInRegistries.BLOCK.getKey(block);
+        }
+
         public static String positionToString(Vec3i pos)
         {
             if( pos == null)
@@ -607,6 +634,33 @@ public class HBUtil {
 
         public static boolean testLevel(Level level, ResourceLocation location) {
             return level.dimension().location().equals(location);
+        }
+
+        /**
+         * Gets the ResourceLocation for a level from a string identifier
+         * @param levelId String level identifier (e.g. "minecraft:overworld")
+         * @return ResourceLocation for the level, or null if invalid
+         */
+        public static ResourceLocation getLevelResourceLocation(String levelId) {
+            if (levelId == null || levelId.isEmpty()) {
+                return null;
+            }
+            String[] parts = levelId.split(":");
+            String namespace = parts.length > 1 ? parts[0] : "minecraft";
+            String path = parts.length > 1 ? parts[1] : parts[0];
+            return new ResourceLocation(namespace.trim(), path.trim());
+        }
+
+        /**
+         * Gets the ResourceLocation for a level
+         * @param level Level to get ResourceLocation for
+         * @return ResourceLocation for the level, or null if level is null
+         */
+        public static ResourceLocation getLevelResourceLocation(Level level) {
+            if (level == null) {
+                return null;
+            }
+            return level.dimension().location();
         }
 
         /**

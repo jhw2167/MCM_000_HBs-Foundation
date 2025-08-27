@@ -1491,6 +1491,42 @@ public class HBUtil {
     //END VALIDATOR
 
     public static class HBMath {
+        // Map to track existing UUIDs for collision detection
+        private static final Map<ResourceLocation, Set<Long>> existingUUIDs = new ConcurrentHashMap<>();
+
+        /**
+         * Generates a unique ID of specified length from a string for a given namespace
+         * @param namespace ResourceLocation where this ID should be unique
+         * @param input String to convert to unique ID
+         * @param digits Maximum number of digits in resulting hash
+         * @return Unique long ID
+         */
+        public static long getUUID(ResourceLocation namespace, String input, int digits) {
+            if (input == null || input.isEmpty() || digits < 1) {
+                return 0;
+            }
+
+            // Initialize set for this namespace if needed
+            existingUUIDs.putIfAbsent(namespace, ConcurrentHashMap.newKeySet());
+            Set<Long> usedIDs = existingUUIDs.get(namespace);
+
+            // Generate initial hash
+            long hash = Math.abs(input.hashCode());
+            
+            // Limit to specified number of digits
+            long maxValue = (long)Math.pow(10, digits) - 1;
+            hash = hash % maxValue;
+
+            // Handle collisions by incrementing until we find an unused ID
+            while (usedIDs.contains(hash)) {
+                hash = (hash + 1) % maxValue;
+            }
+
+            // Record this ID as used
+            usedIDs.add(hash);
+            return hash;
+        }
+
         /**
          * Clamps a value between a minimum and maximum
          * @param value Value to clamp

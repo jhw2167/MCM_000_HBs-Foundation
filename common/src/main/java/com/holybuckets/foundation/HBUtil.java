@@ -614,11 +614,35 @@ public class HBUtil {
          * @param biomeId String biome identifier (e.g. "minecraft:plains")
          * @return Holder<Biome> for the requested biome, or null if not found
          */
-        public static Holder<Biome> getBiome(String biomeId) {
-            if (biomeId == null || biomeId.isEmpty()) {
-                return null;
+        public static Biome getBiome(String biomeName) {
+            ResourceLocation biome = toBiomeResourceLocation(biomeName);
+            return getBiome(biome);
+        }
+
+        public static ResourceLocation toBiomeResourceLocation(String biomeName)
+        {
+            if (biomeName == null) return null;
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null) return null;
+
+            //try to split biomeName into namespace and path
+            String biomeId = biomeName;
+            String nmspace = "minecraft";
+            if( biomeName.contains(":") ) {
+                String[] parts = biomeName.split(":");
+                nmspace = parts[0];
+                biomeId = parts[1];
             }
-            return getBiome(new ResourceLocation(biomeId));
+
+            return new ResourceLocation(nmspace, biomeId);
+        }
+
+        public static ResourceLocation toBiomeResourceLocation(Biome biome) {
+            if (biome == null) return null;
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null) return null;
+            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            return biomeRegistry.getKey(biome);
         }
 
         /**
@@ -626,7 +650,7 @@ public class HBUtil {
          * @param location ResourceLocation for the biome
          * @return Holder<Biome> for the requested biome, or null if not found
          */
-        public static Holder<Biome> getBiome(ResourceLocation location) {
+        public static Biome getBiome(ResourceLocation location) {
             if (location == null) {
                 return null;
             }
@@ -635,7 +659,7 @@ public class HBUtil {
                 return null;
             }
             Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
-            return biomeRegistry.getHolder(location).orElse(null);
+            return biomeRegistry.get(location);
         }
     }
 

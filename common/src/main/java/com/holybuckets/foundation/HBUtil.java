@@ -1670,6 +1670,18 @@ public class HBUtil {
         }
 
         /**
+         * Gets a Block from a ResourceLocation
+         * @param location ResourceLocation to look up
+         * @return Block if found, null if not found or location is null
+         */
+        public static Block getBlockFromResourceLocation(ResourceLocation location) {
+            if (location == null) {
+                return null;
+            }
+            return Balm.getRegistries().getBlock(location);
+        }
+
+        /**
          * Mixes the world seed with a passed seed to get a unique Random
          *  ALG: worldSeed ^ seed
          * @param seed

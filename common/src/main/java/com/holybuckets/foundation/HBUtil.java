@@ -33,6 +33,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
@@ -603,6 +607,35 @@ public class HBUtil {
 
         public static boolean testLevel(Level level, ResourceLocation location) {
             return level.dimension().location().equals(location);
+        }
+
+        /**
+         * Gets a biome from the vanilla biome registry using a string ID
+         * @param biomeId String biome identifier (e.g. "minecraft:plains")
+         * @return Holder<Biome> for the requested biome, or null if not found
+         */
+        public static Holder<Biome> getBiome(String biomeId) {
+            if (biomeId == null || biomeId.isEmpty()) {
+                return null;
+            }
+            return getBiome(new ResourceLocation(biomeId));
+        }
+
+        /**
+         * Gets a biome from the vanilla biome registry using a ResourceLocation
+         * @param location ResourceLocation for the biome
+         * @return Holder<Biome> for the requested biome, or null if not found
+         */
+        public static Holder<Biome> getBiome(ResourceLocation location) {
+            if (location == null) {
+                return null;
+            }
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null) {
+                return null;
+            }
+            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            return biomeRegistry.getHolder(location).orElse(null);
         }
     }
 

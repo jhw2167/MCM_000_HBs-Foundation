@@ -411,12 +411,13 @@ public class EventRegistrar {
      * Custom Events
      **/
 
-    public void dataSaveEvent() {
+    public void dataSaveEvent(boolean writeOut) {
         DatastoreSaveEvent event = DatastoreSaveEvent.create();
         for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
             saver.accept(event);
         }
-        event.getDataStore().save();
+
+        if( writeOut ) event.getDataStore().write();
     }
 
     public void onServerTick(MinecraftServer s) {
@@ -527,6 +528,8 @@ public class EventRegistrar {
                     return 120;
                 case ON_1200_TICKS:
                     return 1200;
+                case ON_6000_TICKS:
+                    return 6000;
                 case ON_24000_TICKS:
                     return 24000; // 1 day in ticks
                 default:

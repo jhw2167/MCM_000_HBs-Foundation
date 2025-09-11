@@ -9,9 +9,12 @@ import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
+import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -27,8 +30,6 @@ import net.minecraft.world.level.storage.LevelData;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 /**
@@ -47,7 +48,7 @@ public class GeneralConfig {
      **/
     private static GeneralConfig instance;
     private DataStore dataStore;
-    private ExecutorService watchExecutorService;
+    //private ExecutorService watchExecutorService;
     private volatile boolean running = true;
     private boolean isClientSide;
     private boolean isServerSide;
@@ -88,6 +89,7 @@ public class GeneralConfig {
         //trigger these manually to ensure order is followed
         //reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
         //reg.registerOnDailyTick(null,  instance::onDailyTick, EventPriority.Highest);
+        reg.registerOnServerTick(TickType.ON_1200_TICKS, instance::on1200Ticks, EventPriority.Lowest);
     }
 
     public static void fireEvent(Class<?> eventClass, Object event) {
@@ -121,14 +123,32 @@ public class GeneralConfig {
     }
 
     private void onDailyTick(ServerTickEvent.DailyTickEvent event) {
-        Level l = event.getLevel();
-        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, event.getLevel());
-        long dayTickLength = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-        long nextDailyTick = event.getTickCount() + dayTickLength;
-        
-        int totalDays = lsd.get("totalDays").getAsInt() + 1;
-        lsd.addProperty("totalDays", new JsonPrimitive(totalDays));
-        lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
+        this.saveData(event.getLevel());
+        EventRegistrar.getInstance().dataSaveEvent(true);
+    }
+
+    private void on1200Ticks(ServerTickEvent event) {
+        this.saveData(null);
+        EventRegistrar.getInstance().dataSaveEvent(false);
+    }
+
+    private void saveData(Level level)
+    {
+        WorldSaveData worldData = dataStore.getOrCreateWorldSaveData(Constants.MOD_ID);
+        Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
+        worldData.addProperty("totalTicks", new JsonPrimitive(currentTicks) );
+
+        if(level != null) {
+            LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+            long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            long nextDailyTick = currentTicks + dayTickLength;
+
+            int totalDays = lsd.get("totalDays").getAsInt() + 1;
+            lsd.addProperty("totalDays", new JsonPrimitive(totalDays));
+            lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
+        }
+
+
     }
 
 
@@ -173,8 +193,6 @@ public class GeneralConfig {
 
         this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
-        this.watchExecutorService = Executors.newSingleThreadExecutor();
-        this.watchExecutorService.submit(this::startAutoSaveThread);
     }
 
     public void onServerStopped(ServerStoppedEvent event) {
@@ -328,30 +346,6 @@ public class GeneralConfig {
      * SAVE METHODS - register class to save method
      */
 
-    private void startAutoSaveThread()
-    {
-        while (running) {
-            try {
-                Thread.sleep(30000); // 30 seconds
-                if (running) {
-                    EventRegistrar.getInstance().dataSaveEvent();
-                }
-            } catch (InterruptedException e) {
-                // Interrupted, exit the thread
-                break;
-            }
-        }
-    }
-
-    public void stopAutoSaveThread()
-    {
-        try {
-            this.watchExecutorService.awaitTermination(1000, java.util.concurrent.TimeUnit.MILLISECONDS);
-            this.watchExecutorService.shutdownNow();
-        } catch (InterruptedException e) {
-            LoggerBase.logError(null, "006002", "Error stopping AutoSaveThread");
-            }
-    }
 
 
     //** SUBCLASSES

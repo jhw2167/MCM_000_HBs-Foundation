@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.holybuckets.foundation.GeneralConfig;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -119,8 +120,7 @@ public class WorldSaveData {
      * Initialize default world properties
      */
     private void init() {
-        this.addProperty("worldId", new JsonPrimitive(worldId));
-        this.addProperty("totalTicks", new JsonPrimitive(0L));
+        this.validate();
     }
 
     /**
@@ -133,6 +133,11 @@ public class WorldSaveData {
         if (!properties.containsKey("totalTicks")) {
             properties.put("totalTicks", new JsonPrimitive(0L));
         }
+
+        if(!properties.containsKey("worldSeed")) {
+            properties.put("worldSeed", new JsonPrimitive(GeneralConfig.getInstance().getWorldSeed()));
+        }
+
     }
 
 

@@ -40,6 +40,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -714,6 +715,22 @@ public class HBUtil {
             }
             Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
             return biomeRegistry.get(location);
+        }
+
+        public static ResourceLocation getBiomeName(Biome b) {
+            if (b == null) return null;
+
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null) return null;
+
+            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            return biomeRegistry.getKey(b);
+        }
+
+        public static Holder<Biome> getBiomeFromSection(LevelChunkSection sec, int x, int y, int z) {
+            if (sec == null) return null;
+            if (sec.getBiomes() == null) return null;
+            return sec.getNoiseBiome(x>>2, y>>2, z>>2);
         }
     }
 
@@ -1634,6 +1651,10 @@ public class HBUtil {
 
             ids.get(digits).add(hash);
             return hash;
+        }
+
+        public static void clearUUIDs(ResourceLocation namespace) {
+            existingUUIDs.remove(namespace);
         }
 
         /**

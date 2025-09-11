@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -48,7 +49,7 @@ public class DataStore implements IStringSerializable {
         this.currentWorldId = worldId;
         String json = HBUtil.FileIO.loadJsonConfigs(DATA_STORE_FILE, DATA_STORE_FILE, new DefaultDataStore());
         this.deserialize(json);
-        this.save();
+        this.write();
     }
 
 
@@ -95,12 +96,10 @@ public class DataStore implements IStringSerializable {
             config = GeneralConfig.getInstance();
         }
 
-        WorldSaveData worldData = modData.getOrCreateWorldSaveData(currentWorldId);
-        worldData.addProperty("worldSeed", parse(config.getWorldSeed()) );
-        worldData.addProperty("totalTicks", parse(Integer.valueOf(0)) );
-
+        modData.getOrCreateWorldSaveData(currentWorldId);
         return true;
     }
+
     private static JsonElement parse(Object o) {
         return JsonParser.parseString( GeneralConfig.GSON.toJson(o) );
     }
@@ -129,21 +128,29 @@ public class DataStore implements IStringSerializable {
         }
 
 
-        JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-        JsonArray modSaveDataArray = json.getAsJsonArray("modSaveData");
-        modSaveDataArray.forEach(modSaveData -> {
-            ModSaveData data = new ModSaveData(modSaveData.getAsJsonObject());
-            STORE.put(data.getModId(), data);
-        });
+        try {
+            JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
+            JsonArray modSaveDataArray = json.getAsJsonArray("modSaveData");
+            if (modSaveDataArray == null || !modSaveDataArray.isJsonArray()) {
+                throw new JsonParseException("modSaveData is missing or not an array");
+            }
+            modSaveDataArray.forEach(modSaveData -> {
+                ModSaveData data = new ModSaveData(modSaveData.getAsJsonObject());
+                STORE.put(data.getModId(), data);
+            });
+        } catch (Exception e) {
+            malformedJson = jsonString;
+            LoggerBase.logError(null, "007011" , "Error processing mod save data, entire suspect data written out to hb_datastore.json");
+        }
+
 
         if( malformedJson != null)
         {
             ModSaveData utilData = STORE.get(Constants.MOD_ID);
             String asString = malformedJson.replace('"','\'' ).replaceAll("\r\n", "");
             utilData.addProperty("malformedJson",parse( asString ) );
-            this.save();
+            this.write();
         }
-
 
     }
 
@@ -157,7 +164,7 @@ public class DataStore implements IStringSerializable {
         return json.toString();
     }
 
-    public void save() {
+    public void write() {
         HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
     }
 
@@ -182,13 +189,11 @@ public class DataStore implements IStringSerializable {
     }
     public void shutdown(ServerStoppedEvent s)
     {
-        GeneralConfig config = GeneralConfig.getInstance();
-        config.stopAutoSaveThread();
         try {
             WorldSaveData worldData = this.getOrCreateWorldSaveData(Constants.MOD_ID);
-            Long currentTicks = config.getTotalTickCount();
+            Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
             worldData.addProperty("totalTicks", parse(currentTicks) );
-            this.save();
+            this.write();
         } catch (Exception e) {
             // If the world data is not initialized, we cannot save it
             return;

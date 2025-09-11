@@ -35,6 +35,7 @@ public class ManagedChunk implements IMangedChunkData {
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
 
     private String id;
@@ -79,6 +80,7 @@ public class ManagedChunk implements IMangedChunkData {
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
         INITIALIZED_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
+        CHUNK_CACHE.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
         INITIALIZED_CHUNKS.get(this.level).add(this.id);
     }
@@ -438,6 +440,13 @@ public class ManagedChunk implements IMangedChunkData {
 
 
     }
+
+    /*
+    @Override
+    public int hashCode() {
+        return HBUtil.ChunkUtil.getChunkPos1DMap(this.getChunkPos());
+    }
+    */
 
 
 }

@@ -11,12 +11,18 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.LevelStorageSource;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import static com.holybuckets.foundation.GeneralConfig.TICKS_PER_DAY;
 
 /**
  * Class DataStore - manages a simple persisted json file used as a datastore that holds
@@ -31,6 +37,7 @@ public class DataStore implements IStringSerializable {
     private static final File DATA_STORE_FILE = new File("hb_datastore.json");
     private final Map<String, ModSaveData> STORE;
     private String currentWorldId;
+    private long totalTickCountFromPreviousSession;
 
     private DataStore() {
         super();
@@ -44,10 +51,11 @@ public class DataStore implements IStringSerializable {
     }
 
 
-    private void loadData(String worldId)
+    private void loadData(Path worldPath)
     {
-        this.currentWorldId = worldId;
-        String json = HBUtil.FileIO.loadJsonConfigs(DATA_STORE_FILE, DATA_STORE_FILE, new DefaultDataStore());
+        this.currentWorldId = worldPath.getParent().getFileName().toString();
+        File dataStoreFile = new File(worldPath.toFile(), DATA_STORE_FILE.getName());
+        String json = HBUtil.FileIO.loadJsonConfigs(dataStoreFile, DATA_STORE_FILE, new DefaultDataStore());
         this.deserialize(json);
         this.write();
     }
@@ -88,8 +96,10 @@ public class DataStore implements IStringSerializable {
     public boolean initWorldDataOnServerStart(ServerStartingEvent event)
     {
         ModSaveData modData = getOrCreateModSavedData(Constants.MOD_ID);
-        if (modData.worldSaveData.containsKey(currentWorldId))
+        if (modData.worldSaveData.containsKey(currentWorldId)) {
+            this.totalTickCountFromPreviousSession = modData.getOrCreateWorldSaveData(currentWorldId).get("totalTicks").getAsLong();
             return false;
+        }
 
         GeneralConfig config = GeneralConfig.getInstance();
         while( config == null || !config.isWorldConfigInit() ){
@@ -97,12 +107,26 @@ public class DataStore implements IStringSerializable {
         }
 
         modData.getOrCreateWorldSaveData(currentWorldId);
+        this.totalTickCountFromPreviousSession = 0L;
         return true;
     }
 
     private static JsonElement parse(Object o) {
         return JsonParser.parseString( GeneralConfig.GSON.toJson(o) );
     }
+
+    /**
+     * On Server Stopped, remove any world data from deleted worlds
+     */
+    private void removeDeletedWorldSaveData(LevelStorageSource lss) {
+        //LevelStorageSource lss = event.server().file .getLevelSource();
+        Set<String> worldNames = lss.findLevelCandidates().levels().stream().map( ld -> ld.directoryName()).collect(HashSet::new, HashSet::add, HashSet::addAll);
+        if(worldNames.isEmpty()) return;
+        STORE.forEach((modId, modData) -> {
+            modData.worldSaveData.keySet().removeIf( worldId -> !worldNames.contains(worldId) );
+        });
+    }
+
 
     /** Serializers **/
 
@@ -165,31 +189,29 @@ public class DataStore implements IStringSerializable {
     }
 
     public void write() {
+        if(this.currentWorldPath == null) return;
         HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
     }
 
+    //** EVENTS
 
-    /** STATIC METHODS **/
 
-    public void onBeforeServerStarted(ServerStartingEvent serverStartedEvent) {
-        this.initDatastoreOnServerStart(serverStartedEvent);
-        new Thread( () -> {
-            this.initWorldDataOnServerStart(serverStartedEvent);
-        }).start();
-    }
-
-    private void initDatastoreOnServerStart(ServerStartingEvent event) {
+    public void onBeforeServerStarted(ServerStartingEvent event) {
         MinecraftServer s = event.getServer();
         Path path = s.getWorldPath( LevelResource.ROOT );
-        this.loadData( path.getParent().getFileName().toString() );
+
+        this.loadData( path );
+        this.initWorldDataOnServerStart(event);
     }
 
     public void onServerStopped( ServerStoppedEvent s ) {
         this.shutdown(s);
     }
+
     public void shutdown(ServerStoppedEvent s)
     {
         try {
+
             WorldSaveData worldData = this.getOrCreateWorldSaveData(Constants.MOD_ID);
             Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
             worldData.addProperty("totalTicks", parse(currentTicks) );
@@ -201,6 +223,8 @@ public class DataStore implements IStringSerializable {
 
     }
 
+    /** STATIC METHODS **/
+
     //write a public static method to retrieve the world properties
     public static Long getTotalTickCount() {
         ModSaveData modData = INSTANCE.getOrCreateModSavedData(Constants.MOD_ID);
@@ -209,6 +233,27 @@ public class DataStore implements IStringSerializable {
 
         WorldSaveData worldData = modData.getOrCreateWorldSaveData(INSTANCE.currentWorldId);
         return worldData.get("totalTicks").getAsLong();
+    }
+
+    /**
+     * Total world ticks from before the last server shutdown
+     * @return Long total ticks
+     */
+    public static Long getTotalTicksFromPreviousSession() {
+        return INSTANCE.totalTickCountFromPreviousSession;
+    }
+
+
+    //Initialize default properties
+    private static void initLevelSaveData(LevelSaveData lsd, LevelAccessor l)
+    {
+        String id = HBUtil.LevelUtil.toLevelId(l);
+        lsd.addProperty("levelId", new JsonPrimitive(id));
+        lsd.addProperty("totalSleeps", new JsonPrimitive(0));
+        lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
+        lsd.addProperty("totalDays", new JsonPrimitive(0));
+        long nextDailyTick = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+        lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
 
 

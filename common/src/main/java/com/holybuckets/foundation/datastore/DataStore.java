@@ -37,6 +37,7 @@ public class DataStore implements IStringSerializable {
     private static final File DATA_STORE_FILE = new File("hb_datastore.json");
     private final Map<String, ModSaveData> STORE;
     private String currentWorldId;
+    private Path currentWorldPath;
     private long totalTickCountFromPreviousSession;
 
     private DataStore() {
@@ -51,8 +52,9 @@ public class DataStore implements IStringSerializable {
     }
 
 
-    private void loadData(Path worldPath)
+    private void loadData(Path worldPath) 
     {
+        this.currentWorldPath = worldPath;
         this.currentWorldId = worldPath.getParent().getFileName().toString();
         File dataStoreFile = new File(worldPath.toFile(), DATA_STORE_FILE.getName());
         String json = HBUtil.FileIO.loadJsonConfigs(dataStoreFile, DATA_STORE_FILE, new DefaultDataStore());
@@ -191,6 +193,10 @@ public class DataStore implements IStringSerializable {
     public void write() {
         if(this.currentWorldPath == null) return;
         HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
+    }
+
+    public Path getCurrentWorldPath() {
+        return currentWorldPath;
     }
 
     //** EVENTS

@@ -17,6 +17,8 @@ import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -47,6 +49,8 @@ public class ClientEventRegistrar {
     final Set<Consumer<ClientStartedEvent>> ON_CLIENT_STARTED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ConnectedToServerEvent>> ON_CONNECTED_TO_SERVER = new ConcurrentSet<>();
     final Set<Consumer<DisconnectedFromServerEvent>> ON_DISCONNECTED_FROM_SERVER = new ConcurrentSet<>();
+    final Set<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentSet<>();
+    final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
     final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
     final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
@@ -112,6 +116,22 @@ public class ClientEventRegistrar {
 
     public void registerOnDisconnectedFromServer(Consumer<DisconnectedFromServerEvent> function, EventPriority priority) {
         generalRegister(function, ON_DISCONNECTED_FROM_SERVER, priority);
+    }
+
+    public void registerOnBeforeServerStart(Consumer<ServerStartingEvent> function) {
+        registerOnBeforeServerStart(function, EventPriority.Normal);
+    }
+
+    public void registerOnBeforeServerStart(Consumer<ServerStartingEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BEFORE_SERVER_START, priority);
+    }
+
+    public void registerOnServerStop(Consumer<ServerStoppedEvent> function) {
+        registerOnServerStop(function, EventPriority.Normal);
+    }
+
+    public void registerOnServerStop(Consumer<ServerStoppedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_SERVER_STOP, priority);
     }
 
     public void registerOnClientInput(Consumer<ClientInputEvent> function) {

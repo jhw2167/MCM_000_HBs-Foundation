@@ -36,8 +36,6 @@ public class LevelSaveData {
         this.level = level;
         this.levelId = LevelUtil.toLevelId(level);
         this.properties = new ConcurrentHashMap<>();
-
-        this.init(level);
     }
 
     public LevelSaveData(JsonObject json)
@@ -47,16 +45,6 @@ public class LevelSaveData {
         this.level = null;
         this.properties = new ConcurrentHashMap<>();
         this.fromJson(json);
-    }
-
-    //Initialize default properties
-    private void init(LevelAccessor l) {
-        this.addProperty("levelId", new JsonPrimitive(levelId));
-        this.addProperty("totalSleeps", new JsonPrimitive(0));
-        this.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
-        this.addProperty("totalDays", new JsonPrimitive(0));
-        long nextDailyTick = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-        this.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
     }
 
 

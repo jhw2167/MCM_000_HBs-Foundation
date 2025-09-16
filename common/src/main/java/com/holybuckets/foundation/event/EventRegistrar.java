@@ -434,10 +434,10 @@ public class EventRegistrar {
 
         // Handle daily tick events
         Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
-        List<Level> levels = config.getLevels().values().stream().toList();
 
-        for( Level l : levels)
+        for( Level l : config.getLevels().values())
         {
+            if(l.isClientSide) continue;
             if (config.getNextDailyTick(l) > totalTicks) continue;
 
             ResourceLocation dimLoc = l.dimension().location();
@@ -445,7 +445,9 @@ public class EventRegistrar {
             cache.put(dimLoc, new DailyTickEvent(totalTicks, sleepTicks, l, false));
         }
 
+        //Fire General Config Daily events
         cache.forEach((dim, dailyTickEvent) -> GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent));
+        //Fire registered daily tick events
         DAILY_TICK_EVENTS.asMap().forEach((dimLoc, consumers) -> {
             if( dimLoc == EMPTY_LOC ) {
              cache.forEach((dim, dailyTickEvent) -> consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent)) );
@@ -454,6 +456,7 @@ public class EventRegistrar {
            if( !cache.containsKey(dimLoc) ) return;
 
            DailyTickEvent dailyTickEvent = cache.get(dimLoc);
+           LoggerBase.logDebug(null, "010200", "Firing daily tick event for dimension: " + dimLoc);
            consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent));
         });
     }

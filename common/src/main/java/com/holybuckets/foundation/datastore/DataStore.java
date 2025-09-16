@@ -54,10 +54,9 @@ public class DataStore implements IStringSerializable {
 
     private void loadData(Path worldPath) 
     {
-        this.currentWorldPath = worldPath;
         this.currentWorldId = worldPath.getParent().getFileName().toString();
-        File dataStoreFile = new File(worldPath.toFile(), DATA_STORE_FILE.getName());
-        String json = HBUtil.FileIO.loadJsonConfigs(dataStoreFile, DATA_STORE_FILE, new DefaultDataStore());
+        this.currentWorldPath = worldPath.resolve(  DATA_STORE_FILE.toPath() );
+        String json = HBUtil.FileIO.loadJsonConfigs(currentWorldPath.toFile(), DATA_STORE_FILE, new DefaultDataStore());
         this.deserialize(json);
         this.write();
     }
@@ -192,7 +191,7 @@ public class DataStore implements IStringSerializable {
 
     public void write() {
         if(this.currentWorldPath == null) return;
-        HBUtil.FileIO.serializeJsonConfigs(DATA_STORE_FILE, this.serialize());
+        HBUtil.FileIO.serializeJsonConfigs(currentWorldPath.toFile(), this.serialize());
     }
 
     public Path getCurrentWorldPath() {

@@ -122,33 +122,43 @@ public class GeneralConfig {
         lsd.addProperty("totalSleeps", new JsonPrimitive(event.getTotalSleeps()));
     }
 
-    private void onDailyTick(ServerTickEvent.DailyTickEvent event) {
+    private void onDailyTick(ServerTickEvent.DailyTickEvent event)
+    {
+        if(event.getLevel() != null)
+        {
+            Level level = event.getLevel();
+            LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+            long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            //long dayTickLength = 500;
+            long nextDailyTick = event.getTickCount() + dayTickLength;
+            int totalDays = this.getTotalDays(level)+1;
+
+            lsd.addProperty("totalDays", new JsonPrimitive(totalDays));
+            lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
+
+            long sleepTicks = this.getTotalTickCountWithSleep(level);
+            lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(sleepTicks));
+        }
         this.saveData(event.getLevel());
-        EventRegistrar.getInstance().dataSaveEvent(true);
+        EventRegistrar.getInstance().dataSaveEvent(false);
     }
 
     private void on1200Ticks(ServerTickEvent event) {
         this.saveData(null);
-        EventRegistrar.getInstance().dataSaveEvent(false);
+        EventRegistrar.getInstance().dataSaveEvent(true);
     }
 
+    //saveData()
     private void saveData(Level level)
     {
         WorldSaveData worldData = dataStore.getOrCreateWorldSaveData(Constants.MOD_ID);
-        Long currentTicks = GeneralConfig.getInstance().getTotalTickCount();
+        Long currentTicks = this.getTotalTickCount();
         worldData.addProperty("totalTicks", new JsonPrimitive(currentTicks) );
 
-        if(level != null) {
-            LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
-            long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-            long nextDailyTick = currentTicks + dayTickLength;
-
-            int totalDays = lsd.get("totalDays").getAsInt() + 1;
-            lsd.addProperty("totalDays", new JsonPrimitive(totalDays));
-            lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
-        }
-
-
+        if( level == null ) return;
+        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+        long sleepTicks = this.getTotalTickCountWithSleep(level);
+        lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(sleepTicks));
     }
 
 
@@ -191,7 +201,6 @@ public class GeneralConfig {
 
         }
 
-        this.dataStore = DataStore.init();
         this.dataStore.onBeforeServerStarted(event);
     }
 
@@ -231,15 +240,15 @@ public class GeneralConfig {
             } else if (HBUtil.LevelUtil.testLevel(level, END_LOC)) {
                 END = serverLevel;
             }
+
+            LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
+            WorldSaveData worldData = dataStore.getOrCreateWorldSaveData(Constants.MOD_ID);
+            LevelSaveData.validate(lsd, worldData);
         }
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event)  {
         if(event.getLevel().isClientSide()) return;
-
-        LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, (Level) event.getLevel());
-        long gameTime = this.getTotalTickCountWithSleep((Level) event.getLevel());
-        lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(gameTime));
     }
 
 
@@ -298,15 +307,15 @@ public class GeneralConfig {
 
     public long getTotalTickCount() {
         if(this.isServerSide)
-            return dataStore.getTotalTickCount() + server.getTickCount();
+            return dataStore.getTotalTicksFromPreviousSession() + server.getTickCount();
         else return 0;
     }
 
     public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
-        int totalSleeps = this.getTotalDays(level);
-        long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-        return (dayTickLength * totalSleeps) + (level.getDayTime() % dayTickLength);
+        int totalDays = this.getTotalDays(level);
+        long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY)+1; //need that last tick to fire
+        return (dayTickLength * totalDays) + (level.getDayTime() % dayTickLength);
     }
 
     public long getSessionTickCount() {

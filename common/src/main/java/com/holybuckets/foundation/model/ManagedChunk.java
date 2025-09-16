@@ -307,6 +307,17 @@ public class ManagedChunk implements IMangedChunkData {
         ManagedChunkBlockUpdates.init(reg);
     }
 
+    /**
+     * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
+     * @param level
+     * @param updates
+     * @return true if all updates were successful, false otherwise
+     */
+    public static boolean updateChunkBlockStates(LevelAccessor level, BlockState state, Collection<BlockPos> updates) {
+        Map<BlockState, List<BlockPos>> blockStateMap = Map.of(state, new ArrayList<>(updates));
+        return updateChunkBlockStates(level, blockStateMap);
+    }
+
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.

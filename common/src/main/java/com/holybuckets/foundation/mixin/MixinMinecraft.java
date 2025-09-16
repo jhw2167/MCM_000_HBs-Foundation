@@ -2,6 +2,7 @@ package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.Constants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,7 +13,7 @@ public class MixinMinecraft {
     
     @Inject(at = @At("TAIL"), method = "<init>")
     private void init(CallbackInfo info) {
-        
+
         //Constants.LOG.info("This line is printed by an example mod common mixin!");
         //Constants.LOG.info("MC Version: {}", Minecraft.getInstance().getVersionType());
     }

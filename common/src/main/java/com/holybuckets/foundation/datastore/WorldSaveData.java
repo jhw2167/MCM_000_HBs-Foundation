@@ -62,7 +62,6 @@ public class WorldSaveData {
     public LevelSaveData getOrCreateLevelSaveData(Level level) {
         String id = LevelUtil.toLevelId(level);
         LevelSaveData data = levelData.getOrDefault(id, new LevelSaveData(level));
-        LevelSaveData.validate(data, this);
         levelData.put(id, data);
         return data;
     }
@@ -113,20 +112,12 @@ public class WorldSaveData {
         json.remove("levelData");
 
         this.properties.putAll(json.asMap());
-        validate();
     }
 
     /**
      * Initialize default world properties
      */
     private void init() {
-        this.validate();
-    }
-
-    /**
-     * Validates that all required properties exist with default values if missing
-     */
-    private void validate() {
         if (!properties.containsKey("worldId")) {
             properties.put("worldId", new JsonPrimitive(worldId));
         }
@@ -137,7 +128,6 @@ public class WorldSaveData {
         if(!properties.containsKey("worldSeed")) {
             properties.put("worldSeed", new JsonPrimitive(GeneralConfig.getInstance().getWorldSeed()));
         }
-
     }
 
 

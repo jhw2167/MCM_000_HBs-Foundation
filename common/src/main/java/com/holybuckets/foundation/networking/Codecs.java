@@ -52,4 +52,29 @@ public class Codecs {
     }
 
 
+    public static final FriendlyByteBuf encodeControllerInput(ControllerInputMessage object, FriendlyByteBuf buf) {
+        buf.writeInt(object.controllerInput);
+        buf.writeInt(object.useDisplay);
+        buf.writeBlockPos(object.pos);
+        return buf;
+    }
+
+    public static final ControllerInputMessage decodeControllerInput(FriendlyByteBuf buf) {
+        int controllerInput = buf.readInt();
+        int useDisplay = buf.readInt();
+        BlockPos pos = buf.readBlockPos();
+        return new ControllerInputMessage(controllerInput, useDisplay, pos);
+    }
+
+    public static final FriendlyByteBuf encodeControllerDisplay(ControllerDisplayMessage object, FriendlyByteBuf buf) {
+        buf.writeBlockPos(object.pos);
+        buf.writeVarIntArray(object.displayData);
+        return buf;
+    }
+
+    public static final ControllerDisplayMessage decodeControllerDisplay(FriendlyByteBuf buf) {
+        BlockPos pos = buf.readBlockPos();
+        int[] displayData = buf.readVarIntArray();
+        return new ControllerDisplayMessage(pos, displayData);
+    }
 }

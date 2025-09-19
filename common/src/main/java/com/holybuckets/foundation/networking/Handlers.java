@@ -29,5 +29,13 @@ public class Handlers {
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));
     }
 
+    public static void handleControllerInput(Player p, ControllerInputMessage m) {
+        RECEIVED++;
+        POOL.submit(() -> ControllerInputMessageHandler.handle(p, m));
+    }
 
+    public static void handleControllerDisplay(Player p, ControllerDisplayMessage m) {
+        RECEIVED++;
+        POOL.submit(() -> ControllerDisplayMessageHandler.handle(p, m));
+    }
 }

@@ -8,6 +8,8 @@ import com.holybuckets.foundation.exception.NoDefaultConfig;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
@@ -902,15 +904,17 @@ public class HBUtil {
         private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
-        private static Set<String> forceLoadedChunks = new HashSet<>();
+        private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
         public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
             // Validate chunk coordinates against maximum allowed values
             if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
                 return;
             }
 
+
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
             String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
-            if (forceLoadedChunks.contains(id)) return;
+            if (loadedChunkIds.contains(id)) return;
 
             level.getChunkSource().addRegionTicket(
                 MOD_TICKET,
@@ -919,20 +923,12 @@ public class HBUtil {
                 ticketId
             );
 
-            forceLoadedChunks.add(id);
+            loadedChunkIds.add( getChunkPos1DMap(chunkPos) );
         }
 
         public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
             ChunkPos chunkPos = getChunkPos(chunkId);
             forceLoadChunk(level, chunkPos, ticketId);
-            level.getChunkSource().addRegionTicket(
-                MOD_TICKET,
-                chunkPos,
-                1,
-                ticketId
-            );
-
-            forceLoadedChunks.add(id);
         }
 
         public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
@@ -942,7 +938,8 @@ public class HBUtil {
             }
 
             String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
-            if (!forceLoadedChunks.contains(id)) return;
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
+            if (!loadedChunkIds.contains(id)) return;
 
             level.getChunkSource().removeRegionTicket(
                 MOD_TICKET,
@@ -951,28 +948,22 @@ public class HBUtil {
                 ticketId
             );
 
-            forceLoadedChunks.remove(id);
+            loadedChunkIds.remove(id);
         }
 
         public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
             ChunkPos chunkPos = getChunkPos(chunkId);
             unforceLoadChunk(level, chunkPos, ticketId);
-            level.getChunkSource().removeRegionTicket(
-                MOD_TICKET,
-                chunkPos,
-                1,
-                ticketId
-            );
-
-            forceLoadedChunks.remove(id);
         }
 
         public static boolean isChunkForceLoaded(ServerLevel level, String chunkId) {
-            return forceLoadedChunks.contains(LevelUtil.toLevelId(level) + ":" + chunkId);
+            return isChunkForceLoaded(level, getChunkPos(chunkId) );
         }
 
         public static boolean isChunkForceLoaded(ServerLevel level, ChunkPos chunkPos) {
-            return isChunkForceLoaded(level, getId(chunkPos));
+            if(!forceLoadedChunks.containsKey(level))  return false;
+            LongSet loadedChunkIds = forceLoadedChunks.get(level);
+            return loadedChunkIds.contains( getChunkPos1DMap( chunkPos ) );
         }
 
 

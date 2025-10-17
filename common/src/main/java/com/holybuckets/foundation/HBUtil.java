@@ -903,12 +903,15 @@ public class HBUtil {
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
         private static Set<String> forceLoadedChunks = new HashSet<>();
-        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId)
-        {
-            String id = LevelUtil.toLevelId(level) + ":" + chunkId;
-            if( forceLoadedChunks.contains(id) ) return;
+        public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
+            // Validate chunk coordinates against maximum allowed values
+            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+                return;
+            }
 
-            ChunkPos chunkPos = getChunkPos(chunkId);
+            String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
+            if (forceLoadedChunks.contains(id)) return;
+
             level.getChunkSource().addRegionTicket(
                 MOD_TICKET,
                 chunkPos,
@@ -919,12 +922,41 @@ public class HBUtil {
             forceLoadedChunks.add(id);
         }
 
-        public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId)
-        {
-            String id = LevelUtil.toLevelId(level) + ":" + chunkId;
-            if( !forceLoadedChunks.contains(id) ) return;
-
+        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
             ChunkPos chunkPos = getChunkPos(chunkId);
+            forceLoadChunk(level, chunkPos, ticketId);
+            level.getChunkSource().addRegionTicket(
+                MOD_TICKET,
+                chunkPos,
+                1,
+                ticketId
+            );
+
+            forceLoadedChunks.add(id);
+        }
+
+        public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
+            // Validate chunk coordinates against maximum allowed values  
+            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+                return;
+            }
+
+            String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
+            if (!forceLoadedChunks.contains(id)) return;
+
+            level.getChunkSource().removeRegionTicket(
+                MOD_TICKET,
+                chunkPos,
+                1,
+                ticketId
+            );
+
+            forceLoadedChunks.remove(id);
+        }
+
+        public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            unforceLoadChunk(level, chunkPos, ticketId);
             level.getChunkSource().removeRegionTicket(
                 MOD_TICKET,
                 chunkPos,

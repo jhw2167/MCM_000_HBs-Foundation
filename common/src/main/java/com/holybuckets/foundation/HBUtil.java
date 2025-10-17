@@ -805,9 +805,14 @@ public class HBUtil {
         }
 
         public static Long getChunkPos1DMap(ChunkPos pos ) {
+            return getChunkPos1DMap(pos.x, pos.z);
+        }
+
+        //override with integer arguments
+        public static Long getChunkPos1DMap(int x, int z) {
             //map the chunks x and z position to a random number
             final Long WIDTH = 10_000_000l;
-            return (pos.x * WIDTH) + pos.z;
+            return (x * WIDTH) + z;
         }
 
         /**
@@ -853,9 +858,7 @@ public class HBUtil {
          */
         public static LevelChunk getLevelChunk(LevelAccessor level, int x, int z, boolean forceLoad)
         {
-            if( Math.abs( x ) > 25 ||  Math.abs( z ) > 25 ) {
-                 int i = 0;
-            }
+
             if( level == null ) return null;
             if( level.getChunkSource() == null ) return null;
             if( level.getChunkSource().getLoadedChunksCount() == 0 ) return null;
@@ -895,6 +898,8 @@ public class HBUtil {
         }
 
 
+        private static final int MAX_AXIS = 30_000_000;
+        private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
         private static Set<String> forceLoadedChunks = new HashSet<>();
@@ -1436,6 +1441,32 @@ public class HBUtil {
             this.z = vec.getZ();
         }
 
+        public void set(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public void set(TripleInt other) {
+            this.x = other.x;
+            this.y = other.y;
+            this.z = other.z;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+
+            TripleInt other = (TripleInt) obj;
+            return x == other.x && y == other.y && z == other.z;
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(x, y, z);
+        }
+
         public static TripleInt of(int x, int y, int z) {
             return new TripleInt(x, y, z);
         }
@@ -1454,6 +1485,7 @@ public class HBUtil {
         public TripleInt sectionIndicies;
         public int sectionIndex;
         public static final int SECTION_SZ = 16;
+        public static final float SECTION_SZ_INV = 0.0625f;
         public boolean DNE = false;
 
         public WorldPos(BlockPos pos, ChunkAccess chunk) {
@@ -1541,6 +1573,15 @@ public class HBUtil {
                 "blockPos=" + blockPos +
                 '}';
         }
+
+        public static int yToSectionIndex(int y, int yMin) {
+            return (y - yMin) / SECTION_SZ;
+        }
+
+        public static int sectionIndexToYMin(int sectionIndex, int yMin) {
+            return yMin + (SECTION_SZ * sectionIndex);
+        }
+
     }
     //END WORLD POS
 

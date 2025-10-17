@@ -45,7 +45,7 @@ public class FoundationInitializers {
         commonIninitialized = true;
 
         EventRegistrar.init();
-        HBUtil.NetworkUtil.init(EventRegistrar.getInstance());
+        HBUtil.init(EventRegistrar.getInstance());
         GeneralConfig.init(EventRegistrar.getInstance());
         ModItems.commonInitialize(Balm.getItems());
     }

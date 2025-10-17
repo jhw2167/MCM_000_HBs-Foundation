@@ -8,11 +8,15 @@ import com.holybuckets.foundation.exception.NoDefaultConfig;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
+import io.netty.util.collection.LongObjectHashMap;
+import io.netty.util.collection.LongObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -65,6 +69,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class HBUtil {
 
     public static final String CLASS_ID = "004";
+
+    public static void init(EventRegistrar reg) {
+        NetworkUtil.init(reg);
+        LevelUtil.init(reg);
+    }
 
 
     public static class PlayerUtil {
@@ -579,6 +588,14 @@ public class HBUtil {
 
     public static class LevelUtil {
 
+        public static void init(EventRegistrar reg) {
+            reg.registerOnBeforeServerStarted(LevelUtil::onServerStart, EventPriority.Highest);
+        }
+
+        private static void onServerStart(ServerStartingEvent event) {
+            levelIdCache.clear();
+        }
+
         public enum LevelNameSpace {
             CLIENT,
             SERVER
@@ -619,16 +636,21 @@ public class HBUtil {
             return GeneralConfig.getInstance().getLevel(id);
         }
 
+        private static Map<LevelAccessor, String> levelIdCache = new ConcurrentHashMap<>();
         public static String toLevelId(LevelAccessor level)
         {
-            if (level == null)
-                return null;
+            if (level == null) return null;
+            if (levelIdCache.containsKey(level)) return levelIdCache.get(level);
+
+            String id;
             String levelName = ((Level) level).dimension().location().toString();
             if(level.isClientSide()) {
-                return "CLIENT:" + levelName;
+                id = "CLIENT:" + levelName;
             } else {
-                return "SERVER:" + levelName;
+                id = "SERVER:" + levelName;
             }
+            levelIdCache.put(level, id);
+            return id;
         }
 
         public static boolean testLevel(Level level, String levelNameSpace, String levelId) {
@@ -668,7 +690,7 @@ public class HBUtil {
 
         /**
          * Gets a biome from the vanilla biome registry using a string ID
-         * @param biomeId String biome identifier (e.g. "minecraft:plains")
+         * @param biomeName String biome identifier (e.g. "minecraft:plains")
          * @return Holder<Biome> for the requested biome, or null if not found
          */
         public static Biome getBiome(String biomeName) {
@@ -739,6 +761,15 @@ public class HBUtil {
     private static LevelChunk threadedChunkResult = null;
 
     public static class ChunkUtil {
+
+        void init(EventRegistrar reg) {
+            reg.registerOnBeforeServerStarted(this::onBeforeServerStart, EventPriority.Highest);
+        }
+
+        private void onBeforeServerStart(ServerStartingEvent event) {
+            forceLoadedChunks.clear();
+            forceLoadedChunkTicketIds.clear();
+        }
 
         public static String getId(ChunkAccess chunk) {
             return chunk.getPos().x + "," + chunk.getPos().z;
@@ -905,16 +936,17 @@ public class HBUtil {
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
         private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
+        private static LongObjectMap<String> forceLoadedChunkTicketIds = new LongObjectHashMap<>();
         public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
             // Validate chunk coordinates against maximum allowed values
             if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
                 return;
             }
 
-
-            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
-            String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
-            if (loadedChunkIds.contains(id)) return;
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet() );
+            Long chunkId = getChunkPos1DMap(chunkPos);
+            if( forceLoadedChunkTicketIds.get(chunkId) == null ) {}                      //First time loading chunk
+            else if( forceLoadedChunkTicketIds.get(chunkId).equals( ticketId ) ) return; //Dont add a new ticket on same ticketId
 
             level.getChunkSource().addRegionTicket(
                 MOD_TICKET,
@@ -923,7 +955,8 @@ public class HBUtil {
                 ticketId
             );
 
-            loadedChunkIds.add( getChunkPos1DMap(chunkPos) );
+            loadedChunkIds.add( chunkId );
+            forceLoadedChunkTicketIds.put(chunkId, ticketId);              //always updates with new ticketId, low quality fix
         }
 
         public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
@@ -938,8 +971,9 @@ public class HBUtil {
             }
 
             String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
-            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
-            if (!loadedChunkIds.contains(id)) return;
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet() );
+            Long chunkId = getChunkPos1DMap(chunkPos);
+            if( !loadedChunkIds.contains( chunkId ) ) return;          //Chunk not force loaded
 
             level.getChunkSource().removeRegionTicket(
                 MOD_TICKET,
@@ -948,7 +982,12 @@ public class HBUtil {
                 ticketId
             );
 
+            if( forceLoadedChunkTicketIds.containsKey(chunkId) && !forceLoadedChunkTicketIds.get(chunkId).equals( ticketId ) ) {
+                return; //Dont remove if ticketId doesnt match
+
+            }
             loadedChunkIds.remove(id);
+            forceLoadedChunkTicketIds.remove(chunkId);
         }
 
         public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId) {

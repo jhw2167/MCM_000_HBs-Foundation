@@ -9,6 +9,7 @@ import net.blay09.mods.balm.api.event.TickPhase;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
+import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
 
 import java.util.Objects;
 import java.util.Set;

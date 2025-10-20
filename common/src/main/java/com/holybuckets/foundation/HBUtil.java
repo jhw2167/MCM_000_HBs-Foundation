@@ -236,6 +236,8 @@ public class HBUtil {
 
 
 
+
+
     }
 
     public static class BlockUtil {
@@ -1640,7 +1642,7 @@ public class HBUtil {
             return (y - yMin) / SECTION_SZ;
         }
 
-        public static int sectionIndexToYMin(int sectionIndex, int yMin) {
+        public static int sectionIndexToY(int sectionIndex, int yMin) {
             return yMin + (SECTION_SZ * sectionIndex);
         }
 

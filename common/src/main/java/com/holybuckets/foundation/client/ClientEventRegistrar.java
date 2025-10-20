@@ -14,6 +14,7 @@ import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.util.MixinManager;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
+import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
@@ -56,6 +57,7 @@ public class ClientEventRegistrar {
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
 
 
+
     /**
      * Constructor
      **/
@@ -80,19 +82,25 @@ public class ClientEventRegistrar {
         ClientBalmEventRegister.registerClientTickEvents();
     }
 
-
     //Create public methods for pushing functions onto each function event
     private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {
         set.add(function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
-        TickScheme scheme = new TickScheme(function, type);
-        map.put(scheme, function);
-        PRIORITIES.put(function.hashCode(), priority);
+
+    //** UI
+
+    public void registerOnBlockHighlightDraw(Consumer<BlockHighlightDrawEvent> function) {
+        registerOnBlockHighlightDraw(function, EventPriority.Normal);
+    }
+    final Set<Consumer<BlockHighlightDrawEvent>> ON_BLOCK_HIGHLIGHT_DRAW = new ConcurrentSet<>();
+    public void registerOnBlockHighlightDraw(Consumer<BlockHighlightDrawEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BLOCK_HIGHLIGHT_DRAW, priority);
     }
 
+
+    //** STARTUP
 
     public void registerOnClientStarted(Consumer<ClientStartedEvent> function) {
         registerOnClientStarted(function, EventPriority.Normal);
@@ -144,6 +152,14 @@ public class ClientEventRegistrar {
 
 
     //** TICK EVENTS
+    private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
+        TickScheme scheme = new TickScheme(function, type);
+        map.put(scheme, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
+
+
     @SuppressWarnings("unchecked")
     public <T extends ClientTickEvent> void registerOnClientTick(TickType type, Consumer<T> function) {
         registerOnClientTick(type, function, EventPriority.Normal);

@@ -38,6 +38,11 @@ public class ClientBalmEventRegister {
             registry.onEvent(DisconnectedFromServerEvent.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
+
+        events.ON_BLOCK_HIGHLIGHT_DRAW.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(BlockHighlightDrawEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
     }
 
     static void registerClientTickEvents() {

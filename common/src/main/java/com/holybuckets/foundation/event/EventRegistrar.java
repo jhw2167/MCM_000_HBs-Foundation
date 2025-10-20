@@ -86,6 +86,7 @@ public class EventRegistrar {
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
+    final Set<Consumer<BlockHighlightDrawEvent>> ON_BLOCK_HIGHLIGHT_DRAW = new ConcurrentSet<>();
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
 
     /**
@@ -397,6 +398,14 @@ public class EventRegistrar {
 
     public void registerOnClientInput(Consumer<ClientInputEvent> function, EventPriority priority) {
         generalRegister(function, ON_CLIENT_INPUT, priority);
+    }
+
+    public void registerOnBlockHighlightDraw(Consumer<BlockHighlightDrawEvent> function) {
+        registerOnBlockHighlightDraw(function, EventPriority.Normal);
+    }
+
+    public void registerOnBlockHighlightDraw(Consumer<BlockHighlightDrawEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BLOCK_HIGHLIGHT_DRAW, priority);
     }
 
     public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function) {

@@ -101,6 +101,11 @@ public class BalmEventRegister {
             registeredEvents.add(c.hashCode());
         });
 
+        registrar.ON_TOSS_ITEM.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(TossItemEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
 
     }
 

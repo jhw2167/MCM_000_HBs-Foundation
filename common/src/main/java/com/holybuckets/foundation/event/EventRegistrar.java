@@ -87,6 +87,7 @@ public class EventRegistrar {
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
+    final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
 
     /**
      * Constructor
@@ -405,6 +406,14 @@ public class EventRegistrar {
 
     public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function, EventPriority priority) {
         generalRegister(function, ON_WAKE_UP_ALL_PLAYERS, priority);
+    }
+
+    public void registerOnTossItem(Consumer<TossItemEvent> function) {
+        registerOnTossItem(function, EventPriority.Normal);
+    }
+
+    public void registerOnTossItem(Consumer<TossItemEvent> function, EventPriority priority) {
+        generalRegister(function, ON_TOSS_ITEM, priority);
     }
 
     /**

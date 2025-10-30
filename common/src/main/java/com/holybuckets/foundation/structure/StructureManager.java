@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
@@ -57,17 +58,15 @@ public class StructureManager {
 
             if (start.isValid())
             {
+                BlockPos structStartPos = start.getBoundingBox().getCenter();
+                //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
                 var resourceKey = structureRegistry.getResourceKey(structure).orElse(null);
                 if(resourceKey == null) continue;
                 Holder<Structure> holder = structureRegistry.getHolder(resourceKey).orElse(null);
                 if(holder == null) continue;
-                HolderSet<Structure> holderSet = HolderSet.direct(holder);
 
-                var result = level.getChunkSource().getGenerator()
-                    .findNearestMapStructure(level, holderSet, chunk.getPos().getWorldPosition(), 100, false);
-                    if(result == null) continue;
-                    this.structures.put(result.getFirst(), StructureInfo.of(result, structureRegistry));
-                    this.structuresByType.map(resourceKey, result.getFirst());
+                    this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureRegistry));
+                    this.structuresByType.map(resourceKey, structStartPos);
             }
         }
 

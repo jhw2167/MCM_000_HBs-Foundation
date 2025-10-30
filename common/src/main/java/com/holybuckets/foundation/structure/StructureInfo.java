@@ -1,15 +1,13 @@
 package com.holybuckets.foundation.structure;
 
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.event.EventRegistrar;
-import com.mojang.datafixers.util.Pair;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import org.apache.commons.lang3.text.WordUtils;
 
 public class StructureInfo {
 
@@ -61,17 +59,17 @@ public class StructureInfo {
 
     //* Statics
 
-    public static StructureInfo of(Pair<BlockPos, Holder<Structure>> result, Registry<Structure> structureRegistry) {
-        ResourceLocation id = structureRegistry.getKey(result.getSecond().value());
-        int rId = structureRegistry.getId(result.getSecond().value());
-        String commonName = id.getPath();
-        return new StructureInfo(result.getFirst(), id, rId, commonName);
+    public static StructureInfo of(Holder<Structure> holder, BlockPos structurePos, Registry<Structure> structureRegistry) {
+        ResourceLocation id = structureRegistry.getKey(holder.value());
+        int rId = structureRegistry.getId(holder.value());
+        String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
+        return new StructureInfo(structurePos, id, rId, commonName);
     }
 
     public static StructureInfo of(int rId, String blockPos, Registry<Structure> structureRegistry) {
         Structure struct = structureRegistry.byId(rId);
         ResourceLocation id = structureRegistry.getKey(struct);
-        String commonName = id.getPath();
+        String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
         return new StructureInfo(pos, id, rId, commonName);
     }

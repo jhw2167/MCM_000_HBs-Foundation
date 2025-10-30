@@ -1,7 +1,9 @@
 package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.structure.StructureInfo;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
@@ -62,5 +64,45 @@ public class Codecs {
         UUID senderId = buf.readUUID();
         String content = buf.readUtf(SimpleStringMessage.MAX_SIZE);
         return new SimpleStringMessage(senderId, content);
+    }
+
+    //StructureInfoMessage
+    public static final FriendlyByteBuf encodeStructureInfo(StructureInfoMessage object, FriendlyByteBuf buf) {
+        // Write sender ID (can be null for server messages)
+        buf.writeBoolean(object.senderId != null);
+        if (object.senderId != null) {
+            buf.writeUUID(object.senderId);
+        }
+        
+        // Write structure count and data
+        buf.writeInt(object.structures.size());
+        for (StructureInfo structure : object.structures) {
+            CompoundTag tag = structure.serialize();
+            buf.writeNbt(tag);
+        }
+        return buf;
+    }
+
+    public static final StructureInfoMessage decodeStructureInfo(FriendlyByteBuf buf) {
+        // Read sender ID
+        UUID senderId = null;
+        if (buf.readBoolean()) {
+            senderId = buf.readUUID();
+        }
+        
+        // Read structures
+        int count = buf.readInt();
+        List<StructureInfo> structures = new ArrayList<>();
+        for (int i = 0; i < count && i < StructureInfoMessage.MAX_STRUCTURES; i++) {
+            CompoundTag tag = buf.readNbt();
+            if (tag != null) {
+                StructureInfo info = StructureInfo.deserialize(tag);
+                if (info != null) {
+                    structures.add(info);
+                }
+            }
+        }
+        
+        return new StructureInfoMessage(senderId, structures);
     }
 }

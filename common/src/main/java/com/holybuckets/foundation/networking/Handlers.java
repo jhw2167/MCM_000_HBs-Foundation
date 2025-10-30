@@ -33,4 +33,9 @@ public class Handlers {
         RECEIVED++;
         POOL.submit(() -> SimpleStringMessage.SimpleStringMessageHandler.handle(p, m));
     }
+
+    public static void handleStructureInfo(Player p, StructureInfoMessage m) {
+        RECEIVED++;
+        POOL.submit(() -> StructureInfoMessage.StructureInfoMessageHandler.handle(p, m));
+    }
 }

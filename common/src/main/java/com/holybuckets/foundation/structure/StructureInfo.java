@@ -27,6 +27,25 @@ public class StructureInfo {
         deserialize(tag);
     }
 
+    //** GETTERS
+    public BlockPos getOrigin() {
+        return origin;
+    }
+
+    public ResourceLocation getId() {
+        return id;
+    }
+
+    public int getRegistryId() {
+        return registryId;
+    }
+
+    public String getCommonName() {
+        return commonName;
+    }
+
+
+    //** SERIALIZERS
 
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();

@@ -18,6 +18,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
@@ -51,6 +52,19 @@ public class StructureManager {
     }
 
     //** GETTERS
+    public static ResourceKey<Structure> toKey(ResourceLocation loc) {
+        return ResourceKey.create(Registries.STRUCTURE, loc);
+    }
+
+    public static ResourceKey<Structure> toKey(Structure structure) {
+        ResourceLocation loc = BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type());
+        return toKey(loc);
+    }
+
+    public static ResourceKey<Structure> toKey(String stringStruct) {
+            return toKey(new ResourceLocation(stringStruct));
+    }
+
 
     public Map<BlockPos, StructureInfo> getStructures() {
         return Maps.newHashMap(structures);
@@ -60,31 +74,31 @@ public class StructureManager {
         return List.copyOf( structuresByType.get(key) );
     }
 
-    public List<BlockPos> getStructurePosByType(ResourceLocation location) {
-        ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
-        return getStructurePosByType(key);
-    }
+        public List<BlockPos> getStructurePosByType(ResourceLocation location) {
+            ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
+            return getStructurePosByType(key);
+        }
 
-    public List<BlockPos> getStructurePosByType(Structure structure) {
-        ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
-        if (key == null) return List.of();
-        return getStructurePosByType(key);
-    }
+        public List<BlockPos> getStructurePosByType(Structure structure) {
+            ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
+            if (key == null) return List.of();
+            return getStructurePosByType(key);
+        }
 
     public List<StructureInfo> getStructuresByType(ResourceKey<Structure> key) {
         return List.copyOf( structuresByType.get(key).stream().map(pos -> structures.get(pos)).toList() );
     }
 
-    public List<StructureInfo> getStructuresByType(ResourceLocation location) {
-        ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
-        return getStructuresByType(key);
-    }
+        public List<StructureInfo> getStructuresByType(ResourceLocation location) {
+            ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
+            return getStructuresByType(key);
+        }
 
-    public List<StructureInfo> getStructuresByType(Structure structure) {
-        ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
-        if (key == null) return List.of();
-        return getStructuresByType(key);
-    }
+        public List<StructureInfo> getStructuresByType(Structure structure) {
+            ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
+            if (key == null) return List.of();
+            return getStructuresByType(key);
+        }
 
     public List<StructureInfo> getNearestStructures(BlockPos center, double maxDistance) {
         double maxDistSq = maxDistance * maxDistance;
@@ -103,7 +117,7 @@ public class StructureManager {
     }
 
     public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceKey<Structure>> whiteList,
-         BlockPos center, int limit) {
+                                                               BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
         return structuresByType.entrySet().stream()
                 .filter(key ->  whiteList.contains(key))
@@ -114,22 +128,6 @@ public class StructureManager {
                 .toList();
     }
 
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceLocation> whiteList,
-         BlockPos center, int limit) {
-        Set<ResourceKey<Structure>> keySet = whiteList.stream()
-                .map(location -> ResourceKey.create(Registries.STRUCTURE, location))
-                .collect(java.util.stream.Collectors.toSet());
-        return getNearestWhitelistedStructures(keySet, center, limit);
-    }
-
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
-         BlockPos center, int limit) {
-        Set<ResourceKey<Structure>> keySet = whiteList.stream()
-                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
-        return getNearestWhitelistedStructures(keySet, center, limit);
-    }
 
     //Returns structures NOT in the blacklist
     public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceKey<Structure>> blackList,
@@ -142,23 +140,6 @@ public class StructureManager {
             .limit(limit)
             .map(info -> structures.get(info))
             .toList();
-    }
-
-    public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceLocation> blackList,
-                                                               BlockPos center, int limit) {
-        Set<ResourceKey<Structure>> keySet = blackList.stream()
-                .map(location -> ResourceKey.create(Registries.STRUCTURE, location))
-                .collect(java.util.stream.Collectors.toSet());
-        return getNearestBlackListedStructures(keySet, center, limit);
-    }
-
-    public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
-                                                               BlockPos center, int limit) {
-        Set<ResourceKey<Structure>> keySet = blackList.stream()
-                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
-        return getNearestBlackListedStructures(keySet, center, limit);
     }
 
         //** EVENT HANDLERS

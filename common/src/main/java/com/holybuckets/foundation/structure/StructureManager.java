@@ -11,6 +11,8 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.modelInterface.IManagedPlayer;
+import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -24,6 +26,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -35,12 +40,15 @@ import org.antlr.v4.runtime.misc.MultiMap;
 import java.sql.Struct;
 import java.util.*;
 
+import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPlayerData;
+
 public class StructureManager {
 
     private ServerLevel level;
     private Registry<Structure> structureRegistry;
     private Map<BlockPos, StructureInfo> structures;
     private MultiMap<ResourceKey<Structure>, BlockPos> structuresByType;
+
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
 
@@ -144,6 +152,14 @@ public class StructureManager {
 
         //** EVENT HANDLERS
 
+    //Send all structures to the client to they know the position - fires once per second
+    private static final int SEND_RATE = 16;
+    private void syncClientStructures() {
+        if(this.syncIterator == null) {
+            this.syncIterator = this.structures.values().iterator();
+        }
+    }
+
     private void onChunkLoad(ChunkAccess chunk)
     {
          var starts = chunk.getAllStarts().entrySet().iterator();
@@ -210,7 +226,6 @@ public class StructureManager {
         return managers.computeIfAbsent(level, lvl -> new StructureManager(level));
     }
 
-    //** Events
     public static void init(EventRegistrar reg) {
         reg.registerOnBeforeServerStarted(StructureManager::onServerStart);
         reg.registerOnLevelLoad(StructureManager::onLevelLoad);
@@ -219,6 +234,7 @@ public class StructureManager {
         reg.registerOnDataSave(StructureManager::onDataSave);
     }
 
+    //** Events
     private static void onServerStart(ServerStartingEvent event) {
         managers.clear();
     }
@@ -237,5 +253,50 @@ public class StructureManager {
         for(StructureManager manager : managers.values()) {
             manager.save(event.getDataStore());
         }
+    }
+
+    //** Classes
+
+    static class PlayerStructureData implements IManagedPlayer {
+
+            int syncedStructuresCount;
+            Player p;
+
+            static {
+                registerManagedPlayerData(PlayerStructureData.class, () -> new PlayerStructureData(null));
+            }
+            public PlayerStructureData(Player player) {
+                syncedStructuresCount = 0;
+                setPlayer(player);
+            }
+
+        @Override
+        public boolean isInit(String subclass) { return false; }
+
+        @Override
+        public IManagedPlayer getStaticInstance(Player player, String id) {
+            return null;
+        }
+
+        @Override
+        public void handlePlayerJoin(Player player) {}
+
+        @Override
+        public CompoundTag serializeNBT() {
+            CompoundTag tag = new CompoundTag();
+            tag.putInt("syncedStructuresCount", this.syncedStructuresCount);
+            return tag;
+        }
+
+        @Override
+        public void deserializeNBT(CompoundTag nbt) {
+            this.syncedStructuresCount = nbt.getInt("syncedStructuresCount");
+        }
+
+        @Override
+        public void setId(String id) {}
+
+        @Override
+        public void setPlayer(Player player) { this.p = player; }
     }
 }

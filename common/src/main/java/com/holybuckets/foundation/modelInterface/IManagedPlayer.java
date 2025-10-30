@@ -5,9 +5,10 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 public interface IManagedPlayer {
-    boolean isServerOnly();
 
-    boolean isClientOnly();
+    default boolean isServerOnly(){return false;}
+
+    default boolean isClientOnly() {return false;}
 
     /**
      * Initialize the ManagedPlayer data
@@ -19,26 +20,27 @@ public interface IManagedPlayer {
      */
     IManagedPlayer getStaticInstance(Player player, String id);
 
+
     void handlePlayerJoin(Player player);
 
-    void handlePlayerLeave(Player player);
+    default void handlePlayerLeave(Player player) {}
 
-    void handlePlayerRespawn(Player player);
+    default void handlePlayerRespawn(Player player){}
     
     /**
      * Called when player dies
      */
-    void handlePlayerDeath(Player player);
+    default void handlePlayerDeath(Player player) {}
 
     /**
      * Called when player attacks an entity
      */
-    void handlePlayerAttack(Player player, Entity target);
+     default void handlePlayerAttack(Player player, Entity target){}
 
     /**
      * Called when player's dig speed is calculated
      */
-    void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed);
+    default void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed){}
 
     CompoundTag serializeNBT();
 

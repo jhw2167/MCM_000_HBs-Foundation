@@ -31,6 +31,6 @@ public class Handlers {
 
     public static void handleSimpleString(Player p, SimpleStringMessage m) {
         RECEIVED++;
-        POOL.submit(() -> SimpleStringMessageHandler.handle(p, m));
+        POOL.submit(() -> SimpleStringMessage.SimpleStringMessageHandler.handle(p, m));
     }
 }

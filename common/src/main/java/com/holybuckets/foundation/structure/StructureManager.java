@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.structure;
 
+import com.google.common.collect.Maps;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -29,8 +30,8 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.antlr.v4.runtime.misc.MultiMap;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Struct;
+import java.util.*;
 
 public class StructureManager {
 
@@ -47,6 +48,63 @@ public class StructureManager {
         this.structuresByType = new MultiMap<>();
         this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
     }
+
+    //** GETTERS
+
+    public Map<BlockPos, StructureInfo> getStructures() {
+        return Maps.newHashMap(structures);
+    }
+
+    public List<BlockPos> getStructurePosByType(ResourceKey<Structure> key) {
+        return List.copyOf( structuresByType.get(key) );
+    }
+
+    public List<StructureInfo> getStructuresByType(ResourceKey<Structure> key) {
+        return List.copyOf( structuresByType.get(key).stream().map(pos -> structures.get(pos)).toList() );
+    }
+
+    public List<StructureInfo> getNearestStructures(BlockPos center, double maxDistance) {
+        double maxDistSq = maxDistance * maxDistance;
+        return structures.values().stream()
+                .filter(info -> info.origin.distSqr(center) <= maxDistSq)
+                .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+                .toList();
+    }
+
+    public List<StructureInfo> getNearestStructures(BlockPos center, int limit) {
+        if(limit < 1) limit = structures.size();
+        return structures.values().stream()
+                .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+                .limit(limit)
+                .toList();
+    }
+
+    public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceKey<Structure>> whiteList,
+         BlockPos center, int limit) {
+        if(limit < 1) limit = structures.size();
+        return structuresByType.entrySet().stream()
+                .filter(key ->  whiteList.contains(key))
+                .flatMap(entry -> entry.getValue().stream().map(pos -> structures.get(pos)) )
+                .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+                .limit(limit)
+                .map(info -> structures.get(info))
+                .toList();
+    }
+
+    //Returns structures NOT in the blacklist
+    public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceKey<Structure>> blackList,
+                                                               BlockPos center, int limit) {
+        if(limit < 1) limit = structures.size();
+        return structuresByType.entrySet().stream()
+            .filter(key ->  !blackList.contains(key))
+            .flatMap(entry -> entry.getValue().stream().map(pos -> structures.get(pos)) )
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .map(info -> structures.get(info))
+            .toList();
+    }
+
+        //** EVENT HANDLERS
 
     private void onChunkLoad(ChunkAccess chunk)
     {

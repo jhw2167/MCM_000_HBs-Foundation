@@ -2,6 +2,7 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.client.ClientEventRegistrar;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.UUID;
@@ -31,15 +32,32 @@ public class SimpleStringMessage {
     }
 
 
-    public class SimpleStringMessageHandler {
+    public static class SimpleStringMessageHandler {
 
         public static String CLASS_ID = "016";
 
-        public static void handle(Player player, SimpleStringMessage message)
-        {
-            EventRegistrar.getInstance().onSimpleStringMessage(player, message);
+        public static void handle(Player player, SimpleStringMessage message) {
+            // Extract messageId from the beginning of the content if it exists
+            String messageId = "default";
+            String actualContent = message.content;
+            
+            if (message.content != null && message.content.startsWith("[") && message.content.contains("]")) {
+                int endBracket = message.content.indexOf("]");
+                if (endBracket > 1) {
+                    messageId = message.content.substring(1, endBracket);
+                    actualContent = message.content.substring(endBracket + 1);
+                }
+            }
+            
+            // Create a new message with the actual content (without messageId prefix)
+            SimpleStringMessage processedMessage = new SimpleStringMessage(message.senderId, actualContent);
+            
+            // Fire the simple message event with messageId routing
+            if (player.level().isClientSide) {
+                ClientEventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
+            } else {
+                EventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
+            }
         }
     }
-
-
 }

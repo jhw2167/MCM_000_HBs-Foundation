@@ -11,6 +11,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
@@ -24,7 +25,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +61,7 @@ public class ClientEventRegistrar {
     final Map<TickScheme, Consumer<?>> CLIENT_TICK_EVENTS = new ConcurrentHashMap<>();
     final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
+    final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
 
 
 
@@ -150,6 +157,15 @@ public class ClientEventRegistrar {
         generalRegister(function, ON_CLIENT_INPUT, priority);
     }
 
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function) {
+        registerOnSimpleMessage(messageId, function, EventPriority.Normal);
+    }
+
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function, EventPriority priority) {
+        ON_SIMPLE_MESSAGE.put(messageId, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
 
     //** TICK EVENTS
     private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
@@ -213,6 +229,21 @@ public class ClientEventRegistrar {
         Player p =  Balm.getProxy().getClientPlayer();
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onSimpleMessage(Player player, SimpleStringMessage message, String messageId) {
+        SimpleMessageEvent event = new SimpleMessageEvent(player, message, messageId);
+        Collection<Consumer<SimpleMessageEvent>> consumers = ON_SIMPLE_MESSAGE.get(messageId);
+        
+        // Sort consumers by priority
+        List<Consumer<SimpleMessageEvent>> sortedConsumers = consumers.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
     }
 
 

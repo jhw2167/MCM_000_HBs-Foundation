@@ -13,6 +13,7 @@ import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
@@ -88,6 +89,7 @@ public class EventRegistrar {
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
     final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
+    final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
 
     /**
      * Constructor
@@ -416,6 +418,15 @@ public class EventRegistrar {
         generalRegister(function, ON_TOSS_ITEM, priority);
     }
 
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function) {
+        registerOnSimpleMessage(messageId, function, EventPriority.Normal);
+    }
+
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function, EventPriority priority) {
+        ON_SIMPLE_MESSAGE.put(messageId, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
     /**
      * Custom Events
      **/
@@ -503,6 +514,21 @@ public class EventRegistrar {
         Player p = config.getServer().getPlayerList().getPlayer(message.playerId);
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onSimpleMessage(Player player, SimpleStringMessage message, String messageId) {
+        SimpleMessageEvent event = new SimpleMessageEvent(player, message, messageId);
+        Collection<Consumer<SimpleMessageEvent>> consumers = ON_SIMPLE_MESSAGE.get(messageId);
+        
+        // Sort consumers by priority
+        List<Consumer<SimpleMessageEvent>> sortedConsumers = consumers.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
     }
 
         private <T> void tryEvent(Consumer<T> consumer, T event) {

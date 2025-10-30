@@ -39,7 +39,7 @@ public class CommonClass {
         }
 
         FoundationInitializers.init();
-        test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
+        //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
 
         isInitialized = true;
     }
@@ -56,6 +56,12 @@ public class CommonClass {
         //reg.registerOnServerTick(TickType.ON_120_TICKS, CommonClass::on120Ticks);
         //reg.registerOnDailyTick(null, CommonClass::onDailyTick);
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
+
+        //reg.registerOnTossItem(CommonClass::onTossItem);
+    }
+
+    private static void onTossItem(TossItemEvent event) {
+        LoggerBase.logInfo(null, "001200", "Player Tossed Item Event - Item: " + event.getItemStack().getItem().getDescriptionId() + " Qty: " + event.getItemStack().getCount());
     }
 
     private static void on120Ticks(ServerTickEvent event) {

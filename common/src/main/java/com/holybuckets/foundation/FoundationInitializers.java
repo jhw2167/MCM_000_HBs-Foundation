@@ -13,6 +13,7 @@ import com.holybuckets.foundation.networking.Codecs;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
 import com.holybuckets.foundation.networking.Handlers;
 import com.holybuckets.foundation.player.ManagedPlayer;
+import com.holybuckets.foundation.structure.StructureManager;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.network.BalmNetworking;
@@ -61,6 +62,7 @@ public class FoundationInitializers {
         //SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
+        StructureManager.init(reg);
         //ClientInput.init(reg);
 
         BalmEventRegister.registerEvents();

@@ -357,7 +357,7 @@ public class HBUtil {
         }
 
         //write stringToBlockPos method to reverse the above, return Vec3i
-        public static Vec3i stringToBlockPos(String posString)
+        public static BlockPos stringToBlockPos(String posString)
         {
             if( posString == null || posString.isEmpty() )
                 return null;

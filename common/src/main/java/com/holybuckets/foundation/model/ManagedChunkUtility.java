@@ -12,6 +12,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 import javax.annotation.Nullable;
 
@@ -91,6 +93,18 @@ public class ManagedChunkUtility {
     }
 
 
+    public Map<Structure, StructureStart> getStructures(ChunkPos pos) {
+        ManagedChunk mc = getManagedChunk(pos);
+        if(mc == null) return null;
+        return getStructures(mc);
+    }
+
+    public Map<Structure, StructureStart> getStructures(ManagedChunk mc) {
+        LevelChunk chunk = mc.getLevelChunk();
+        if(chunk == null) return null;
+        return chunk.getAllStarts();
+    }
+
     //** STATICS **//
 
     public static boolean isChunkFullyLoaded(LevelAccessor level, String id) {
@@ -132,6 +146,13 @@ public class ManagedChunkUtility {
         if(LOADED_CHUNKS.get(level) == null) return null;
 
         return LOADED_CHUNKS.get(level).get(id);
+    }
+
+    public ManagedChunk getManagedChunk(ChunkPos pos) {
+        if(pos == null) return null;
+        if(LOADED_CHUNKS.get(level) == null) return null;
+
+        return LOADED_CHUNKS.get(level).get(HBUtil.ChunkUtil.getId(pos));
     }
 
     //* STATICS

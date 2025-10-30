@@ -51,4 +51,16 @@ public class Codecs {
         return new BlockStateUpdatesMessage(world, blocks);
     }
 
+    //SimpleStringMessage
+    public static final FriendlyByteBuf encodeSimpleString(SimpleStringMessage object, FriendlyByteBuf buf) {
+        buf.writeUUID(object.senderId);
+        buf.writeUtf(object.content, SimpleStringMessage.MAX_SIZE);
+        return buf;
+    }
+
+    public static final SimpleStringMessage decodeSimpleString(FriendlyByteBuf buf) {
+        UUID senderId = buf.readUUID();
+        String content = buf.readUtf(SimpleStringMessage.MAX_SIZE);
+        return new SimpleStringMessage(senderId, content);
+    }
 }

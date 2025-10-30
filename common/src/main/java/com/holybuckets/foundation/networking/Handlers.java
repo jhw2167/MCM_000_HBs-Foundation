@@ -29,4 +29,8 @@ public class Handlers {
         POOL.submit(() -> BlockStateUpdatesMessageHandler.handle(p, m));
     }
 
+    public static void handleSimpleString(Player p, SimpleStringMessage m) {
+        RECEIVED++;
+        POOL.submit(() -> SimpleStringMessageHandler.handle(p, m));
+    }
 }

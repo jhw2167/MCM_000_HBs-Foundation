@@ -30,6 +30,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.antlr.v4.runtime.misc.MultiMap;
 
 import java.util.*;
@@ -39,9 +40,9 @@ import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPla
 public class StructureManager {
 
     private Level level;
-    private Registry<Structure> structureRegistry;
+    private Registry<StructureType<?>> structureRegistry;
     private Map<BlockPos, StructureInfo> structures;
-    private MultiMap<ResourceKey<Structure>, BlockPos> structuresByType;
+    private MultiMap<ResourceKey<StructureType<?>>, BlockPos> structuresByType;
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -51,20 +52,20 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new MultiMap<>();
-        this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
     }
 
     //** GETTERS
-    public static ResourceKey<Structure> toKey(ResourceLocation loc) {
-        return ResourceKey.create(Registries.STRUCTURE, loc);
+    public static ResourceKey<StructureType<?>> toKey(ResourceLocation loc) {
+        return ResourceKey.create(Registries.STRUCTURE_TYPE, loc);
     }
 
-    public static ResourceKey<Structure> toKey(Structure structure) {
+    public static ResourceKey<StructureType<?>> toKey(Structure structure) {
         ResourceLocation loc = BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type());
         return toKey(loc);
     }
 
-    public static ResourceKey<Structure> toKey(String stringStruct) {
+    public static ResourceKey<StructureType<?>> toKey(String stringStruct) {
             return toKey(new ResourceLocation(stringStruct));
     }
 
@@ -73,34 +74,42 @@ public class StructureManager {
         return Maps.newHashMap(structures);
     }
 
-    public List<BlockPos> getStructurePosByType(ResourceKey<Structure> key) {
+    public List<BlockPos> getStructurePosByType(ResourceKey<StructureType<?>> key) {
         return List.copyOf( structuresByType.get(key) );
     }
 
         public List<BlockPos> getStructurePosByType(ResourceLocation location) {
-            ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
+            ResourceKey<StructureType<?>> key = ResourceKey.create(Registries.STRUCTURE_TYPE, location);
+            return getStructurePosByType(key);
+        }
+
+        public List<BlockPos> getStructurePosByType(StructureType<?> structureType) {
+            ResourceKey<StructureType<?>> key = structureRegistry.getResourceKey(structureType).orElse(null);
+            if (key == null) return List.of();
             return getStructurePosByType(key);
         }
 
         public List<BlockPos> getStructurePosByType(Structure structure) {
-            ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
-            if (key == null) return List.of();
-            return getStructurePosByType(key);
+            return getStructurePosByType(structure.type());
         }
 
-    public List<StructureInfo> getStructuresByType(ResourceKey<Structure> key) {
+    public List<StructureInfo> getStructuresByType(ResourceKey<StructureType<?>> key) {
         return List.copyOf( structuresByType.get(key).stream().map(pos -> structures.get(pos)).toList() );
     }
 
         public List<StructureInfo> getStructuresByType(ResourceLocation location) {
-            ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, location);
+            ResourceKey<StructureType<?>> key = ResourceKey.create(Registries.STRUCTURE_TYPE, location);
+            return getStructuresByType(key);
+        }
+
+        public List<StructureInfo> getStructuresByType(StructureType structureType) {
+            ResourceKey<StructureType<?>> key = structureRegistry.getResourceKey(structureType).orElse(null);
+            if (key == null) return List.of();
             return getStructuresByType(key);
         }
 
         public List<StructureInfo> getStructuresByType(Structure structure) {
-            ResourceKey<Structure> key = structureRegistry.getResourceKey(structure).orElse(null);
-            if (key == null) return List.of();
-            return getStructuresByType(key);
+            return getStructuresByType(structure.type());
         }
 
     public List<StructureInfo> getNearestStructures(BlockPos center, double maxDistance) {
@@ -119,29 +128,34 @@ public class StructureManager {
                 .toList();
     }
 
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceKey<Structure>> whiteList,
+    public List<StructureInfo> getNearestWhitelistedStructures(Set<StructureType<?>> whiteList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
-        return structuresByType.entrySet().stream()
-                .filter(key ->  whiteList.contains(key))
-                .flatMap(entry -> entry.getValue().stream().map(pos -> structures.get(pos)) )
-                .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
-                .limit(limit)
-                .map(info -> structures.get(info))
-                .toList();
+        List<StructureInfo> allStructs = new LinkedList<>();
+        for( StructureType<?> type : whiteList ) {
+              allStructs.addAll( getStructuresByType(type) );
+        }
+
+        return allStructs.stream()
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
     }
 
 
     //Returns structures NOT in the blacklist
-    public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceKey<Structure>> blackList,
+    public List<StructureInfo> getNearestBlackListedStructures(Set<StructureType<?>> blackList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
-        return structuresByType.entrySet().stream()
-            .filter(key ->  !blackList.contains(key))
-            .flatMap(entry -> entry.getValue().stream().map(pos -> structures.get(pos)) )
+        List<StructureInfo> allStructs = new LinkedList<>();
+        for( StructureInfo info : structures.values() ) {
+            if( !blackList.contains( structureRegistry.byId(info.registryId) ) ) {
+                allStructs.add(info);
+            }
+        }
+        return allStructs.stream()
             .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
             .limit(limit)
-            .map(info -> structures.get(info))
             .toList();
     }
 
@@ -187,9 +201,9 @@ public class StructureManager {
             {
                 BlockPos structStartPos = start.getBoundingBox().getCenter();
                 //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
-                var resourceKey = structureRegistry.getResourceKey(structure).orElse(null);
+                var resourceKey = structureRegistry.getResourceKey(structure.type()).orElse(null);
                 if(resourceKey == null) continue;
-                Holder<Structure> holder = structureRegistry.getHolder(resourceKey).orElse(null);
+                Holder<StructureType<?>> holder = structureRegistry.getHolder(resourceKey).orElse(null);
                 if(holder == null) continue;
 
                     this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureRegistry));
@@ -202,6 +216,7 @@ public class StructureManager {
 
     private void load(DataStore ds)
     {
+        if(!GeneralConfig.getInstance().isServerSide()) return;
         JsonElement root = ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).get("structures");
         if(root == null || root.isJsonNull()) return;
 
@@ -238,9 +253,19 @@ public class StructureManager {
 
 
     //** Statics
+    private static StructureManager init(Level level) {
+        if(GeneralConfig.getInstance().isIntegrated() && level.isClientSide()) return null;
+        if (!managers.containsKey(level)) {
+            managers.put(level, new StructureManager(level));
+        }
+        return managers.get(level);
+    }
+
 
     public static StructureManager get(Level level) {
-        return managers.computeIfAbsent(level, lvl -> new StructureManager(level));
+        if(GeneralConfig.getInstance().isIntegrated())
+            level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, level.dimension());
+        return managers.get(level);
     }
 
     public static void init(EventRegistrar reg) {
@@ -280,8 +305,9 @@ public class StructureManager {
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
-        if(event.getLevel().isClientSide()) return;
-        StructureManager.get((Level) event.getLevel()).load(GeneralConfig.getInstance().getDataStore());
+        //if(event.getLevel().isClientSide()) return;
+        StructureManager manager = StructureManager.init((Level) event.getLevel());
+        if(manager != null) manager.load(GeneralConfig.getInstance().getDataStore());
     }
 
     private static void onChunkLoad(ChunkLoadingEvent.Load event) {

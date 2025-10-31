@@ -29,40 +29,34 @@ public class SimpleStringMessage {
             : (content != null ? content : "");
     }
 
-    public static SimpleStringMessage createAndFire(Player p, String content) {
-        SimpleStringMessage message = new SimpleStringMessage(p.getUUID(),  content);
+    public SimpleStringMessage(UUID senderId, String content) {
+        this(senderId, "default", content);
+    }
+
+    public static SimpleStringMessage createAndFire(Player p, String messageId, String content) {
+        SimpleStringMessage message = new SimpleStringMessage(p.getUUID(), messageId, content);
         if (GeneralConfig.getInstance().isServerSide()) {
             HBUtil.NetworkUtil.serverSendToPlayer(p, message);
         } else {
+            HBUtil.NetworkUtil.clientSendToServer(message);
+        }
         return message;
     }
 
+    public static SimpleStringMessage createAndFire(Player p, String content) {
+        return createAndFire(p, "default", content);
+    }
 
     public static class SimpleStringMessageHandler {
 
         public static String CLASS_ID = "016";
 
         public static void handle(Player player, SimpleStringMessage message) {
-            // Extract messageId from the beginning of the content if it exists
-            String messageId = "default";
-            String actualContent = message.content;
-            
-            if (message.content != null && message.content.startsWith("[") && message.content.contains("]")) {
-                int endBracket = message.content.indexOf("]");
-                if (endBracket > 1) {
-                    messageId = message.content.substring(1, endBracket);
-                    actualContent = message.content.substring(endBracket + 1);
-                }
-            }
-            
-            // Create a new message with the actual content (without messageId prefix)
-            SimpleStringMessage processedMessage = new SimpleStringMessage(message.senderId, actualContent);
-            
             // Fire the simple message event with messageId routing
             if (GeneralConfig.getInstance().isServerSide()) {
-                EventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
+                EventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
             } else {
-                ClientEventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
+                ClientEventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
             }
         }
     }

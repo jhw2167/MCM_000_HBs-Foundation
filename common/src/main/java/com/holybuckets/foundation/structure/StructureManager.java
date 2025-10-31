@@ -135,6 +135,23 @@ public class StructureManager {
                 .toList();
     }
 
+        public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceLocation> whiteList,
+                                                                   BlockPos center, int limit) {
+            Set<ResourceKey<Structure>> keys = whiteList.stream()
+                .map(loc -> ResourceKey.create(Registries.STRUCTURE, loc))
+                .collect(java.util.stream.Collectors.toSet());
+            return getNearestWhitelistedStructures(keys, center, limit);
+        }
+
+        public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
+                                                                   BlockPos center, int limit) {
+            Set<ResourceKey<Structure>> keys = whiteList.stream()
+                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+            return getNearestWhitelistedStructures(keys, center, limit);
+        }
+
 
     //Returns structures NOT in the blacklist
     public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceKey<Structure>> blackList,
@@ -148,6 +165,23 @@ public class StructureManager {
             .map(info -> structures.get(info))
             .toList();
     }
+
+        public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceLocation> blackList,
+                                                                   BlockPos center, int limit) {
+            Set<ResourceKey<Structure>> keys = blackList.stream()
+                .map(loc -> ResourceKey.create(Registries.STRUCTURE, loc))
+                .collect(java.util.stream.Collectors.toSet());
+            return getNearestBlackListedStructures(keys, center, limit);
+        }
+
+        public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
+                                                                   BlockPos center, int limit) {
+            Set<ResourceKey<Structure>> keys = blackList.stream()
+                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+            return getNearestBlackListedStructures(keys, center, limit);
+        }
 
         //** EVENT HANDLERS
 
@@ -171,7 +205,7 @@ public class StructureManager {
             IManagedPlayer pData = ManagedPlayer.getManagedPlayer(p).getSubclass(PlayerStructureData.class);
             if(pData != null && (pData instanceof PlayerStructureData psData) ) {
                 if (psData.getCount(level) >= this.structures.size()) continue;
-                StructureInfoMessage.createAndFire(null, data);
+                StructureInfoMessage.createAndFire(p, data);
             }
         }
 
@@ -180,7 +214,8 @@ public class StructureManager {
     private void syncClientStructureCountsToServer() {
         IManagedPlayer pData = ManagedPlayer.getManagedPlayer(Minecraft.getInstance().player).getSubclass(PlayerStructureData.class);
         if(pData != null && (pData instanceof PlayerStructureData psData) ) {
-            SimpleStringMessage.create
+            String serializedCounts = psData.serialize();
+            SimpleStringMessage.createAndFire(Minecraft.getInstance().player, "sync_structure_count", serializedCounts);
         }
     }
 
@@ -372,14 +407,18 @@ public class StructureManager {
             this.syncedStructureCounts.put(level, 0);
         }
 
-        @Override
-        public CompoundTag serializeNBT() {
-            CompoundTag tag = new CompoundTag();
+        public String serialize() {
             JsonObject structCounts = new JsonObject();
             for(var entry : this.syncedStructureCounts.entrySet()) {
                 structCounts.addProperty( HBUtil.LevelUtil.toLevelId(entry.getKey()) , entry.getValue() );
             }
-            tag.putString ("syncedStructuresCount", structCounts.toString() );
+            return structCounts.toString();
+        }
+
+        @Override
+        public CompoundTag serializeNBT() {
+            CompoundTag tag = new CompoundTag();
+            tag.putString ("syncedStructuresCount", serialize() );
             return tag;
         }
 

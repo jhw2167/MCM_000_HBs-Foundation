@@ -33,6 +33,13 @@ public class SimpleStringMessage {
         this(senderId, "default", content);
     }
 
+    /**
+     * Clientbound AND serverbound event, avoid for integrated servers
+     * @param p
+     * @param messageId
+     * @param content
+     * @return
+     */
     public static SimpleStringMessage createAndFire(Player p, String messageId, String content) {
         SimpleStringMessage message = new SimpleStringMessage(p.getUUID(), messageId, content);
         if (GeneralConfig.getInstance().isServerSide()) {
@@ -43,9 +50,6 @@ public class SimpleStringMessage {
         return message;
     }
 
-    public static SimpleStringMessage createAndFire(Player p, String content) {
-        return createAndFire(p, "default", content);
-    }
 
     public static class SimpleStringMessageHandler {
 

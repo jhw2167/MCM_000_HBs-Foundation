@@ -18,7 +18,6 @@ import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -121,7 +120,7 @@ public class HBUtil {
                 return null;
             }
             String prefix = "CLIENT:";
-            if( p instanceof ServerPlayer ) {
+            if( p instanceof ServerPlayer || GeneralConfig.getInstance().isIntegrated() ) {
                 prefix = "SERVER:";
             }
             return prefix + gp.getName().toString();
@@ -603,7 +602,7 @@ public class HBUtil {
             SERVER
         }
         @Nullable
-        public static Level toLevel(LevelNameSpace nameSpace, String dimensionId)
+        public static Level toLevel(@Nullable LevelNameSpace nameSpace, String dimensionId)
         {
             String levelId = dimensionId.replace("CLIENT:", "").replace("SERVER:", "");
             if( nameSpace == LevelNameSpace.CLIENT ) {
@@ -627,11 +626,12 @@ public class HBUtil {
 
 
         public static ServerLevel toServerLevel(String id) {
-            return (ServerLevel) toLevel(LevelNameSpace.SERVER, id);
+
+            return (ServerLevel) toLevel(LevelNameSpace.SERVER, id.replace("CLIENT:", "").replace("SERVER:", ""));
         }
 
-        public static ClientLevel toClientLevel(String id) {
-            return (ClientLevel) toLevel(LevelNameSpace.CLIENT, id);
+        public static Level toClientLevel(String id) {
+            return toLevel(LevelNameSpace.CLIENT, id.replace("CLIENT:", "").replace("SERVER:", ""));
         }
 
         private static LevelAccessor toLevel(String id) {

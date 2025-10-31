@@ -232,6 +232,7 @@ public class GeneralConfig {
 
         if (level instanceof ServerLevel serverLevel)
         {
+            this.isServerSide = true;
             if (HBUtil.LevelUtil.testLevel(level, OVERWORLD_LOC)) {
                 OVERWORLD = serverLevel;
             } else if (HBUtil.LevelUtil.testLevel(level, NETHER_LOC)) {
@@ -244,6 +245,9 @@ public class GeneralConfig {
             WorldSaveData worldData = dataStore.getOrCreateWorldSaveData(Constants.MOD_ID);
             LevelSaveData.validate(lsd, worldData);
         }
+
+        if( level.isClientSide() )
+            this.isClientSide = true;
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event)  {

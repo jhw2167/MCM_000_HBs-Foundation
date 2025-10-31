@@ -2,20 +2,15 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
-import com.holybuckets.foundation.client.ModRenderers;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.ModItems;
 import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.networking.ClientInputMessage;
-import com.holybuckets.foundation.networking.Codecs;
-import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
-import com.holybuckets.foundation.networking.Handlers;
+import com.holybuckets.foundation.networking.*;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.holybuckets.foundation.structure.StructureManager;
 import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.resources.ResourceLocation;
 
@@ -79,7 +74,13 @@ public class FoundationInitializers {
         BalmNetworking networking = Balm.getNetworking();
         Handlers.init();
         networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
+
         networking.registerServerboundPacket(id(ClientInputMessage.LOCATION), ClientInputMessage.class, Codecs::encodeClientInput, Codecs::decodeClientInput, Handlers::handleClientInput);
+
+        networking.registerClientboundPacket(id(SimpleStringMessage.LOCATION), SimpleStringMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleString, Handlers::handleSimpleString);
+        networking.registerServerboundPacket(id(SimpleStringMessage.LOCATION), SimpleStringMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleString, Handlers::handleSimpleString);
+
+        networking.registerClientboundPacket(id(StructureInfoMessage.LOCATION), StructureInfoMessage.class, Codecs::encodeStructureInfo, Codecs::decodeStructureInfo, Handlers::handleStructureInfo);
     }
 
     private static void initBlocks() {

@@ -7,10 +7,7 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
-import com.holybuckets.foundation.event.custom.ServerTickEvent;
-import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
-import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.networking.StructureInfoMessage;
@@ -18,7 +15,6 @@ import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -42,7 +38,7 @@ import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPla
 
 public class StructureManager {
 
-    private ServerLevel level;
+    private Level level;
     private Registry<Structure> structureRegistry;
     private Map<BlockPos, StructureInfo> structures;
     private MultiMap<ResourceKey<Structure>, BlockPos> structuresByType;
@@ -52,7 +48,7 @@ public class StructureManager {
     private Iterator<StructureInfo> syncIterator;
 
     private StructureManager(Level level) {
-        this.level = (ServerLevel) level;
+        this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new MultiMap<>();
         this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -135,23 +131,6 @@ public class StructureManager {
                 .toList();
     }
 
-        public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceLocation> whiteList,
-                                                                   BlockPos center, int limit) {
-            Set<ResourceKey<Structure>> keys = whiteList.stream()
-                .map(loc -> ResourceKey.create(Registries.STRUCTURE, loc))
-                .collect(java.util.stream.Collectors.toSet());
-            return getNearestWhitelistedStructures(keys, center, limit);
-        }
-
-        public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
-                                                                   BlockPos center, int limit) {
-            Set<ResourceKey<Structure>> keys = whiteList.stream()
-                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
-            return getNearestWhitelistedStructures(keys, center, limit);
-        }
-
 
     //Returns structures NOT in the blacklist
     public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceKey<Structure>> blackList,
@@ -166,22 +145,7 @@ public class StructureManager {
             .toList();
     }
 
-        public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceLocation> blackList,
-                                                                   BlockPos center, int limit) {
-            Set<ResourceKey<Structure>> keys = blackList.stream()
-                .map(loc -> ResourceKey.create(Registries.STRUCTURE, loc))
-                .collect(java.util.stream.Collectors.toSet());
-            return getNearestBlackListedStructures(keys, center, limit);
-        }
 
-        public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
-                                                                   BlockPos center, int limit) {
-            Set<ResourceKey<Structure>> keys = blackList.stream()
-                .map(structure -> structureRegistry.getResourceKey(structure).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
-            return getNearestBlackListedStructures(keys, center, limit);
-        }
 
         //** EVENT HANDLERS
 
@@ -209,14 +173,6 @@ public class StructureManager {
             }
         }
 
-    }
-
-    private void syncClientStructureCountsToServer() {
-        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(Minecraft.getInstance().player).getSubclass(PlayerStructureData.class);
-        if(pData != null && (pData instanceof PlayerStructureData psData) ) {
-            String serializedCounts = psData.serialize();
-            SimpleStringMessage.createAndFire(Minecraft.getInstance().player, "sync_structure_count", serializedCounts);
-        }
     }
 
     private void onChunkLoad(ChunkAccess chunk)
@@ -294,14 +250,29 @@ public class StructureManager {
 
         reg.registerOnServerTick(TickType.ON_20_TICKS, StructureManager::on20Ticks);
 
-
-        reg.registerOnSimpleMessage( "sync_structure_count", StructureManager::handleSyncStructureCountsFromClient);
+        reg.registerOnSimpleMessage(STRUCTURE_MSG_ID, (e) ->
+        handleSyncStructureCountsFromClient(e.getPlayer(), e.getContent())
+        );
 
         reg.registerOnDataSave(StructureManager::onDataSave);
         PlayerStructureData.init();
     }
 
+    public static String STRUCTURE_MSG_ID = "sync_structure_count";
 
+    //run on server
+    private static void handleSyncStructureCountsFromClient(Player player, String content)
+    {
+
+        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        if(pData != null && (pData instanceof PlayerStructureData psData) )
+        {
+            Map<Level, Integer> deserialized = PlayerStructureData.deserialize(content);
+            for(var entry : deserialized.entrySet()) {
+                psData.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
@@ -331,10 +302,31 @@ public class StructureManager {
         }
     }
 
-    //run on client
-    public static void handleStructureInfoFromServer(Player player, StructureInfoMessage message) {
+
+    //** CLIENT
+    public static void clientInit() {
+        PlayerStructureData.init();
+    }
+
+
+    public static void fireSyncClientStructureCountsToServer(Player player) {
+        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        if(pData != null && (pData instanceof PlayerStructureData psData) ) {
+            String serializedCounts = psData.serialize();
+            if(GeneralConfig.getInstance().isIntegrated()) {
+                handleSyncStructureCountsFromClient(psData.p, serializedCounts);
+                return;
+            }
+
+            SimpleStringMessage.createAndFire(player, STRUCTURE_MSG_ID, serializedCounts);
+        }
+    }
+
+    public static void handleStructureInfoFromServer(Player player, StructureInfoMessage message)
+    {
+        if(GeneralConfig.getInstance().isIntegrated()) return;
         if(player == null) return;
-        for(StructureInfo info : message.structures) {
+        for(StructureInfo info : message.structures ) {
             StructureManager sm = StructureManager.get(player.level());
             sm.structures.put(info.origin, info);
             var resourceKey = sm.structureRegistry.getResourceKey(sm.structureRegistry.byId(info.registryId)).orElse(null);
@@ -348,18 +340,12 @@ public class StructureManager {
         }
     }
 
-    //run on server
-    private static void handleSyncStructureCountsFromClient(SimpleMessageEvent simpleMessageEvent) {
-        Player player = simpleMessageEvent.getPlayer();
-        String content = simpleMessageEvent.getMessage().content;
-
+    public static void onConnectedToServer(Player player) {
+        if(GeneralConfig.getInstance().isIntegrated()) return;
+        managers.clear();
         IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
-        if(pData != null && (pData instanceof PlayerStructureData psData) )
-        {
-            Map<Level, Integer> deserialized = PlayerStructureData.deserialize(content);
-            for(var entry : deserialized.entrySet()) {
-                psData.put(entry.getKey(), entry.getValue());
-            }
+        if(pData != null && (pData instanceof PlayerStructureData psData) ) {
+            psData.clearAll();
         }
     }
 
@@ -389,7 +375,7 @@ public class StructureManager {
         @Override
         public void handlePlayerJoin(Player player) {}
 
-        public int getCount(ServerLevel level) {
+        public int getCount(Level level) {
             return this.syncedStructureCounts.getOrDefault(level, 0);
         }
 
@@ -405,6 +391,10 @@ public class StructureManager {
 
         public void clear(Level level) {
             this.syncedStructureCounts.put(level, 0);
+        }
+
+        public void clearAll() {
+            this.syncedStructureCounts.clear();
         }
 
         public String serialize() {
@@ -435,9 +425,7 @@ public class StructureManager {
             Map<Level, Integer> data = Maps.newHashMap();
             if(json == null || json.isEmpty()) return data;
             for(var entry : JsonParser.parseString(json).getAsJsonObject().entrySet()) {
-                boolean isClient = GeneralConfig.getInstance().isClientSide();
-                Level level = (isClient) ? HBUtil.LevelUtil.toClientLevel(entry.getKey()) :
-                    HBUtil.LevelUtil.toServerLevel(entry.getKey());
+                Level level = HBUtil.LevelUtil.toLevel(null, entry.getKey());
                 if(level == null) continue;
                 int count = entry.getValue().getAsInt();
                 data.put(level, count);
@@ -450,6 +438,7 @@ public class StructureManager {
 
         @Override
         public void setPlayer(Player player) { this.p = player; }
+
 
     }
 }

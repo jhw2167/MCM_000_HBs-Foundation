@@ -96,10 +96,7 @@ public class Codecs {
         for (int i = 0; i < count && i < StructureInfoMessage.MAX_STRUCTURES; i++) {
             CompoundTag tag = buf.readNbt();
             if (tag != null) {
-                StructureInfo info = StructureInfo.deserialize(tag);
-                if (info != null) {
-                    structures.add(info);
-                }
+                structures.add(new StructureInfo(tag));
             }
         }
         

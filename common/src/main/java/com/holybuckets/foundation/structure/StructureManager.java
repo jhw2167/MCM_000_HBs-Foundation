@@ -1,24 +1,26 @@
 package com.holybuckets.foundation.structure;
 
 import com.google.common.collect.Maps;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
+import com.holybuckets.foundation.networking.StructureInfoMessage;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -27,17 +29,13 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.antlr.v4.runtime.misc.MultiMap;
 
-import java.sql.Struct;
 import java.util.*;
 
 import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPlayerData;
@@ -51,6 +49,7 @@ public class StructureManager {
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
+    private Iterator<StructureInfo> syncIterator;
 
     private StructureManager(Level level) {
         this.level = (ServerLevel) level;
@@ -152,11 +151,36 @@ public class StructureManager {
 
         //** EVENT HANDLERS
 
+
     //Send all structures to the client to they know the position - fires once per second
-    private static final int SEND_RATE = 16;
-    private void syncClientStructures() {
+    private void syncServerStructuresToClient()
+    {
         if(this.syncIterator == null) {
-            this.syncIterator = this.structures.values().iterator();
+            this.syncIterator = this.structures.values().stream().toList().iterator();
+        }
+        List<StructureInfo> data = new ArrayList<>();
+        for(int i = 0; i < StructureInfoMessage.MAX_STRUCTURES; i++) {
+            if(!this.syncIterator.hasNext()) {
+                this.syncIterator = null; break;
+            }
+            data.add(this.syncIterator.next());
+        }
+
+        for(ServerPlayer p : HBUtil.PlayerUtil.getAllPlayers())
+        {
+            IManagedPlayer pData = ManagedPlayer.getManagedPlayer(p).getSubclass(PlayerStructureData.class);
+            if(pData != null && (pData instanceof PlayerStructureData psData) ) {
+                if (psData.getCount(level) >= this.structures.size()) continue;
+                StructureInfoMessage.createAndFire(null, data);
+            }
+        }
+
+    }
+
+    private void syncClientStructureCountsToServer() {
+        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(Minecraft.getInstance().player).getSubclass(PlayerStructureData.class);
+        if(pData != null && (pData instanceof PlayerStructureData psData) ) {
+            SimpleStringMessage.create
         }
     }
 
@@ -220,6 +244,8 @@ public class StructureManager {
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("structures", root);
     }
 
+
+
     //** Statics
 
     public static StructureManager get(Level level) {
@@ -231,8 +257,16 @@ public class StructureManager {
         reg.registerOnLevelLoad(StructureManager::onLevelLoad);
         reg.registerOnChunkLoad(StructureManager::onChunkLoad);
 
+        reg.registerOnServerTick(TickType.ON_20_TICKS, StructureManager::on20Ticks);
+
+
+        reg.registerOnSimpleMessage( "sync_structure_count", StructureManager::handleSyncStructureCountsFromClient);
+
         reg.registerOnDataSave(StructureManager::onDataSave);
+        PlayerStructureData.init();
     }
+
+
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
@@ -249,9 +283,48 @@ public class StructureManager {
         StructureManager.get((Level) event.getLevel()).onChunkLoad(event.getChunk());
     }
 
+    private static void on20Ticks(ServerTickEvent event) {
+        for(StructureManager manager : managers.values()) {
+            if(manager.structures.size() > 0)
+                manager.syncServerStructuresToClient();
+        }
+    }
+
     private static void onDataSave(DatastoreSaveEvent event) {
         for(StructureManager manager : managers.values()) {
             manager.save(event.getDataStore());
+        }
+    }
+
+    //run on client
+    public static void handleStructureInfoFromServer(Player player, StructureInfoMessage message) {
+        if(player == null) return;
+        for(StructureInfo info : message.structures) {
+            StructureManager sm = StructureManager.get(player.level());
+            sm.structures.put(info.origin, info);
+            var resourceKey = sm.structureRegistry.getResourceKey(sm.structureRegistry.byId(info.registryId)).orElse(null);
+            if(resourceKey != null) {
+                sm.structuresByType.map(resourceKey, info.origin);
+                IManagedPlayer playerStructureData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+                if(playerStructureData != null && (playerStructureData instanceof PlayerStructureData psData) ) {
+                    psData.increment( (Level) player.level() );
+                }
+            }
+        }
+    }
+
+    //run on server
+    private static void handleSyncStructureCountsFromClient(SimpleMessageEvent simpleMessageEvent) {
+        Player player = simpleMessageEvent.getPlayer();
+        String content = simpleMessageEvent.getMessage().content;
+
+        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        if(pData != null && (pData instanceof PlayerStructureData psData) )
+        {
+            Map<Level, Integer> deserialized = PlayerStructureData.deserialize(content);
+            for(var entry : deserialized.entrySet()) {
+                psData.put(entry.getKey(), entry.getValue());
+            }
         }
     }
 
@@ -259,19 +332,19 @@ public class StructureManager {
 
     static class PlayerStructureData implements IManagedPlayer {
 
-            int syncedStructuresCount;
+            Map<Level, Integer> syncedStructureCounts;
             Player p;
 
-            static {
+            static void init() {
                 registerManagedPlayerData(PlayerStructureData.class, () -> new PlayerStructureData(null));
             }
             public PlayerStructureData(Player player) {
-                syncedStructuresCount = 0;
+                this.syncedStructureCounts = new HashMap<>();
                 setPlayer(player);
             }
 
         @Override
-        public boolean isInit(String subclass) { return false; }
+        public boolean isInit(String subclass) { return true; }
 
         @Override
         public IManagedPlayer getStaticInstance(Player player, String id) {
@@ -281,16 +354,56 @@ public class StructureManager {
         @Override
         public void handlePlayerJoin(Player player) {}
 
+        public int getCount(ServerLevel level) {
+            return this.syncedStructureCounts.getOrDefault(level, 0);
+        }
+
+        public void put(Level level, int count) {
+            this.syncedStructureCounts.computeIfAbsent(level, lvl -> 0);
+            this.syncedStructureCounts.put(level, count);
+        }
+
+        public void increment(Level level) {
+            this.syncedStructureCounts.computeIfAbsent(level, lvl -> 0);
+            this.syncedStructureCounts.put(level, this.syncedStructureCounts.get(level) + 1);
+        }
+
+        public void clear(Level level) {
+            this.syncedStructureCounts.put(level, 0);
+        }
+
         @Override
         public CompoundTag serializeNBT() {
             CompoundTag tag = new CompoundTag();
-            tag.putInt("syncedStructuresCount", this.syncedStructuresCount);
+            JsonObject structCounts = new JsonObject();
+            for(var entry : this.syncedStructureCounts.entrySet()) {
+                structCounts.addProperty( HBUtil.LevelUtil.toLevelId(entry.getKey()) , entry.getValue() );
+            }
+            tag.putString ("syncedStructuresCount", structCounts.toString() );
             return tag;
         }
 
         @Override
         public void deserializeNBT(CompoundTag nbt) {
-            this.syncedStructuresCount = nbt.getInt("syncedStructuresCount");
+            String json = nbt.getString("syncedStructuresCount");
+            for(var entry : deserialize(json).entrySet()) {
+                this.syncedStructureCounts.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        public static Map<Level, Integer> deserialize(String json)
+        {
+            Map<Level, Integer> data = Maps.newHashMap();
+            if(json == null || json.isEmpty()) return data;
+            for(var entry : JsonParser.parseString(json).getAsJsonObject().entrySet()) {
+                boolean isClient = GeneralConfig.getInstance().isClientSide();
+                Level level = (isClient) ? HBUtil.LevelUtil.toClientLevel(entry.getKey()) :
+                    HBUtil.LevelUtil.toServerLevel(entry.getKey());
+                if(level == null) continue;
+                int count = entry.getValue().getAsInt();
+                data.put(level, count);
+            }
+            return data;
         }
 
         @Override
@@ -298,5 +411,6 @@ public class StructureManager {
 
         @Override
         public void setPlayer(Player player) { this.p = player; }
+
     }
 }

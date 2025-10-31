@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.networking;
 
-import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import net.minecraft.world.entity.player.Player;
@@ -17,18 +18,23 @@ public class SimpleStringMessage {
     public static final int MAX_SIZE = 4096;
     
     public final UUID senderId;
+    public final String messageId;
     public final String content;
 
-    public SimpleStringMessage(UUID senderId, String content) {
+    public SimpleStringMessage(UUID senderId, String messageId, String content) {
         this.senderId = senderId;
-        // Truncate content if it exceeds max size
+        this.messageId = messageId != null ? messageId : "default";
         this.content = content != null && content.length() > MAX_SIZE 
             ? content.substring(0, MAX_SIZE) 
             : (content != null ? content : "");
     }
 
-    public static SimpleStringMessage create(UUID senderId, String content) {
-        return new SimpleStringMessage(senderId, content);
+    public static SimpleStringMessage createAndFire(Player p, String content) {
+        SimpleStringMessage message = new SimpleStringMessage(p.getUUID(),  content);
+        if (GeneralConfig.getInstance().isServerSide()) {
+            HBUtil.NetworkUtil.serverSendToPlayer(p, message);
+        } else {
+        return message;
     }
 
 
@@ -53,10 +59,10 @@ public class SimpleStringMessage {
             SimpleStringMessage processedMessage = new SimpleStringMessage(message.senderId, actualContent);
             
             // Fire the simple message event with messageId routing
-            if (player.level().isClientSide) {
-                ClientEventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
-            } else {
+            if (GeneralConfig.getInstance().isServerSide()) {
                 EventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
+            } else {
+                ClientEventRegistrar.getInstance().onSimpleMessage(player, processedMessage, messageId);
             }
         }
     }

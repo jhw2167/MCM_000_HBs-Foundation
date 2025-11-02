@@ -55,14 +55,15 @@ public class Codecs {
 
     //SimpleStringMessage
     public static final FriendlyByteBuf encodeSimpleString(SimpleStringMessage object, FriendlyByteBuf buf) {
-        buf.writeUUID(object.senderId);
+        buf.writeUtf(object.senderId==null ? "" : object.senderId.toString());
         buf.writeUtf(object.messageId, 256); // Reasonable limit for messageId
         buf.writeUtf(object.content, SimpleStringMessage.MAX_SIZE);
         return buf;
     }
 
     public static final SimpleStringMessage decodeSimpleString(FriendlyByteBuf buf) {
-        UUID senderId = buf.readUUID();
+        String strUUID = buf.readUtf();
+        UUID senderId = strUUID.isEmpty() ? null : UUID.fromString(strUUID);
         String messageId = buf.readUtf(256);
         String content = buf.readUtf(SimpleStringMessage.MAX_SIZE);
         return new SimpleStringMessage(senderId, messageId, content);

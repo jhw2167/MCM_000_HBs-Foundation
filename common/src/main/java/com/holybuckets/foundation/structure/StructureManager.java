@@ -55,9 +55,6 @@ public class StructureManager {
     }
 
     //** GETTERS
-    public static ResourceLocation toLocation(Structure structure) {
-        return BuiltInRegistries.STRUCTURE.getKey(structure);
-    }
 
     public static ResourceLocation toLocation(String stringStruct) {
         return new ResourceLocation(stringStruct);

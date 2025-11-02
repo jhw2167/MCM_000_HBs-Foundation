@@ -3,11 +3,14 @@ package com.holybuckets.foundation.event.custom;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import net.minecraft.world.entity.player.Player;
 
+import javax.annotation.Nullable;
+
 /**
  * Custom event for handling simple string messages with messageId routing
  */
 public class SimpleMessageEvent {
-    
+
+    @Nullable
     private final Player player;
     private final SimpleStringMessage message;
     private final String messageId;

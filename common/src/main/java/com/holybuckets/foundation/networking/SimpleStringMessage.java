@@ -29,6 +29,14 @@ public class SimpleStringMessage {
             : (content != null ? content : "");
     }
 
+    public SimpleStringMessage(String messageId, String content) {
+        this.senderId = UUID.fromString("");
+        this.messageId = messageId != null ? messageId : "default";
+        this.content = content != null && content.length() > MAX_SIZE
+            ? content.substring(0, MAX_SIZE)
+            : (content != null ? content : "");
+    }
+
     public SimpleStringMessage(UUID senderId, String content) {
         this(senderId, "default", content);
     }
@@ -41,13 +49,24 @@ public class SimpleStringMessage {
      * @return
      */
     public static SimpleStringMessage createAndFire(Player p, String messageId, String content) {
-        SimpleStringMessage message = new SimpleStringMessage(p.getUUID(), messageId, content);
-        if (GeneralConfig.getInstance().isServerSide()) {
+        SimpleStringMessage message = (p==null) ? new SimpleStringMessage(messageId, content)
+            : new SimpleStringMessage(p.getUUID(), messageId, content);
+
+        if(GeneralConfig.getInstance().isIntegrated()) {
+            EventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
+            ClientEventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
+            return message;
+        }
+        else if (GeneralConfig.getInstance().isServerSide()) {
             HBUtil.NetworkUtil.serverSendToPlayer(p, message);
         } else {
             HBUtil.NetworkUtil.clientSendToServer(message);
         }
         return message;
+    }
+
+    public static SimpleStringMessage createAndFire(String messageId, String content) {
+        return createAndFire(null, messageId, content);
     }
 
 

@@ -75,6 +75,7 @@ public class StructureManager {
     }
 
     public List<BlockPos> getStructurePosByType(ResourceKey<StructureType<?>> key) {
+        if (!structuresByType.containsKey(key)) return List.of();
         return List.copyOf( structuresByType.get(key) );
     }
 
@@ -94,6 +95,7 @@ public class StructureManager {
         }
 
     public List<StructureInfo> getStructuresByType(ResourceKey<StructureType<?>> key) {
+        if (!structuresByType.containsKey(key)) return List.of();
         return List.copyOf( structuresByType.get(key).stream().map(pos -> structures.get(pos)).toList() );
     }
 
@@ -133,7 +135,9 @@ public class StructureManager {
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
         for( StructureType<?> type : whiteList ) {
-              allStructs.addAll( getStructuresByType(type) );
+            var strs = getStructuresByType(type);
+            if(strs == null) continue;
+            allStructs.addAll( strs );
         }
 
         return allStructs.stream()
@@ -200,6 +204,7 @@ public class StructureManager {
             if (start.isValid())
             {
                 BlockPos structStartPos = start.getBoundingBox().getCenter();
+                if(structures.containsKey(structStartPos)) continue;
                 //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
                 var resourceKey = structureRegistry.getResourceKey(structure.type()).orElse(null);
                 if(resourceKey == null) continue;
@@ -229,6 +234,7 @@ public class StructureManager {
                 StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry);
                 var resourceKey = structureRegistry.getResourceKey(structureRegistry.byId(registryId)).orElse(null);
                 if(resourceKey != null) {
+                    if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
                     this.structuresByType.map(resourceKey, info.origin);
                 }
@@ -354,9 +360,10 @@ public class StructureManager {
         if(player == null) return;
         for(StructureInfo info : message.structures ) {
             StructureManager sm = StructureManager.get(player.level());
-            sm.structures.put(info.origin, info);
             var resourceKey = sm.structureRegistry.getResourceKey(sm.structureRegistry.byId(info.registryId)).orElse(null);
             if(resourceKey != null) {
+                if(sm.structures.containsKey(info.origin)) continue;
+                sm.structures.put(info.origin, info);
                 sm.structuresByType.map(resourceKey, info.origin);
                 IManagedPlayer playerStructureData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
                 if(playerStructureData != null && (playerStructureData instanceof PlayerStructureData psData) ) {

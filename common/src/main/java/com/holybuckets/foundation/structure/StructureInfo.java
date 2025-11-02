@@ -16,12 +16,14 @@ public class StructureInfo {
     ResourceLocation id;
     int registryId;
     String commonName;
+    ResourceLocation structureLocation;
 
-    public StructureInfo(BlockPos origin, ResourceLocation id, int rId, String commonName) {
+    public StructureInfo(BlockPos origin, ResourceLocation id, int rId, String commonName, ResourceLocation structureLocation) {
         this.origin = origin;
         this.id = id;
         this.registryId = rId;
         this.commonName = commonName;
+        this.structureLocation = structureLocation;
     }
 
     public StructureInfo(CompoundTag tag) {
@@ -45,6 +47,10 @@ public class StructureInfo {
         return commonName;
     }
 
+    public ResourceLocation getStructureLocation() {
+        return structureLocation;
+    }
+
 
     //** SERIALIZERS
 
@@ -57,6 +63,7 @@ public class StructureInfo {
         if(id != null) tag.putString("id", id.toString());
         tag.putInt("registryId", registryId);
         if(commonName != null) tag.putString("commonName", commonName);
+        if(structureLocation != null) tag.putString("structureLocation", structureLocation.toString());
         return tag;
     }
 
@@ -74,24 +81,28 @@ public class StructureInfo {
         if(tag.contains("commonName")) {
             commonName = tag.getString("commonName");
         }
+        
+        if(tag.contains("structureLocation")) {
+            structureLocation = new ResourceLocation(tag.getString("structureLocation"));
+        }
     }
 
 
     //* Statics
 
-    public static StructureInfo of(Holder<StructureType<?>> holder, BlockPos structurePos, Registry<StructureType<?>> structureRegistry) {
+    public static StructureInfo of(Holder<StructureType<?>> holder, BlockPos structurePos, Registry<StructureType<?>> structureRegistry, ResourceLocation structureLocation) {
         ResourceLocation id = structureRegistry.getKey(holder.value());
         int rId = structureRegistry.getId(holder.value());
         String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
-        return new StructureInfo(structurePos, id, rId, commonName);
+        return new StructureInfo(structurePos, id, rId, commonName, structureLocation);
     }
 
-    public static StructureInfo of(int rId, String blockPos, Registry<StructureType<?>> structureRegistry) {
+    public static StructureInfo of(int rId, String blockPos, Registry<StructureType<?>> structureRegistry, ResourceLocation structureLocation) {
         StructureType struct = structureRegistry.byId(rId);
         ResourceLocation id = structureRegistry.getKey(struct);
         String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
-        return new StructureInfo(pos, id, rId, commonName);
+        return new StructureInfo(pos, id, rId, commonName, structureLocation);
     }
 
 

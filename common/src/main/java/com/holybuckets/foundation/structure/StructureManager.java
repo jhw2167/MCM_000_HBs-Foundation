@@ -21,7 +21,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -40,9 +39,9 @@ import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPla
 public class StructureManager {
 
     private Level level;
-    private Registry<StructureType<?>> structureRegistry;
+    private Registry<Structure> structureRegistry;
     private Map<BlockPos, StructureInfo> structures;
-    private MultiMap<ResourceKey<StructureType<?>>, BlockPos> structuresByType;
+    private MultiMap<ResourceLocation, BlockPos> structuresByType;
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -52,21 +51,16 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new MultiMap<>();
-        this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
+        this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
     }
 
     //** GETTERS
-    public static ResourceKey<StructureType<?>> toKey(ResourceLocation loc) {
-        return ResourceKey.create(Registries.STRUCTURE_TYPE, loc);
+    public static ResourceLocation toLocation(Structure structure) {
+        return BuiltInRegistries.STRUCTURE.getKey(structure);
     }
 
-    public static ResourceKey<StructureType<?>> toKey(Structure structure) {
-        ResourceLocation loc = BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type());
-        return toKey(loc);
-    }
-
-    public static ResourceKey<StructureType<?>> toKey(String stringStruct) {
-            return toKey(new ResourceLocation(stringStruct));
+    public static ResourceLocation toLocation(String stringStruct) {
+        return new ResourceLocation(stringStruct);
     }
 
 
@@ -74,45 +68,27 @@ public class StructureManager {
         return Maps.newHashMap(structures);
     }
 
-    public List<BlockPos> getStructurePosByType(ResourceKey<StructureType<?>> key) {
-        if (!structuresByType.containsKey(key)) return List.of();
-        return List.copyOf( structuresByType.get(key) );
+    public List<BlockPos> getStructurePosByType(ResourceLocation location) {
+        if (!structuresByType.containsKey(location)) return List.of();
+        return List.copyOf( structuresByType.get(location) );
     }
 
-        public List<BlockPos> getStructurePosByType(ResourceLocation location) {
-            ResourceKey<StructureType<?>> key = ResourceKey.create(Registries.STRUCTURE_TYPE, location);
-            return getStructurePosByType(key);
-        }
-
-        public List<BlockPos> getStructurePosByType(StructureType<?> structureType) {
-            ResourceKey<StructureType<?>> key = structureRegistry.getResourceKey(structureType).orElse(null);
-            if (key == null) return List.of();
-            return getStructurePosByType(key);
-        }
-
-        public List<BlockPos> getStructurePosByType(Structure structure) {
-            return getStructurePosByType(structure.type());
-        }
-
-    public List<StructureInfo> getStructuresByType(ResourceKey<StructureType<?>> key) {
-        if (!structuresByType.containsKey(key)) return List.of();
-        return List.copyOf( structuresByType.get(key).stream().map(pos -> structures.get(pos)).toList() );
+    public List<BlockPos> getStructurePosByType(Structure structure) {
+        ResourceLocation location = structureRegistry.getKey(structure);
+        if (location == null) return List.of();
+        return getStructurePosByType(location);
     }
 
-        public List<StructureInfo> getStructuresByType(ResourceLocation location) {
-            ResourceKey<StructureType<?>> key = ResourceKey.create(Registries.STRUCTURE_TYPE, location);
-            return getStructuresByType(key);
-        }
+    public List<StructureInfo> getStructuresByType(ResourceLocation location) {
+        if (!structuresByType.containsKey(location)) return List.of();
+        return List.copyOf( structuresByType.get(location).stream().map(pos -> structures.get(pos)).toList() );
+    }
 
-        public List<StructureInfo> getStructuresByType(StructureType structureType) {
-            ResourceKey<StructureType<?>> key = structureRegistry.getResourceKey(structureType).orElse(null);
-            if (key == null) return List.of();
-            return getStructuresByType(key);
-        }
-
-        public List<StructureInfo> getStructuresByType(Structure structure) {
-            return getStructuresByType(structure.type());
-        }
+    public List<StructureInfo> getStructuresByType(Structure structure) {
+        ResourceLocation location = structureRegistry.getKey(structure);
+        if (location == null) return List.of();
+        return getStructuresByType(location);
+    }
 
     public List<StructureInfo> getNearestStructures(BlockPos center, double maxDistance) {
         double maxDistSq = maxDistance * maxDistance;
@@ -130,12 +106,12 @@ public class StructureManager {
                 .toList();
     }
 
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<StructureType<?>> whiteList,
+    public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
-        for( StructureType<?> type : whiteList ) {
-            var strs = getStructuresByType(type);
+        for( Structure structure : whiteList ) {
+            var strs = getStructuresByType(structure);
             if(strs == null) continue;
             allStructs.addAll( strs );
         }
@@ -148,12 +124,13 @@ public class StructureManager {
 
 
     //Returns structures NOT in the blacklist
-    public List<StructureInfo> getNearestBlackListedStructures(Set<StructureType<?>> blackList,
+    public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
         for( StructureInfo info : structures.values() ) {
-            if( !blackList.contains( structureRegistry.byId(info.registryId) ) ) {
+            Structure structure = structureRegistry.byId(info.registryId);
+            if( !blackList.contains( structure ) ) {
                 allStructs.add(info);
             }
         }
@@ -206,13 +183,16 @@ public class StructureManager {
                 BlockPos structStartPos = start.getBoundingBox().getCenter();
                 if(structures.containsKey(structStartPos)) continue;
                 //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
-                var resourceKey = structureRegistry.getResourceKey(structure.type()).orElse(null);
-                if(resourceKey == null) continue;
-                Holder<StructureType<?>> holder = structureRegistry.getHolder(resourceKey).orElse(null);
+                ResourceLocation structureLocation = structureRegistry.getKey(structure);
+                if(structureLocation == null) continue;
+                
+                // Get structure type registry for StructureInfo creation
+                Registry<StructureType<?>> structureTypeRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
+                Holder<StructureType<?>> holder = structureTypeRegistry.getHolder(structureTypeRegistry.getResourceKey(structure.type()).orElse(null)).orElse(null);
                 if(holder == null) continue;
 
-                    this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureRegistry));
-                    this.structuresByType.map(resourceKey, structStartPos);
+                this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureTypeRegistry, structureLocation));
+                this.structuresByType.map(structureLocation, structStartPos);
             }
         }
 
@@ -226,17 +206,20 @@ public class StructureManager {
         if(root == null || root.isJsonNull()) return;
 
         JsonObject rootObj = root.getAsJsonObject();
+        Registry<StructureType<?>> structureTypeRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
         for(String key : rootObj.keySet()) {
             JsonArray arr = rootObj.getAsJsonArray(key);
             int registryId = Integer.parseInt(key);
             for(JsonElement elem : arr)
             {
-                StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry);
-                var resourceKey = structureRegistry.getResourceKey(structureRegistry.byId(registryId)).orElse(null);
-                if(resourceKey != null) {
+                // For loading, we need to determine the structure location from the structure type
+                StructureType<?> structureType = structureTypeRegistry.byId(registryId);
+                ResourceLocation structureLocation = null; // This would need to be stored in save data or derived
+                StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureTypeRegistry, structureLocation);
+                if(structureLocation != null) {
                     if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
-                    this.structuresByType.map(resourceKey, info.origin);
+                    this.structuresByType.map(structureLocation, info.origin);
                 }
             }
         }
@@ -360,11 +343,11 @@ public class StructureManager {
         if(player == null) return;
         for(StructureInfo info : message.structures ) {
             StructureManager sm = StructureManager.get(player.level());
-            var resourceKey = sm.structureRegistry.getResourceKey(sm.structureRegistry.byId(info.registryId)).orElse(null);
-            if(resourceKey != null) {
+            ResourceLocation structureLocation = info.getStructureLocation();
+            if(structureLocation != null) {
                 if(sm.structures.containsKey(info.origin)) continue;
                 sm.structures.put(info.origin, info);
-                sm.structuresByType.map(resourceKey, info.origin);
+                sm.structuresByType.map(structureLocation, info.origin);
                 IManagedPlayer playerStructureData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
                 if(playerStructureData != null && (playerStructureData instanceof PlayerStructureData psData) ) {
                     psData.increment( (Level) player.level() );

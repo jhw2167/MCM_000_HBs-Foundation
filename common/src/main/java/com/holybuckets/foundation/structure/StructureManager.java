@@ -39,7 +39,7 @@ import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPla
 public class StructureManager {
 
     private Level level;
-    private Registry<Structure> structureRegistry;
+    private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private MultiMap<ResourceLocation, BlockPos> structuresByType;
 
@@ -51,7 +51,10 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new MultiMap<>();
-        this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        // Only initialize structure registry on server side
+        if (!level.isClientSide()) {
+            this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        }
     }
 
     //** GETTERS
@@ -71,6 +74,7 @@ public class StructureManager {
     }
 
     public List<BlockPos> getStructurePosByType(Structure structure) {
+        if (structureRegistry == null) return List.of();
         ResourceLocation location = structureRegistry.getKey(structure);
         if (location == null) return List.of();
         return getStructurePosByType(location);
@@ -82,6 +86,7 @@ public class StructureManager {
     }
 
     public List<StructureInfo> getStructuresByType(Structure structure) {
+        if (structureRegistry == null) return List.of();
         ResourceLocation location = structureRegistry.getKey(structure);
         if (location == null) return List.of();
         return getStructuresByType(location);
@@ -105,6 +110,7 @@ public class StructureManager {
 
     public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
                                                                BlockPos center, int limit) {
+        if (structureRegistry == null) return List.of();
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
         for( Structure structure : whiteList ) {
@@ -119,15 +125,49 @@ public class StructureManager {
             .toList();
     }
 
+    public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceLocation> whiteList,
+                                                               BlockPos center, int limit) {
+        if(limit < 1) limit = structures.size();
+        List<StructureInfo> allStructs = new LinkedList<>();
+        for( ResourceLocation location : whiteList ) {
+            var strs = getStructuresByType(location);
+            if(strs == null) continue;
+            allStructs.addAll( strs );
+        }
+
+        return allStructs.stream()
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
+    }
+
 
     //Returns structures NOT in the blacklist
     public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
                                                                BlockPos center, int limit) {
+        if (structureRegistry == null) return List.of();
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
         for( StructureInfo info : structures.values() ) {
             Structure structure = structureRegistry.byId(info.registryId);
             if( !blackList.contains( structure ) ) {
+                allStructs.add(info);
+            }
+        }
+        return allStructs.stream()
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
+    }
+
+    //Returns structures NOT in the blacklist
+    public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceLocation> blackList,
+                                                               BlockPos center, int limit) {
+        if(limit < 1) limit = structures.size();
+        List<StructureInfo> allStructs = new LinkedList<>();
+        for( StructureInfo info : structures.values() ) {
+            ResourceLocation structureLocation = info.getStructureLocation();
+            if( structureLocation != null && !blackList.contains( structureLocation ) ) {
                 allStructs.add(info);
             }
         }
@@ -180,6 +220,7 @@ public class StructureManager {
                 BlockPos structStartPos = start.getBoundingBox().getCenter();
                 if(structures.containsKey(structStartPos)) continue;
                 //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
+                if (structureRegistry == null) continue;
                 ResourceLocation structureLocation = structureRegistry.getKey(structure);
                 if(structureLocation == null) continue;
                 

@@ -90,19 +90,19 @@ public class StructureInfo {
 
     //* Statics
 
-    public static StructureInfo of(Holder<StructureType<?>> holder, BlockPos structurePos, Registry<StructureType<?>> structureRegistry, ResourceLocation structureLocation) {
+    public static StructureInfo of(Holder<Structure> holder, BlockPos structurePos, Registry<Structure> structureRegistry, ResourceLocation loc) {
         ResourceLocation id = structureRegistry.getKey(holder.value());
         int rId = structureRegistry.getId(holder.value());
-        String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
-        return new StructureInfo(structurePos, id, rId, commonName, structureLocation);
+        String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
+        return new StructureInfo(structurePos, id, rId, commonName, loc);
     }
 
-    public static StructureInfo of(int rId, String blockPos, Registry<StructureType<?>> structureRegistry, ResourceLocation structureLocation) {
-        StructureType struct = structureRegistry.byId(rId);
+    public static StructureInfo of(int rId, String blockPos, Registry<Structure> structureRegistry, ResourceLocation loc) {
+        Structure struct = structureRegistry.byId(rId);
         ResourceLocation id = structureRegistry.getKey(struct);
-        String commonName = WordUtils.capitalizeFully(id.getPath().replace("_", " "));
+        String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
-        return new StructureInfo(pos, id, rId, commonName, structureLocation);
+        return new StructureInfo(pos, id, rId, commonName, loc);
     }
 
 

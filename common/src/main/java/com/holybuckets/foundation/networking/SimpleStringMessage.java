@@ -6,6 +6,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import net.minecraft.world.entity.player.Player;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 /**
@@ -16,12 +17,13 @@ public class SimpleStringMessage {
 
     public static final String LOCATION = "simple_string";
     public static final int MAX_SIZE = 4096;
-    
+
+    @Nullable
     public final UUID senderId;
     public final String messageId;
     public final String content;
 
-    public SimpleStringMessage(UUID senderId, String messageId, String content) {
+    public SimpleStringMessage(@Nullable UUID senderId, String messageId, String content) {
         this.senderId = senderId;
         this.messageId = messageId != null ? messageId : "default";
         this.content = content != null && content.length() > MAX_SIZE 
@@ -30,11 +32,7 @@ public class SimpleStringMessage {
     }
 
     public SimpleStringMessage(String messageId, String content) {
-        this.senderId = UUID.fromString("");
-        this.messageId = messageId != null ? messageId : "default";
-        this.content = content != null && content.length() > MAX_SIZE
-            ? content.substring(0, MAX_SIZE)
-            : (content != null ? content : "");
+        this(null, messageId, content);
     }
 
     public SimpleStringMessage(UUID senderId, String content) {

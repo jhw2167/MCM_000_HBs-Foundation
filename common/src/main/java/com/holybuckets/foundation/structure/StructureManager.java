@@ -21,6 +21,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -108,7 +109,7 @@ public class StructureManager {
                 .toList();
     }
 
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<Structure> whiteList,
+    public List<StructureInfo> getNearestWhitelistedStructuresServerOnly(Set<Structure> whiteList,
                                                                BlockPos center, int limit) {
         if (structureRegistry == null) return List.of();
         if(limit < 1) limit = structures.size();
@@ -143,7 +144,7 @@ public class StructureManager {
 
 
     //Returns structures NOT in the blacklist
-    public List<StructureInfo> getNearestBlackListedStructures(Set<Structure> blackList,
+    public List<StructureInfo> getNearestBlackListedStructuresServerOnly(Set<Structure> blackList,
                                                                BlockPos center, int limit) {
         if (structureRegistry == null) return List.of();
         if(limit < 1) limit = structures.size();
@@ -223,13 +224,10 @@ public class StructureManager {
                 if (structureRegistry == null) continue;
                 ResourceLocation structureLocation = structureRegistry.getKey(structure);
                 if(structureLocation == null) continue;
-                
-                // Get structure type registry for StructureInfo creation
-                Registry<StructureType<?>> structureTypeRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
-                Holder<StructureType<?>> holder = structureTypeRegistry.getHolder(structureTypeRegistry.getResourceKey(structure.type()).orElse(null)).orElse(null);
+                ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
+                Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
                 if(holder == null) continue;
-
-                this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureTypeRegistry, structureLocation));
+                this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation));
                 this.structuresByType.map(structureLocation, structStartPos);
             }
         }
@@ -244,17 +242,15 @@ public class StructureManager {
         if(root == null || root.isJsonNull()) return;
 
         JsonObject rootObj = root.getAsJsonObject();
-        Registry<StructureType<?>> structureTypeRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE_TYPE);
         for(String key : rootObj.keySet()) {
             JsonArray arr = rootObj.getAsJsonArray(key);
             int registryId = Integer.parseInt(key);
             for(JsonElement elem : arr)
             {
-                // For loading, we need to determine the structure location from the structure type
-                StructureType<?> structureType = structureTypeRegistry.byId(registryId);
-                ResourceLocation structureLocation = null; // This would need to be stored in save data or derived
-                StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureTypeRegistry, structureLocation);
+                // This would need to be stored in save data or derived
+                ResourceLocation structureLocation = structureRegistry.getKey( structureRegistry.byId(registryId) );
                 if(structureLocation != null) {
+                    StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
                     if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
                     this.structuresByType.map(structureLocation, info.origin);
@@ -362,15 +358,13 @@ public class StructureManager {
     }
 
 
-    public static void fireSyncClientStructureCountsToServer(Player player) {
+    public static void fireSyncClientStructureCountsToServer(Player player)
+    {
+        if(GeneralConfig.getInstance().isIntegrated()) return;
         IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
         if(pData != null && (pData instanceof PlayerStructureData psData) ) {
             String serializedCounts = psData.serialize();
-            if(GeneralConfig.getInstance().isIntegrated()) {
-                handleSyncStructureCountsFromClient(psData.p, serializedCounts);
-                return;
-            }
-
+            handleSyncStructureCountsFromClient(psData.p, serializedCounts);
             SimpleStringMessage.createAndFire(player, STRUCTURE_MSG_ID, serializedCounts);
         }
     }

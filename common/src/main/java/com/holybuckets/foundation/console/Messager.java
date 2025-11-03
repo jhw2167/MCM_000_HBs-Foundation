@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.console;
 
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ChatType;
@@ -32,7 +33,9 @@ public class Messager {
      * @param message
      */
     public void sendChat(String message) {
-
+        for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
+            sendChat(p, message);
+        }
     }
 
     /**
@@ -43,7 +46,6 @@ public class Messager {
     public void sendChat(Player player, String message)
     {
         if (player == null || message == null || message.isEmpty()) return;
-        if (player.level().isClientSide) return; // send only from server thread/side
 
         // Avoid chat-signing; send as system messages. Also avoid '\n' by sending lines.
         for (String line : message.split("\\R")) {

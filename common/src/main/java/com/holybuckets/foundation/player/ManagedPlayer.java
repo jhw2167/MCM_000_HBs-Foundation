@@ -28,6 +28,8 @@ public class ManagedPlayer {
     public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
     static final LinkedHashSet<Player> PENDING_PLAYERS = new LinkedHashSet<>();
 
+    public static ManagedPlayer CLIENT_PLAYER;
+
     private Player player;
     private String id;
     private ServerPlayer serverPlayer;
@@ -214,7 +216,10 @@ public class ManagedPlayer {
     }
 
     //** Utility
-    public static ManagedPlayer getManagedPlayer(Player player) {
+    public static ManagedPlayer getManagedPlayer(Player player)
+    {
+        if(!GeneralConfig.getInstance().isServerSide()) return CLIENT_PLAYER;
+
         String id = HBUtil.PlayerUtil.getId(player);
         if(PLAYERS.containsKey(id)) {
             return PLAYERS.get(id);
@@ -357,6 +362,10 @@ public class ManagedPlayer {
 
 
     //** EVENT
+    public static void onClientConnectedToServer(Player player) {
+        CLIENT_PLAYER = new ManagedPlayer(player, HBUtil.PlayerUtil.getId(player));
+        CLIENT_PLAYER.initJoinedPlayer(player);
+    }
 
     //HERE
     public static void onPlayerLogin(PlayerLoginEvent event)

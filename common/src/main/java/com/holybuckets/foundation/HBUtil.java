@@ -610,6 +610,12 @@ public class HBUtil {
             } else if( nameSpace == LevelNameSpace.SERVER ) {
                 levelId = "SERVER:" + levelId;
             }
+            if(nameSpace == null) {
+                Level level = toLevel(LevelNameSpace.SERVER, dimensionId);
+                if(level != null) return level;
+                return toLevel(LevelNameSpace.CLIENT, dimensionId);
+            }
+
             return (Level) toLevel(levelId);
         }
 

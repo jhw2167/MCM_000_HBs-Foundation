@@ -18,8 +18,8 @@ import java.util.function.Consumer;
 public class ClientBalmEventRegister {
     private static final Set<Integer> registeredEvents = new ConcurrentSet<>();
     private static ClientEventRegistrar events;
-    private static boolean notRegistered(Consumer<?> c) { return !registeredEvents.contains(c.hashCode()); }
-    public static EventPriority p(Consumer<?> func) { return events.PRIORITIES.get(func.hashCode()); }
+    private static boolean notRegistered(Consumer<?> c) { return c!=null && !registeredEvents.contains(c.hashCode()); }
+    public static EventPriority p(Consumer<?> func) { return events.PRIORITIES.getOrDefault(func.hashCode(), EventPriority.Normal); }
 
     public static void registerEvents() {
         BalmEvents registry = Balm.getEvents();

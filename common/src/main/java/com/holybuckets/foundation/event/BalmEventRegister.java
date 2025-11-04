@@ -21,7 +21,7 @@ public class BalmEventRegister {
     private static final Set<Integer> registeredEvents = new ConcurrentSet<>();
     private static EventRegistrar registrar;
     private static boolean  notRegistered(Consumer<?> c) { return !registeredEvents.contains(c.hashCode()); }
-    public static EventPriority p(Consumer<?> func) { return registrar.PRIORITIES.get(func.hashCode()); }
+    public static EventPriority p(Consumer<?> func) { return registrar.PRIORITIES.getOrDefault(func.hashCode(), EventPriority.Normal); }
 
     // Register all events in the Registrar with Balm Events
     public static void registerEvents()

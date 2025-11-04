@@ -72,15 +72,7 @@ public class FoundationInitializers {
     private static void initNetworking()
     {
         BalmNetworking networking = Balm.getNetworking();
-        Handlers.init();
-        networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
-
-        networking.registerServerboundPacket(id(ClientInputMessage.LOCATION), ClientInputMessage.class, Codecs::encodeClientInput, Codecs::decodeClientInput, Handlers::handleClientInput);
-
-        networking.registerClientboundPacket(id(SimpleStringMessage.LOCATION), SimpleStringMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleString, Handlers::handleSimpleString);
-        networking.registerServerboundPacket(id(SimpleStringMessage.LOCATION), SimpleStringMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleString, Handlers::handleSimpleString);
-
-        networking.registerClientboundPacket(id(StructureInfoMessage.LOCATION), StructureInfoMessage.class, Codecs::encodeStructureInfo, Codecs::decodeStructureInfo, Handlers::handleStructureInfo);
+        ModNetworking.init(networking);
     }
 
     private static void initBlocks() {
@@ -95,7 +87,7 @@ public class FoundationInitializers {
 
 
 
-    private static ResourceLocation id(String location) {
+    public static ResourceLocation id(String location) {
         return new ResourceLocation(Constants.MOD_ID, location);
     }
 }

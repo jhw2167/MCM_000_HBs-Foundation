@@ -64,14 +64,14 @@ public class ClientEventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
 
 
-
+    private int ticks = 0;
     /**
      * Constructor
      **/
     private ClientEventRegistrar() {
         super();
         LoggerBase.logInit(null, "010000", this.getClass().getName());
-
+        ticks = 0;
         instance = this;
     }
 
@@ -199,22 +199,21 @@ public class ClientEventRegistrar {
     /**
      * Custom Events
      **/
-
     public void onClientTick(Minecraft client) {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
-        ClientTickEvent event = new ClientTickEvent(totalTicks);
+        if(client.player == null || client.level == null) return; //not in game
+        ClientTickEvent event = new ClientTickEvent(ticks++);
         //LoggerBase.logDebug(null, "010001", "Client tick event: " + totalTicks);
         CLIENT_TICK_EVENTS.forEach((scheme, consumer) -> {
-            if (totalTicks % scheme.getFrequency() == scheme.offset) {
+            if (ticks % scheme.getFrequency() == scheme.offset) {
                 tryEvent((Consumer<ClientTickEvent>) consumer, event);
             }
         });
     }
 
     public void onClientLevelTick(Level level) {
-        long totalTicks = GeneralConfig.getInstance().getTotalTickCount();
+        if(level == null) return; //not in game
+        long totalTicks = level.getDayTime();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
-        if(level == null) return;
 
         ManagedChunkEvents.onWorldTickStart(level);
         //LoggerBase.logDebug(null, "010001", "Client level tick event: " + totalTicks);

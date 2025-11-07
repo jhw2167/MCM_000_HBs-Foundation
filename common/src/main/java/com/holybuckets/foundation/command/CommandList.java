@@ -3,6 +3,7 @@ package com.holybuckets.foundation.command;
 //Project imports
 
 import com.holybuckets.foundation.event.CommandRegistry;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.structure.StructureAPI;
 import com.holybuckets.foundation.structure.StructureInfo;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -12,6 +13,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -21,7 +25,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class CommandList {
@@ -29,14 +35,44 @@ public class CommandList {
     public static final String CLASS_ID = "033";
     private static final String PREFIX = "hb";
 
+    public static void init(EventRegistrar reg) {
+        reg.registerOnLevelLoad(CommandList::onLevelLoad, EventPriority.Low);
+    }
+
     public static void register() {
-        CommandRegistry.register(LocateClusters::noArgs);
-        CommandRegistry.register(LocateClusters::limitCount);
-        CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
+//        CommandRegistry.register(LocateClusters::noArgs);
+//        CommandRegistry.register(LocateClusters::limitCount);
+//        CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
         CommandRegistry.register(NearestStructures::withLimit);
         CommandRegistry.register(NearestStructuresOfType::withTypeAndLimit);
         CommandRegistry.register(NearestDistinctStructures::withLimit);
     }
+
+    //**** SUGGETTIONS ****//
+
+
+    private static void onLevelLoad(LevelLoadingEvent event) {
+        try {
+            StructureAPI api = new StructureAPI( (Level) event.getLevel());
+            validStructureTypes.addAll(api.getAllStructures());
+        } catch (Exception e) {
+            // Log error if needed
+        }
+    }
+
+    private static final Set<ResourceLocation> validStructureTypes = new HashSet<>();
+    private static final SuggestionProvider<CommandSourceStack> STRUCTURE_TYPE_SUGGESTIONS =
+        (context, builder) -> {
+            // Provide some common structure types as suggestions
+            return SharedSuggestionProvider.suggest(
+                validStructureTypes.stream().map(ResourceLocation::toString)
+                , builder);
+        };
+
+
+    //**** END SUGGESTIONS ****//
+
+
 
     //1. Locate Clusters
     private static class LocateClusters
@@ -89,7 +125,6 @@ public class CommandList {
         private static int execute(CommandSourceStack source, int count, String blockType)
         {
 
-            LoggerProject.logDebug("010001", "Locate Clusters Command");
             return 0;
         }
 
@@ -99,6 +134,7 @@ public class CommandList {
 
     //2. Nearest Structures
     private static class NearestStructures {
+
         private static LiteralArgumentBuilder<CommandSourceStack> withLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestStructures")
@@ -144,28 +180,6 @@ public class CommandList {
 
     //3. Nearest Structures Of Type
     private static class NearestStructuresOfType {
-        private static final SuggestionProvider<CommandSourceStack> STRUCTURE_TYPE_SUGGESTIONS = 
-            (context, builder) -> {
-                // Provide some common structure types as suggestions
-                return SharedSuggestionProvider.suggest(new String[]{
-                    "minecraft:village_plains",
-                    "minecraft:village_desert", 
-                    "minecraft:village_savanna",
-                    "minecraft:village_snowy",
-                    "minecraft:village_taiga",
-                    "minecraft:pillager_outpost",
-                    "minecraft:mansion",
-                    "minecraft:monument",
-                    "minecraft:stronghold",
-                    "minecraft:mineshaft",
-                    "minecraft:buried_treasure",
-                    "minecraft:shipwreck",
-                    "minecraft:ruined_portal",
-                    "minecraft:bastion_remnant",
-                    "minecraft:fortress",
-                    "minecraft:end_city"
-                }, builder);
-            };
 
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)

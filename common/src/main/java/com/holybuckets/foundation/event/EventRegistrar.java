@@ -90,6 +90,8 @@ public class EventRegistrar {
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
     final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
+    final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
+    final Set<Consumer<PlayerNearStructureEvent>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentSet<>();
 
     /**
      * Constructor
@@ -427,6 +429,22 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    public void registerOnStructureLoaded(Consumer<StructureLoadedEvent> function) {
+        registerOnStructureLoaded(function, EventPriority.Normal);
+    }
+
+    public void registerOnStructureLoaded(Consumer<StructureLoadedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_STRUCTURE_LOADED, priority);
+    }
+
+    public void registerOnPlayerNearStructure(Consumer<PlayerNearStructureEvent> function) {
+        registerOnPlayerNearStructure(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerNearStructure(Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_NEAR_STRUCTURE, priority);
+    }
+
     /**
      * Custom Events
      **/
@@ -527,6 +545,30 @@ public class EventRegistrar {
             
         // Execute in priority order
         for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onStructureLoaded(StructureLoadedEvent event) {
+        // Sort consumers by priority
+        List<Consumer<StructureLoadedEvent>> sortedConsumers = ON_STRUCTURE_LOADED.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<StructureLoadedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onPlayerNearStructure(PlayerNearStructureEvent event) {
+        // Sort consumers by priority
+        List<Consumer<PlayerNearStructureEvent>> sortedConsumers = ON_PLAYER_NEAR_STRUCTURE.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<PlayerNearStructureEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
     }

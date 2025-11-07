@@ -45,6 +45,7 @@ public class StructureManager {
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private Map<ResourceLocation, Set<BlockPos>> structuresByType;
+    private Set<BlockPos> loadedStructures; // Track which structures have been loaded before
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -54,6 +55,7 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new HashMap<>();
+        this.loadedStructures = new HashSet<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
             this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -214,6 +216,25 @@ public class StructureManager {
 
     }
 
+    private void checkPlayersNearStructures() {
+        if (level.isClientSide()) return;
+        
+        for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
+            if (!player.level().equals(level)) continue;
+            
+            BlockPos playerPos = player.blockPosition();
+            double nearDistance = 100.0; // Define what "near" means (100 blocks)
+            
+            for (StructureInfo structureInfo : structures.values()) {
+                double distance = playerPos.distSqr(structureInfo.getOrigin());
+                if (distance <= nearDistance * nearDistance) {
+                    PlayerNearStructureEvent event = new PlayerNearStructureEvent(player, structureInfo);
+                    EventRegistrar.getInstance().onPlayerNearStructure(event);
+                }
+            }
+        }
+    }
+
     private void onChunkLoad(ChunkAccess chunk)
     {
         var starts = chunk.getAllStarts().entrySet().iterator();
@@ -233,8 +254,16 @@ public class StructureManager {
                 ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
                 Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
                 if(holder == null) continue;
-                this.structures.put(structStartPos, StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation));
+                
+                StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
+                this.structures.put(structStartPos, structureInfo);
                 this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
+                
+                // Fire StructureLoadedEvent
+                boolean isFirstTimeLoaded = !loadedStructures.contains(structStartPos);
+                loadedStructures.add(structStartPos);
+                StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, isFirstTimeLoaded);
+                EventRegistrar.getInstance().onStructureLoaded(event);
             }
         }
 
@@ -260,6 +289,7 @@ public class StructureManager {
                     if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
                     this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
+                    this.loadedStructures.add(info.origin); // Mark as previously loaded
                 }
             }
         }
@@ -346,8 +376,10 @@ public class StructureManager {
 
     private static void on20Ticks(ServerTickEvent event) {
         for(StructureManager manager : managers.values()) {
-            if(manager.structures.size() > 0)
+            if(manager.structures.size() > 0) {
                 manager.syncServerStructuresToClient();
+                manager.checkPlayersNearStructures();
+            }
         }
     }
 

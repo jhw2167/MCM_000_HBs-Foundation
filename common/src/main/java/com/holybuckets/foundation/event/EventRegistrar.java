@@ -93,6 +93,9 @@ public class EventRegistrar {
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
 
+    // Cache for event ID strings to avoid string concatenation on every event
+    private final Map<Long, String> eventIdCache = new ConcurrentHashMap<>();
+
     /**
      * Constructor
      **/
@@ -322,7 +325,7 @@ public class EventRegistrar {
      * @param priority
      */
     public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
-        ResourceLocation dimLoc = dimension != null ? dimension : EMPTY_LOC;
+        ResourceLocation dimLoc = dimension != null ? dimension :EMPTY_LOC;
         DAILY_TICK_EVENTS.put(dimLoc, function);
         PRIORITIES.put(function.hashCode(), priority);
     }
@@ -579,16 +582,21 @@ public class EventRegistrar {
         }
     }
 
-        private <T> void tryEvent(Consumer<T> consumer, T event) {
-            String id = consumer.toString() + "::" + event.getClass().getName();
-            if( MixinManager.isEnabled(consumer.toString())) {
-                try {
-                    consumer.accept(event);
-                } catch (Exception e) {
-                    MixinManager.recordError(id, e);
-                }
+    private <T> void tryEvent(Consumer<T> consumer, T event) {
+        // Create a unique key combining consumer hashcode and event class hashcode
+        long cacheKey = ((long) consumer.hashCode() << 32) | event.getClass().hashCode();
+        
+        String id = eventIdCache.computeIfAbsent(cacheKey, 
+            k -> consumer.toString() + "::" + event.getClass().getName());
+            
+        if( MixinManager.isEnabled(consumer.toString())) {
+            try {
+                consumer.accept(event);
+            } catch (Exception e) {
+                MixinManager.recordError(id, e);
             }
         }
+    }
 
 
     /**

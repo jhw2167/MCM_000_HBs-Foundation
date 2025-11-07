@@ -14,6 +14,7 @@ import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.networking.StructureInfoMessage;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
@@ -63,6 +64,10 @@ public class StructureManager {
 
     public static ResourceLocation toLocation(String stringStruct) {
         return new ResourceLocation(stringStruct);
+    }
+
+    public Set<ResourceLocation> getAllStructures() {
+        return structureRegistry.keySet();
     }
 
 
@@ -296,7 +301,7 @@ public class StructureManager {
 
     public static void init(EventRegistrar reg) {
         reg.registerOnBeforeServerStarted(StructureManager::onServerStart);
-        reg.registerOnLevelLoad(StructureManager::onLevelLoad);
+        reg.registerOnLevelLoad(StructureManager::onLevelLoad, EventPriority.High);
         reg.registerOnChunkLoad(StructureManager::onChunkLoad);
 
         reg.registerOnServerTick(TickType.ON_20_TICKS, StructureManager::on20Ticks);

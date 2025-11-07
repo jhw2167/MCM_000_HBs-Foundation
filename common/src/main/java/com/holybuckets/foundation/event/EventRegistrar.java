@@ -569,25 +569,13 @@ public class EventRegistrar {
         // Get consumers for this specific structure type
         Set<Consumer<PlayerNearStructureEvent>> specificConsumers = ON_PLAYER_NEAR_STRUCTURE.get(structureType);
         if (specificConsumers != null) {
-            List<Consumer<PlayerNearStructureEvent>> sortedSpecificConsumers = specificConsumers.stream()
-                .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
-                .toList();
-                
-            for (Consumer<PlayerNearStructureEvent> consumer : sortedSpecificConsumers) {
-                tryEvent(consumer, event);
-            }
+           specificConsumers.forEach(consumer -> tryEvent(consumer, event));
         }
         
         // Get consumers for all structure types (registered with null/empty ResourceLocation)
         Set<Consumer<PlayerNearStructureEvent>> generalConsumers = ON_PLAYER_NEAR_STRUCTURE.get(EMPTY_LOC);
         if (generalConsumers != null) {
-            List<Consumer<PlayerNearStructureEvent>> sortedGeneralConsumers = generalConsumers.stream()
-                .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
-                .toList();
-                
-            for (Consumer<PlayerNearStructureEvent> consumer : sortedGeneralConsumers) {
-                tryEvent(consumer, event);
-            }
+              generalConsumers.forEach(consumer -> tryEvent(consumer, event));
         }
     }
 

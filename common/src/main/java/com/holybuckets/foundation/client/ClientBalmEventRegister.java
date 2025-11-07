@@ -10,6 +10,8 @@ import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
+import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
+import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
 
 import java.util.Objects;
 import java.util.Set;
@@ -42,6 +44,26 @@ public class ClientBalmEventRegister {
 
         events.ON_BLOCK_HIGHLIGHT_DRAW.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
             registry.onEvent(BlockHighlightDrawEvent.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_SCREEN_DRAW_PRE.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(ScreenDrawEvent.Pre.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_SCREEN_DRAW_POST.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(ScreenDrawEvent.Post.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_CONTAINER_SCREEN_DRAW_BACKGROUND.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(ContainerScreenDrawEvent.Background.class, c, p(c));
+            registeredEvents.add(c.hashCode());
+        });
+
+        events.ON_CONTAINER_SCREEN_DRAW_FOREGROUND.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
+            registry.onEvent(ContainerScreenDrawEvent.Foreground.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
     }

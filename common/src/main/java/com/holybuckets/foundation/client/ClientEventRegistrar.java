@@ -19,6 +19,8 @@ import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
+import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
+import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
@@ -104,6 +106,38 @@ public class ClientEventRegistrar {
     final Set<Consumer<BlockHighlightDrawEvent>> ON_BLOCK_HIGHLIGHT_DRAW = new ConcurrentSet<>();
     public void registerOnBlockHighlightDraw(Consumer<BlockHighlightDrawEvent> function, EventPriority priority) {
         generalRegister(function, ON_BLOCK_HIGHLIGHT_DRAW, priority);
+    }
+
+    public void registerOnScreenDrawPre(Consumer<ScreenDrawEvent.Pre> function) {
+        registerOnScreenDrawPre(function, EventPriority.Normal);
+    }
+    final Set<Consumer<ScreenDrawEvent.Pre>> ON_SCREEN_DRAW_PRE = new ConcurrentSet<>();
+    public void registerOnScreenDrawPre(Consumer<ScreenDrawEvent.Pre> function, EventPriority priority) {
+        generalRegister(function, ON_SCREEN_DRAW_PRE, priority);
+    }
+
+    public void registerOnScreenDrawPost(Consumer<ScreenDrawEvent.Post> function) {
+        registerOnScreenDrawPost(function, EventPriority.Normal);
+    }
+    final Set<Consumer<ScreenDrawEvent.Post>> ON_SCREEN_DRAW_POST = new ConcurrentSet<>();
+    public void registerOnScreenDrawPost(Consumer<ScreenDrawEvent.Post> function, EventPriority priority) {
+        generalRegister(function, ON_SCREEN_DRAW_POST, priority);
+    }
+
+    public void registerOnContainerScreenDrawBackground(Consumer<ContainerScreenDrawEvent.Background> function) {
+        registerOnContainerScreenDrawBackground(function, EventPriority.Normal);
+    }
+    final Set<Consumer<ContainerScreenDrawEvent.Background>> ON_CONTAINER_SCREEN_DRAW_BACKGROUND = new ConcurrentSet<>();
+    public void registerOnContainerScreenDrawBackground(Consumer<ContainerScreenDrawEvent.Background> function, EventPriority priority) {
+        generalRegister(function, ON_CONTAINER_SCREEN_DRAW_BACKGROUND, priority);
+    }
+
+    public void registerOnContainerScreenDrawForeground(Consumer<ContainerScreenDrawEvent.Foreground> function) {
+        registerOnContainerScreenDrawForeground(function, EventPriority.Normal);
+    }
+    final Set<Consumer<ContainerScreenDrawEvent.Foreground>> ON_CONTAINER_SCREEN_DRAW_FOREGROUND = new ConcurrentSet<>();
+    public void registerOnContainerScreenDrawForeground(Consumer<ContainerScreenDrawEvent.Foreground> function, EventPriority priority) {
+        generalRegister(function, ON_CONTAINER_SCREEN_DRAW_FOREGROUND, priority);
     }
 
 

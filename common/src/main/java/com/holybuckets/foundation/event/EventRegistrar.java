@@ -27,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import javax.annotation.Nullable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -93,8 +94,8 @@ public class EventRegistrar {
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
 
-    // Cache for event ID strings to avoid string concatenation on every event
-    private final Map<Long, String> eventIdCache = new ConcurrentHashMap<>();
+    // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
+    private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
 
     /**
      * Constructor
@@ -583,10 +584,12 @@ public class EventRegistrar {
     }
 
     private <T> void tryEvent(Consumer<T> consumer, T event) {
-        // Create a unique key combining consumer hashcode and event class hashcode
-        long cacheKey = ((long) consumer.hashCode() << 32) | event.getClass().hashCode();
-        String id = eventIdCache.computeIfAbsent(cacheKey, 
-            k -> consumer.toString() + "::" + event.getClass().getName());
+        // Use consumer hashcode and event class as separate indices in the table
+        String id = eventIdCache.get(consumer.hashCode(), event.getClass());
+        if (id == null) {
+            id = consumer.toString() + "::" + event.getClass().getName();
+            eventIdCache.put(consumer.hashCode(), event.getClass(), id);
+        }
             
         if( MixinManager.isEnabled(consumer.toString())) {
             try {

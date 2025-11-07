@@ -91,7 +91,7 @@ public class EventRegistrar {
     final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
-    final Set<Consumer<PlayerNearStructureEvent>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentSet<>();
+    final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
 
     /**
      * Constructor
@@ -316,7 +316,7 @@ public class EventRegistrar {
     /**
      * registers a consumer to a specific dimension for day changes.
      * This event is triggered when the number of ticks in a day have passed
-     * OR when the player wakes up in the specified dimension.
+     * OR when the player wakes up in the specifie dimension.
      * @param dimension
      * @param function
      * @param priority
@@ -437,12 +437,14 @@ public class EventRegistrar {
         generalRegister(function, ON_STRUCTURE_LOADED, priority);
     }
 
-    public void registerOnPlayerNearStructure(Consumer<PlayerNearStructureEvent> function) {
-        registerOnPlayerNearStructure(function, EventPriority.Normal);
+    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function) {
+        registerOnPlayerNearStructure(structureType, function, EventPriority.Normal);
     }
 
-    public void registerOnPlayerNearStructure(Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
-        generalRegister(function, ON_PLAYER_NEAR_STRUCTURE, priority);
+    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
+        ResourceLocation key = structureType != null ? structureType : EMPTY_LOC;
+        ON_PLAYER_NEAR_STRUCTURE.computeIfAbsent(key, k -> new ConcurrentSet<>()).add(function);
+        PRIORITIES.put(function.hashCode(), priority);
     }
 
     /**
@@ -562,14 +564,30 @@ public class EventRegistrar {
     }
 
     public void onPlayerNearStructure(PlayerNearStructureEvent event) {
-        // Sort consumers by priority
-        List<Consumer<PlayerNearStructureEvent>> sortedConsumers = ON_PLAYER_NEAR_STRUCTURE.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
-            .toList();
-            
-        // Execute in priority order
-        for (Consumer<PlayerNearStructureEvent> consumer : sortedConsumers) {
-            tryEvent(consumer, event);
+        ResourceLocation structureType = event.getStructureInfo().getId();
+        
+        // Get consumers for this specific structure type
+        Set<Consumer<PlayerNearStructureEvent>> specificConsumers = ON_PLAYER_NEAR_STRUCTURE.get(structureType);
+        if (specificConsumers != null) {
+            List<Consumer<PlayerNearStructureEvent>> sortedSpecificConsumers = specificConsumers.stream()
+                .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+                .toList();
+                
+            for (Consumer<PlayerNearStructureEvent> consumer : sortedSpecificConsumers) {
+                tryEvent(consumer, event);
+            }
+        }
+        
+        // Get consumers for all structure types (registered with null/empty ResourceLocation)
+        Set<Consumer<PlayerNearStructureEvent>> generalConsumers = ON_PLAYER_NEAR_STRUCTURE.get(EMPTY_LOC);
+        if (generalConsumers != null) {
+            List<Consumer<PlayerNearStructureEvent>> sortedGeneralConsumers = generalConsumers.stream()
+                .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+                .toList();
+                
+            for (Consumer<PlayerNearStructureEvent> consumer : sortedGeneralConsumers) {
+                tryEvent(consumer, event);
+            }
         }
     }
 

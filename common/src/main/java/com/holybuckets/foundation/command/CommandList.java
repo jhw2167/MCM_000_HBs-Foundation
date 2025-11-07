@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class CommandList {
 
@@ -43,9 +44,11 @@ public class CommandList {
 //        CommandRegistry.register(LocateClusters::noArgs);
 //        CommandRegistry.register(LocateClusters::limitCount);
 //        CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
+        CommandRegistry.register(NearestStructures::noLimit);
         CommandRegistry.register(NearestStructures::withLimit);
         CommandRegistry.register(NearestStructuresOfType::withTypeAndLimit);
         CommandRegistry.register(NearestDistinctStructures::withLimit);
+        CommandRegistry.register(AllStructures::list);
     }
 
     //**** SUGGETTIONS ****//
@@ -135,6 +138,13 @@ public class CommandList {
     //2. Nearest Structures
     private static class NearestStructures {
 
+        private static LiteralArgumentBuilder<CommandSourceStack> noLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestStructures")
+                    .executes(context -> execute(context.getSource(), 10)) // Default limit of 10
+                );
+        }
+
         private static LiteralArgumentBuilder<CommandSourceStack> withLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestStructures")
@@ -184,7 +194,7 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestStructuresOfType")
-                    .then(Commands.argument("type", StringArgumentType.string())
+                    .then(Commands.argument("type", StringArgumentType.greedyString())
                         .suggests(STRUCTURE_TYPE_SUGGESTIONS)
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1))
                             .executes(context -> {
@@ -268,6 +278,35 @@ public class CommandList {
             } catch (Exception e) {
                 source.sendFailure(Component.literal("Error accessing structure data: " + e.getMessage()));
                 return 0;
+            }
+
+            return 1;
+        }
+    }
+
+    //5. All Structures
+    private static class AllStructures {
+        private static LiteralArgumentBuilder<CommandSourceStack> list() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("allStructures")
+                    .executes(context -> execute(context.getSource()))
+                );
+        }
+
+        private static int execute(CommandSourceStack source) {
+            if (validStructureTypes.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("No structure types available. Structure data may not be loaded yet."), false);
+                return 0;
+            }
+
+            List<String> sortedStructures = validStructureTypes.stream()
+                .map(ResourceLocation::toString)
+                .sorted()
+                .collect(Collectors.toList());
+
+            source.sendSuccess(() -> Component.literal("Available structure types (" + sortedStructures.size() + "):"), false);
+            for (String structure : sortedStructures) {
+                source.sendSuccess(() -> Component.literal("  " + structure), false);
             }
 
             return 1;

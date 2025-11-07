@@ -26,7 +26,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-
+import com.google.common.collect.HashBasedTable;
 import javax.annotation.Nullable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -585,7 +585,6 @@ public class EventRegistrar {
     private <T> void tryEvent(Consumer<T> consumer, T event) {
         // Create a unique key combining consumer hashcode and event class hashcode
         long cacheKey = ((long) consumer.hashCode() << 32) | event.getClass().hashCode();
-        
         String id = eventIdCache.computeIfAbsent(cacheKey, 
             k -> consumer.toString() + "::" + event.getClass().getName());
             

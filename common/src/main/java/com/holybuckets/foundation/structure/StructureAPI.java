@@ -45,7 +45,9 @@ public class StructureAPI {
     }
 
 
-
+    public Set<ResourceLocation> getAllStructures() {
+        return manager.getAllStructures();
+    }
 
 
 }

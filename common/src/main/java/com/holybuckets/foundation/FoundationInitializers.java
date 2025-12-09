@@ -2,6 +2,7 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
+import com.holybuckets.foundation.command.CommandList;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -54,6 +55,7 @@ public class FoundationInitializers {
     private static void initEvents()
     {
         EventRegistrar reg = EventRegistrar.getInstance();
+        CommandList.init(reg);
         //SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
@@ -65,6 +67,7 @@ public class FoundationInitializers {
 
     private static void initCommands()
     {
+        CommandList.register();
         BalmEventRegister.registerCommands();
     }
 

@@ -76,6 +76,7 @@ public class GeneralConfig {
         this.WORLD_SPAWNS = new HashMap<>();
         this.running = true;
         this.isWorldConfigInit = false;
+        this.worldSeed = 0L;
     }
 
     public static void init(EventRegistrar reg)

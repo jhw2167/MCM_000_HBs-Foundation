@@ -19,6 +19,10 @@ import javax.annotation.Nullable;
 
 import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
 import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalField;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -174,7 +178,11 @@ public class ManagedChunkUtility {
         return getChunkRandom(pos, CONFIG.getWorldSeed());
     }
 
-    public static Random getChunkRandom(ChunkPos pos, final Long SEED) {
+    public static Random getChunkRandom(ChunkPos pos, Long SEED)
+    {
+        if(SEED == null)
+            SEED = LocalDateTime.now().getLong(ChronoField.MICRO_OF_DAY);
+
         Double RAND = HBUtil.ChunkUtil.getChunkPos1DMap(pos) * 1d;
         if(RAND.equals(0d))
             return new Random(SEED);

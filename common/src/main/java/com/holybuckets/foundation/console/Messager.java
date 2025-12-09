@@ -58,6 +58,22 @@ public class Messager {
         }
     }
 
+    /**
+     * Sends heads up message to the player centered on bottom of their screen
+     * @param p
+     * @param message
+     */
+    public void sendBottomHeadsUp(Player p, String message) {
+    }
+
+
+    /**
+     * Sends corner hint message to the player on the top right corner of their screen
+     * @param p
+     * @param message
+     */
+    public void sendCornerHint(Player p, String message) {
+    }
 
 
 }

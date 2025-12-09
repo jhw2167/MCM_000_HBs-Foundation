@@ -45,7 +45,7 @@ public class StructureManager {
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private Map<ResourceLocation, Set<BlockPos>> structuresByType;
-    private Set<BlockPos> loadedStructures; // Track which structures have been loaded before
+    private Set<BlockPos> loadedStructures;
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -216,19 +216,19 @@ public class StructureManager {
 
     }
 
+    static final double nearDistance = 16.0; // Define what "near" means (100 blocks)
     private void checkPlayersNearStructures() {
         if (level.isClientSide()) return;
         
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
             if (!player.level().equals(level)) continue;
-            
             BlockPos playerPos = player.blockPosition();
-            double nearDistance = 100.0; // Define what "near" means (100 blocks)
             
-            for (StructureInfo structureInfo : structures.values()) {
-                double distance = playerPos.distSqr(structureInfo.getOrigin());
-                if (distance <= nearDistance * nearDistance) {
-                    PlayerNearStructureEvent event = new PlayerNearStructureEvent(player, structureInfo);
+            for(BlockPos pos : loadedStructures) {
+                if( !structures.containsKey(pos) ) continue;
+                if (playerPos.distSqr(pos) <= nearDistance * nearDistance) {
+                    PlayerNearStructureEvent event = new PlayerNearStructureEvent(player,
+                        structures.get(pos));
                     EventRegistrar.getInstance().onPlayerNearStructure(event);
                 }
             }
@@ -246,7 +246,11 @@ public class StructureManager {
             if (start.isValid())
             {
                 BlockPos structStartPos = start.getBoundingBox().getCenter();
-                if(structures.containsKey(structStartPos)) continue;
+                loadedStructures.add(structStartPos);
+                if(structures.containsKey(structStartPos)) {
+                StructureInfo info = structures.get(structStartPos);
+                    EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
+                }
                 //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
                 if (structureRegistry == null) continue;
                 ResourceLocation structureLocation = structureRegistry.getKey(structure);
@@ -260,14 +264,25 @@ public class StructureManager {
                 this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
                 
                 // Fire StructureLoadedEvent
-                boolean isFirstTimeLoaded = !loadedStructures.contains(structStartPos);
-                loadedStructures.add(structStartPos);
-                StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, isFirstTimeLoaded);
+                StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
                 EventRegistrar.getInstance().onStructureLoaded(event);
             }
         }
 
 
+    }
+
+    private void onChunkUnload(ChunkAccess chunk) {
+        var starts = chunk.getAllStarts().entrySet().iterator();
+        while (starts.hasNext()) {
+            var entry = starts.next();
+            StructureStart start = entry.getValue();
+
+            if (start.isValid()) {
+                BlockPos structStartPos = start.getBoundingBox().getCenter();
+                loadedStructures.remove(structStartPos);
+            }
+        }
     }
 
     private void load(DataStore ds)
@@ -333,6 +348,7 @@ public class StructureManager {
         reg.registerOnBeforeServerStarted(StructureManager::onServerStart);
         reg.registerOnLevelLoad(StructureManager::onLevelLoad, EventPriority.High);
         reg.registerOnChunkLoad(StructureManager::onChunkLoad);
+        reg.registerOnChunkUnload(StructureManager::onChunkUnload);
 
         reg.registerOnServerTick(TickType.ON_20_TICKS, StructureManager::on20Ticks);
 
@@ -374,6 +390,11 @@ public class StructureManager {
         StructureManager.get((Level) event.getLevel()).onChunkLoad(event.getChunk());
     }
 
+    private static void onChunkUnload(ChunkLoadingEvent.Unload event) {
+        if(event.getLevel().isClientSide()) return;
+        StructureManager.get((Level) event.getLevel()).onChunkUnload(event.getChunk());
+    }
+
     private static void on20Ticks(ServerTickEvent event) {
         for(StructureManager manager : managers.values()) {
             if(manager.structures.size() > 0) {
@@ -391,6 +412,7 @@ public class StructureManager {
 
 
     //** CLIENT
+
     public static void clientInit() {
         //PlayerStructureData.init();
     }

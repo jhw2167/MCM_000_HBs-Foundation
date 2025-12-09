@@ -2,6 +2,7 @@ package com.holybuckets.foundation.command;
 
 //Project imports
 
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.structure.StructureAPI;
@@ -77,6 +78,15 @@ public class CommandList {
 
 
 
+
+
+
+    //**** STATIC UTILITY ****//
+
+    static String posString(BlockPos pos) {
+        return HBUtil.BlockUtil.positionToString(pos);
+    }
+
     //1. Locate Clusters
     private static class LocateClusters
     {
@@ -141,7 +151,7 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> noLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestStructures")
-                    .executes(context -> execute(context.getSource(), 10)) // Default limit of 10
+                    .executes(context -> execute(context.getSource(), 1)) // Default limit of 10
                 );
         }
 
@@ -175,7 +185,7 @@ public class CommandList {
                 } else {
                     source.sendSuccess(() -> Component.literal("Found " + structures.size() + " structures:"), false);
                     for (StructureInfo structure : structures) {
-                        String message = structure.getId().toString() + " at " + structure.getOrigin().toString();
+                        String message = structure.getId().toString() + " at " + posString(structure.getOrigin());
                         source.sendSuccess(() -> Component.literal(message), false);
                     }
                 }
@@ -190,6 +200,20 @@ public class CommandList {
 
     //3. Nearest Structures Of Type
     private static class NearestStructuresOfType {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withType() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestStructuresOfType")
+                    .then(Commands.argument("type", StringArgumentType.greedyString())
+                        .suggests(STRUCTURE_TYPE_SUGGESTIONS)
+                            .executes(context -> {
+                                String type = StringArgumentType.getString(context, "type");
+                                return execute(context.getSource(), type, 1);
+                            })
+                        )
+                );
+        }
+
 
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)
@@ -226,7 +250,7 @@ public class CommandList {
                 } else {
                     source.sendSuccess(() -> Component.literal("Found " + structures.size() + " structures of type " + type + ":"), false);
                     for (StructureInfo structure : structures) {
-                        String message = structure.getId().toString() + " at " + structure.getOrigin().toString();
+                        String message = structure.getId().toString() + " at " + posString(structure.getOrigin());
                         source.sendSuccess(() -> Component.literal(message), false);
                     }
                 }
@@ -271,7 +295,7 @@ public class CommandList {
                 } else {
                     source.sendSuccess(() -> Component.literal("Found " + structures.size() + " distinct structures:"), false);
                     for (StructureInfo structure : structures) {
-                        String message = structure.getId().toString() + " at " + structure.getOrigin().toString();
+                        String message = structure.getId().toString() + " at " + posString(structure.getOrigin());
                         source.sendSuccess(() -> Component.literal(message), false);
                     }
                 }

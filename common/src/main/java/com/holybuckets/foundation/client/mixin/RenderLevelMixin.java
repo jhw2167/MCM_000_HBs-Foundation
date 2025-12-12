@@ -1,8 +1,8 @@
 // Common module: com/holybuckets/foundation/mixin/LevelRendererMixin.java
 package com.holybuckets.foundation.mixin;
 
-import com.holybuckets.foundation.event.RenderLevelCallback;
-import com.holybuckets.foundation.event.RenderLevelEvents;
+import com.holybuckets.foundation.client.ClientEventRegistrar;
+import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.GameRenderer;
@@ -36,8 +36,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_SKY,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_SKY,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
@@ -63,8 +63,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_SOLID_BLOCKS,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
@@ -90,8 +90,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
@@ -116,8 +116,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_PARTICLES,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_PARTICLES,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
@@ -142,8 +142,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_WEATHER,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_WEATHER,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
@@ -164,8 +164,8 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        RenderLevelEvents.fire(
-            RenderLevelCallback.RenderStage.AFTER_LEVEL,
+        ClientEventRegistrar.getInstance().onRenderLevel(
+            RenderLevelEvent.RenderStage.AFTER_LEVEL,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );

@@ -1,0 +1,8 @@
+ClientEventRegistrar.getInstance().registerOnRenderLevel(
+    RenderLevelEvent.RenderStage.AFTER_SKY, 
+    event -> {
+        // Custom rendering code here
+        PoseStack poseStack = event.getPoseStack();
+        // ... etc
+    }
+);

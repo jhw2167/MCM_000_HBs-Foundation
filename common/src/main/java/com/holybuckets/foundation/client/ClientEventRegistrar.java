@@ -64,6 +64,7 @@ public class ClientEventRegistrar {
     final Map<TickScheme, Consumer<?>> CLIENT_LEVEL_TICK_EVENTS = new ConcurrentHashMap<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
+    final Multimap<RenderLevelEvent.RenderStage, Consumer<RenderLevelEvent>> ON_RENDER_LEVEL = HashMultimap.create();
 
 
     private int ticks = 0;
@@ -200,6 +201,15 @@ public class ClientEventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    public void registerOnRenderLevel(RenderLevelEvent.RenderStage stage, Consumer<RenderLevelEvent> function) {
+        registerOnRenderLevel(stage, function, EventPriority.Normal);
+    }
+
+    public void registerOnRenderLevel(RenderLevelEvent.RenderStage stage, Consumer<RenderLevelEvent> function, EventPriority priority) {
+        ON_RENDER_LEVEL.put(stage, function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
 
     //** TICK EVENTS
     private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
@@ -275,6 +285,25 @@ public class ClientEventRegistrar {
             
         // Execute in priority order
         for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, com.mojang.blaze3d.vertex.PoseStack poseStack, 
+                             float partialTick, long finishNanoTime, boolean renderBlockOutline, 
+                             net.minecraft.client.Camera camera, net.minecraft.client.renderer.GameRenderer gameRenderer, 
+                             net.minecraft.client.renderer.LightTexture lightTexture, org.joml.Matrix4f projectionMatrix) {
+        RenderLevelEvent event = new RenderLevelEvent(stage, poseStack, partialTick, finishNanoTime, 
+                                                     renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
+        Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
+        
+        // Sort consumers by priority
+        List<Consumer<RenderLevelEvent>> sortedConsumers = consumers.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<RenderLevelEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
     }

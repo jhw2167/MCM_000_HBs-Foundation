@@ -1,4 +1,3 @@
-// Common module: com/holybuckets/foundation/mixin/LevelRendererMixin.java
 package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.client.ClientEventRegistrar;

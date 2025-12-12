@@ -216,7 +216,7 @@ public class ClientEventRegistrar {
         registerOnRenderLevel(stage, function, EventPriority.Normal);
     }
 
-    public void registerOnRenderLevel(RenderLevelEvent.RenderStage stage, Consumer<RenderLevelEvent> function, EventPriority priority) {
+    private void registerOnRenderLevel(RenderLevelEvent.RenderStage stage, Consumer<RenderLevelEvent> function, EventPriority priority) {
         ON_RENDER_LEVEL.put(stage, function);
         PRIORITIES.put(function.hashCode(), priority);
     }
@@ -247,7 +247,7 @@ public class ClientEventRegistrar {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ClientLevelTickEvent> void register OnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
+    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
         generalTickEventRegister(function, CLIENT_LEVEL_TICK_EVENTS, type, priority);
     }
 
@@ -305,23 +305,20 @@ public class ClientEventRegistrar {
                               Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projectionMatrix)
     {
         // Skip this stage if it has previously thrown an exception
-        if (renderLevelErrorStages.contains(stage)) {
-            return;
-        }
+        if (renderLevelErrorStages.contains(stage)) return;
+        Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
+        if(consumers.isEmpty()) return;
         
         // Update the static event instance with new values
         RENDER_LEVEL_EVENT.updateValues(stage, poseStack, partialTick, finishNanoTime, 
                                        renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
-        
-        Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
-        if(consumers.isEmpty()) return;
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
             try {
                 consumer.accept(RENDER_LEVEL_EVENT);
             } catch (Exception e) {
-                // Log the error and add this stage to the error set to skip it in future
                 LoggerBase.logError(null, "RENDER_ERROR", "RenderLevelEvent stage " + stage.name() + " threw exception: " + e.getMessage());
+                e.printStackTrace();
                 renderLevelErrorStages.add(stage);
                 break; // Stop processing this stage immediately
             }

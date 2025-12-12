@@ -16,7 +16,7 @@ public class CommonClassClient {
     public static void initClient() {
         initClientEvents();
         initRenderers();
-        testRenderers();
+        //testRenderers();
     }
 
     //** CLIENT INITIALIZERS **//
@@ -59,42 +59,42 @@ public class CommonClassClient {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_SKY fired - partialTick: " + event.getPartialTick());
             }
-        }, EventPriority.Low);
+        });
         
         // Test AFTER_SOLID_BLOCKS stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS, event -> {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_SOLID_BLOCKS fired - renderBlockOutline: " + event.isRenderBlockOutline());
             }
-        }, EventPriority.Low);
+        });
         
         // Test AFTER_TRANSLUCENT_BLOCKS stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS, event -> {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_TRANSLUCENT_BLOCKS fired - camera position: " + event.getCamera().getPosition());
             }
-        }, EventPriority.Low);
+        });
         
         // Test AFTER_PARTICLES stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, event -> {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_PARTICLES fired - finishNanoTime: " + event.getFinishNanoTime());
             }
-        }, EventPriority.Low);
+        });
         
         // Test AFTER_WEATHER stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_WEATHER, event -> {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_WEATHER fired - stage: " + event.getStage().name());
             }
-        }, EventPriority.Low);
+        });
         
         // Test AFTER_LEVEL stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_LEVEL, event -> {
             if (Math.random() < 0.1) {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_LEVEL fired - projection matrix: " + event.getProjectionMatrix());
             }
-        }, EventPriority.Low);
+        });
     }
 
     private static void onServerStop(ServerStoppedEvent event) {

@@ -16,12 +16,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin {
 
+    // After sky rendering
     @Inject(
         method = "renderLevel",
         at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSky(Lcom/mojang/blaze3d/vertex/PoseStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/Camera;ZLjava/lang/Runnable;)V",
-            shift = At.Shift.AFTER
+            value = "CONSTANT",
+            args = "stringValue=sky"
         )
     )
     private void afterSky(
@@ -35,20 +35,18 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_SKY,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SKY,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
     }
 
+    // After solid blocks
     @Inject(
         method = "renderLevel",
         at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;checkPoseStack(Lcom/mojang/blaze3d/vertex/PoseStack;)V",
-            ordinal = 0,
-            shift = At.Shift.AFTER
+            value = "CONSTANT",
+            args = "stringValue=entities"
         )
     )
     private void afterSolidBlocks(
@@ -62,20 +60,18 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
     }
 
+    // After translucent blocks (RECOMMENDED FOR BEACON BEAMS)
     @Inject(
         method = "renderLevel",
         at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
-            ordinal = 2,
-            shift = At.Shift.AFTER
+            value = "CONSTANT",
+            args = "stringValue=translucent"
         )
     )
     private void afterTranslucentBlocks(
@@ -89,19 +85,18 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
     }
 
+    // After particles
     @Inject(
         method = "renderLevel",
         at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
-            shift = At.Shift.AFTER
+            value = "CONSTANT",
+            args = "stringValue=particles"
         )
     )
     private void afterParticles(
@@ -115,19 +110,19 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_PARTICLES,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
     }
 
+    // After weather
     @Inject(
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V",
-            shift = At.Shift.AFTER
+            target = "Lnet/minecraft/client/renderer/debug/DebugRenderer;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDD)V",
+            shift = At.Shift.BEFORE
         )
     )
     private void afterWeather(
@@ -141,13 +136,13 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_WEATHER,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_WEATHER,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );
     }
 
+    // At the end of renderLevel
     @Inject(
         method = "renderLevel",
         at = @At("TAIL")
@@ -163,8 +158,7 @@ public class LevelRendererMixin {
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(
-            RenderLevelEvent.RenderStage.AFTER_LEVEL,
+        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_LEVEL,
             poseStack, partialTick, finishNanoTime, renderBlockOutline,
             camera, gameRenderer, lightTexture, projectionMatrix
         );

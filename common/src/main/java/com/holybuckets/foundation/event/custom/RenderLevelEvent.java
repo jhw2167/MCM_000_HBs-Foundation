@@ -42,13 +42,13 @@ public class RenderLevelEvent {
     }
     
     // Package-private constructor for static instance
-    RenderLevelEvent() {
+    public RenderLevelEvent() {
     }
     
     // Package-private method to update values
-    void updateValues(RenderStage stage, PoseStack poseStack, float partialTick, long finishNanoTime, 
-                     boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, 
-                     LightTexture lightTexture, Matrix4f projectionMatrix) {
+    public void updateValues(RenderStage stage, PoseStack poseStack, float partialTick, long finishNanoTime,
+                             boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
+                             LightTexture lightTexture, Matrix4f projectionMatrix) {
         this.stage = stage;
         this.poseStack = poseStack;
         this.partialTick = partialTick;

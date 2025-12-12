@@ -17,19 +17,38 @@ public class RenderLevelEvent {
         AFTER_LEVEL
     }
     
-    private final RenderStage stage;
-    private final PoseStack poseStack;
-    private final float partialTick;
-    private final long finishNanoTime;
-    private final boolean renderBlockOutline;
-    private final Camera camera;
-    private final GameRenderer gameRenderer;
-    private final LightTexture lightTexture;
-    private final Matrix4f projectionMatrix;
+    private RenderStage stage;
+    private PoseStack poseStack;
+    private float partialTick;
+    private long finishNanoTime;
+    private boolean renderBlockOutline;
+    private Camera camera;
+    private GameRenderer gameRenderer;
+    private LightTexture lightTexture;
+    private Matrix4f projectionMatrix;
     
     public RenderLevelEvent(RenderStage stage, PoseStack poseStack, float partialTick, long finishNanoTime, 
                            boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, 
                            LightTexture lightTexture, Matrix4f projectionMatrix) {
+        this.stage = stage;
+        this.poseStack = poseStack;
+        this.partialTick = partialTick;
+        this.finishNanoTime = finishNanoTime;
+        this.renderBlockOutline = renderBlockOutline;
+        this.camera = camera;
+        this.gameRenderer = gameRenderer;
+        this.lightTexture = lightTexture;
+        this.projectionMatrix = projectionMatrix;
+    }
+    
+    // Package-private constructor for static instance
+    RenderLevelEvent() {
+    }
+    
+    // Package-private method to update values
+    void updateValues(RenderStage stage, PoseStack poseStack, float partialTick, long finishNanoTime, 
+                     boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, 
+                     LightTexture lightTexture, Matrix4f projectionMatrix) {
         this.stage = stage;
         this.poseStack = poseStack;
         this.partialTick = partialTick;

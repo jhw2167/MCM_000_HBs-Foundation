@@ -37,6 +37,7 @@ import org.joml.Matrix4f;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,6 +72,11 @@ public class ClientEventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Multimap<RenderLevelEvent.RenderStage, Consumer<RenderLevelEvent>> ON_RENDER_LEVEL = HashMultimap.create();
 
+    // Static RenderLevelEvent instance for performance
+    private static final RenderLevelEvent RENDER_LEVEL_EVENT = new RenderLevelEvent();
+    
+    // HashSet to track stages that have thrown exceptions
+    private final Set<RenderLevelEvent.RenderStage> renderLevelErrorStages = new HashSet<>();
 
     private int ticks = 0;
     /**
@@ -241,7 +247,7 @@ public class ClientEventRegistrar {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ClientLevelTickEvent> void registerOnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
+    public <T extends ClientLevelTickEvent> void register OnClientLevelTick(TickType type, Consumer<T> function, EventPriority priority) {
         generalTickEventRegister(function, CLIENT_LEVEL_TICK_EVENTS, type, priority);
     }
 
@@ -298,13 +304,27 @@ public class ClientEventRegistrar {
                               float partialTick, long finishNanoTime, boolean renderBlockOutline,
                               Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projectionMatrix)
     {
-        RenderLevelEvent event = new RenderLevelEvent(stage, poseStack, partialTick, finishNanoTime, 
-                                                     renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
+        // Skip this stage if it has previously thrown an exception
+        if (renderLevelErrorStages.contains(stage)) {
+            return;
+        }
+        
+        // Update the static event instance with new values
+        RENDER_LEVEL_EVENT.updateValues(stage, poseStack, partialTick, finishNanoTime, 
+                                       renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
+        
         Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
         if(consumers.isEmpty()) return;
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
-            tryEvent(consumer, event);
+            try {
+                consumer.accept(RENDER_LEVEL_EVENT);
+            } catch (Exception e) {
+                // Log the error and add this stage to the error set to skip it in future
+                LoggerBase.logError(null, "RENDER_ERROR", "RenderLevelEvent stage " + stage.name() + " threw exception: " + e.getMessage());
+                renderLevelErrorStages.add(stage);
+                break; // Stop processing this stage immediately
+            }
         }
     }
 

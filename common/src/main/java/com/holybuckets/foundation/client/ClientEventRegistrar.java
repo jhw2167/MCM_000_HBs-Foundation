@@ -13,6 +13,7 @@ import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
@@ -23,12 +24,16 @@ import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
 import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.joml.Matrix4f;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -289,21 +294,16 @@ public class ClientEventRegistrar {
         }
     }
 
-    public void onRenderLevel(RenderLevelEvent.RenderStage stage, com.mojang.blaze3d.vertex.PoseStack poseStack, 
-                             float partialTick, long finishNanoTime, boolean renderBlockOutline, 
-                             net.minecraft.client.Camera camera, net.minecraft.client.renderer.GameRenderer gameRenderer, 
-                             net.minecraft.client.renderer.LightTexture lightTexture, org.joml.Matrix4f projectionMatrix) {
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, PoseStack poseStack,
+                              float partialTick, long finishNanoTime, boolean renderBlockOutline,
+                              Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projectionMatrix)
+    {
         RenderLevelEvent event = new RenderLevelEvent(stage, poseStack, partialTick, finishNanoTime, 
                                                      renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
         Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
-        
-        // Sort consumers by priority
-        List<Consumer<RenderLevelEvent>> sortedConsumers = consumers.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
-            .toList();
-            
-        // Execute in priority order
-        for (Consumer<RenderLevelEvent> consumer : sortedConsumers) {
+        if(consumers.isEmpty()) return;
+
+        for (Consumer<RenderLevelEvent> consumer : consumers) {
             tryEvent(consumer, event);
         }
     }

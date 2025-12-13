@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.console;
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ChatType;
@@ -16,6 +17,8 @@ import net.minecraft.world.entity.player.Player;
  * Singleton
  */
 public class Messager {
+
+    public static final String MSG_ID_BOTTOM_ACTION_HINT = "bottom_screen_action_hint";
 
     private static Messager INSTANCE;
 
@@ -75,5 +78,24 @@ public class Messager {
     public void sendCornerHint(Player p, String message) {
     }
 
+    /**
+     * Sends a bottom screen action hint message from server to client
+     * @param player The player to send the message to
+     * @param message The message text to display
+     */
+    public void sendBottomActionHint(Player player, String message) {
+        if (player == null || message == null || message.isEmpty()) return;
+        
+        SimpleStringMessage.createAndFire(player, MSG_ID_BOTTOM_ACTION_HINT, message);
+    }
 
+    /**
+     * Sends a bottom screen action hint message from server to all players
+     * @param message The message text to display
+     */
+    public void sendBottomActionHint(String message) {
+        for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
+            sendBottomActionHint(p, message);
+        }
+    }
 }

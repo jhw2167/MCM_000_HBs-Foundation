@@ -66,6 +66,8 @@ public class ClientBalmEventRegister {
             registry.onEvent(ContainerScreenDrawEvent.Foreground.class, c, p(c));
             registeredEvents.add(c.hashCode());
         });
+
+
     }
 
     static void registerClientTickEvents() {

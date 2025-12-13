@@ -161,6 +161,30 @@ public class ClientEventRegistrar {
         generalRegister(function, ON_GUI_DRAW, priority);
     }
 
+    public void registerOnGuiDrawPre(Consumer<GuiDrawEvent.Pre> function) {
+        registerOnGuiDrawPre(function, EventPriority.Normal);
+    }
+    final Set<Consumer<GuiDrawEvent.Pre>> ON_GUI_DRAW_PRE = new ConcurrentSet<>();
+    public void registerOnGuiDrawPre(Consumer<GuiDrawEvent.Pre> function, EventPriority priority) {
+        generalRegister(function, ON_GUI_DRAW_PRE, priority);
+    }
+
+    public void registerOnGuiDrawPost(Consumer<GuiDrawEvent.Post> function) {
+        registerOnGuiDrawPost(function, EventPriority.Normal);
+    }
+    final Set<Consumer<GuiDrawEvent.Post>> ON_GUI_DRAW_POST = new ConcurrentSet<>();
+    public void registerOnGuiDrawPost(Consumer<GuiDrawEvent.Post> function, EventPriority priority) {
+        generalRegister(function, ON_GUI_DRAW_POST, priority);
+    }
+
+    public void registerOnGuiDrawElement(Consumer<GuiDrawEvent.Element> function) {
+        registerOnGuiDrawElement(function, EventPriority.Normal);
+    }
+    final Set<Consumer<GuiDrawEvent.Element>> ON_GUI_DRAW_ELEMENT = new ConcurrentSet<>();
+    public void registerOnGuiDrawElement(Consumer<GuiDrawEvent.Element> function, EventPriority priority) {
+        generalRegister(function, ON_GUI_DRAW_ELEMENT, priority);
+    }
+
 
     //** STARTUP
 
@@ -336,6 +360,18 @@ public class ClientEventRegistrar {
 
     public void onGuiDraw(GuiDrawEvent event) {
         ON_GUI_DRAW.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onGuiDrawPre(GuiDrawEvent.Pre event) {
+        ON_GUI_DRAW_PRE.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onGuiDrawPost(GuiDrawEvent.Post event) {
+        ON_GUI_DRAW_POST.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onGuiDrawElement(GuiDrawEvent.Element event) {
+        ON_GUI_DRAW_ELEMENT.forEach(consumer -> tryEvent(consumer, event));
     }
 
 

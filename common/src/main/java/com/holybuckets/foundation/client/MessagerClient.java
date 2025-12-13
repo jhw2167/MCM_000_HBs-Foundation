@@ -2,7 +2,7 @@ package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
+import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -37,7 +37,7 @@ public class MessagerClient {
      */
     public void init(ClientEventRegistrar registrar) {
         // Subscribe to bottom screen action hint messages from server
-        registrar.registerOnScreenDrawPost(this::onScreenDraw);
+        registrar.registerOnGuiDraw(this::onGuiDraw);
         registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, (event) -> {
             bottomScreenActionHint(event.getContent());
         });
@@ -70,9 +70,9 @@ public class MessagerClient {
     }
     
     /**
-     * Called during screen rendering to draw active messages
+     * Called during GUI rendering to draw active messages
      */
-    private void onScreenDraw(ScreenDrawEvent.Post event) {
+    private void onGuiDraw(GuiDrawEvent event) {
         if (bottomScreenMessages.isEmpty()) return;
         
         Minecraft mc = Minecraft.getInstance();

@@ -22,6 +22,7 @@ import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
 import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
+import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Camera;
@@ -150,6 +151,14 @@ public class ClientEventRegistrar {
     final Set<Consumer<ContainerScreenDrawEvent.Foreground>> ON_CONTAINER_SCREEN_DRAW_FOREGROUND = new ConcurrentSet<>();
     public void registerOnContainerScreenDrawForeground(Consumer<ContainerScreenDrawEvent.Foreground> function, EventPriority priority) {
         generalRegister(function, ON_CONTAINER_SCREEN_DRAW_FOREGROUND, priority);
+    }
+
+    public void registerOnGuiDraw(Consumer<GuiDrawEvent> function) {
+        registerOnGuiDraw(function, EventPriority.Normal);
+    }
+    final Set<Consumer<GuiDrawEvent>> ON_GUI_DRAW = new ConcurrentSet<>();
+    public void registerOnGuiDraw(Consumer<GuiDrawEvent> function, EventPriority priority) {
+        generalRegister(function, ON_GUI_DRAW, priority);
     }
 
 
@@ -323,6 +332,10 @@ public class ClientEventRegistrar {
                 break; // Stop processing this stage immediately
             }
         }
+    }
+
+    public void onGuiDraw(GuiDrawEvent event) {
+        ON_GUI_DRAW.forEach(consumer -> tryEvent(consumer, event));
     }
 
 

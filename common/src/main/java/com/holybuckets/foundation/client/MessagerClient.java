@@ -2,6 +2,7 @@ package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -71,16 +72,21 @@ public class MessagerClient {
     /**
      * Called during screen rendering to draw active messages
      */
-    private void onScreenDraw(net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent.Post event) {
+    private void onScreenDraw(ScreenDrawEvent.Post event) {
         if (bottomScreenMessages.isEmpty()) return;
         
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen != null) return; // Don't render when GUI is open
+        //if (mc.screen != null) return; // Don't render when GUI is open
         
         GuiGraphics guiGraphics = event.getGuiGraphics();
         Font font = mc.font;
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
+
+
+        guiGraphics.fill(screenWidth / 2 - 50, screenHeight - 70,
+            screenWidth / 2 + 50, screenHeight - 50,
+            0x80FF0000); // Semi-transparent red box
         
         // Update and render bottom screen messages
         Iterator<BottomScreenMessage> iterator = bottomScreenMessages.iterator();

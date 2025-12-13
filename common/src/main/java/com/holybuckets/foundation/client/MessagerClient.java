@@ -28,20 +28,17 @@ public class MessagerClient {
     }
     
     private MessagerClient() {
-        // Register render event for drawing messages
-        ClientEventRegistrar.getInstance().registerOnScreenDrawPost(this::onScreenDraw);
     }
     
     /**
      * Initialize MessagerClient with ClientEventRegistrar to listen for server messages
      * @param registrar The ClientEventRegistrar instance
      */
-    public static void init(ClientEventRegistrar registrar) {
-        MessagerClient instance = getInstance();
-        
+    public void init(ClientEventRegistrar registrar) {
         // Subscribe to bottom screen action hint messages from server
-        registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, event -> {
-            instance.bottomScreenActionHint(event.getMessage().content);
+        registrar.registerOnScreenDrawPost(this::onScreenDraw);
+        registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, (event) -> {
+            bottomScreenActionHint(event.getContent());
         });
     }
     

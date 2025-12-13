@@ -22,9 +22,11 @@ public class CommonClassClient {
     //** CLIENT INITIALIZERS **//
     private static void initClientEvents() {
         ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
+        MessagerClient messager = MessagerClient.getInstance();
         //reg.registerOnServerStop(CommonClassClient::onServerStop, EventPriority.Lowest);
         //reg.registerOnBlockHighlightDraw(CommonClassClient::onBlockHighlightDraw, EventPriority.Normal);
         ClientInput.init(reg);
+        messager.init(reg);
         initManagedPlayer(reg);
         initStructureManager(reg);
 

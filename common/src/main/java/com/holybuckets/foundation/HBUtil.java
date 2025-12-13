@@ -661,6 +661,17 @@ public class HBUtil {
             return id;
         }
 
+        public static String toLevelId(LevelNameSpace nm, LevelAccessor level) {
+          String id = toLevelId(level);
+          String baseId = id.replace("CLIENT:", "").replace("SERVER:", "");
+          if( nm == LevelNameSpace.CLIENT ) {
+              return "CLIENT:" + baseId;
+          } else if( nm == LevelNameSpace.SERVER ) {
+                return "SERVER:" + baseId;
+            }
+            return baseId;
+        }
+
         public static boolean testLevel(Level level, String levelNameSpace, String levelId) {
             return testLevel(level, new ResourceLocation(levelNameSpace + ":" + levelId));
         }

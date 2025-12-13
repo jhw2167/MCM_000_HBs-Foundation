@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
+import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
@@ -40,8 +41,37 @@ public class CommonClass {
 
         FoundationInitializers.init();
         //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
+        testMessager(EventRegistrar.getInstance());
 
         isInitialized = true;
+    }
+
+    /**
+     * Description: Test the Messager system by subscribing to player input events
+     */
+    public static void testMessager(EventRegistrar reg) {
+        reg.registerOnPlayerInput(CommonClass::onPlayerInput);
+    }
+
+    private static void onPlayerInput(ClientInputEvent event) {
+        if (event.getPlayer() == null) return;
+        
+        // Get the key codes that were pressed
+        List<Integer> keyCodes = event.getKeyCodes();
+        if (keyCodes.isEmpty()) return;
+        
+        // Create a message showing which keys were pressed
+        StringBuilder keyMessage = new StringBuilder("Keys pressed: ");
+        for (int i = 0; i < keyCodes.size(); i++) {
+            if (i > 0) keyMessage.append(", ");
+            keyMessage.append(keyCodes.get(i));
+        }
+        
+        // Send the message using the Messager system
+        Messager.getInstance().sendBottomActionHint(event.getPlayer(), keyMessage.toString());
+        
+        // Also log it for debugging
+        LoggerBase.logInfo(null, "MESSAGER_TEST", "Player input: " + keyMessage.toString());
     }
 
     /**

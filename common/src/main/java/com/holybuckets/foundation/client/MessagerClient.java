@@ -2,6 +2,7 @@ package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -37,7 +38,7 @@ public class MessagerClient {
      */
     public void init(ClientEventRegistrar registrar) {
         // Subscribe to bottom screen action hint messages from server
-        registrar.registerOnGuiDraw(this::onGuiDraw);
+        registrar.registerOnGuiDrawPost(this::onGuiDraw, EventPriority.Lowest);
         registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, (event) -> {
             bottomScreenActionHint(event.getContent());
         });
@@ -72,7 +73,7 @@ public class MessagerClient {
     /**
      * Called during GUI rendering to draw active messages
      */
-    private void onGuiDraw(GuiDrawEvent event) {
+    private void onGuiDraw(GuiDrawEvent.Post event) {
         if (bottomScreenMessages.isEmpty()) return;
         
         Minecraft mc = Minecraft.getInstance();
@@ -83,10 +84,6 @@ public class MessagerClient {
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
 
-
-        guiGraphics.fill(screenWidth / 2 - 50, screenHeight - 70,
-            screenWidth / 2 + 50, screenHeight - 50,
-            0x80FF0000); // Semi-transparent red box
         
         // Update and render bottom screen messages
         Iterator<BottomScreenMessage> iterator = bottomScreenMessages.iterator();
@@ -122,16 +119,12 @@ public class MessagerClient {
      * Draws text with a black outline for better visibility
      */
     private void drawTextWithOutline(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color, int outlineColor) {
-        // Draw outline (8 directions)
-        guiGraphics.drawString(font, text, x - 1, y - 1, outlineColor, false);
-        guiGraphics.drawString(font, text, x, y - 1, outlineColor, false);
-        guiGraphics.drawString(font, text, x + 1, y - 1, outlineColor, false);
-        guiGraphics.drawString(font, text, x - 1, y, outlineColor, false);
-        guiGraphics.drawString(font, text, x + 1, y, outlineColor, false);
-        guiGraphics.drawString(font, text, x - 1, y + 1, outlineColor, false);
-        guiGraphics.drawString(font, text, x, y + 1, outlineColor, false);
-        guiGraphics.drawString(font, text, x + 1, y + 1, outlineColor, false);
-        
+        // Draw outline (4 cardinal directions only - thinner)
+        guiGraphics.drawString(font, text, x - 1, y, outlineColor, false);     // Left
+        guiGraphics.drawString(font, text, x + 1, y, outlineColor, false);     // Right
+        guiGraphics.drawString(font, text, x, y - 1, outlineColor, false);     // Top
+        guiGraphics.drawString(font, text, x, y + 1, outlineColor, false);     // Bottom
+
         // Draw main text
         guiGraphics.drawString(font, text, x, y, color, false);
     }

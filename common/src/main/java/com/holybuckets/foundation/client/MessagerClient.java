@@ -1,13 +1,16 @@
 package com.holybuckets.foundation.client;
 
+import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -18,7 +21,7 @@ import java.util.List;
  * 
  * Singleton
  */
-public class MessagerClient {
+public class MessagerClient implements IMessager {
     
     private static MessagerClient INSTANCE;
     
@@ -46,6 +49,70 @@ public class MessagerClient {
     
     // List to track active bottom screen messages
     private final List<BottomScreenMessage> bottomScreenMessages = new ArrayList<>();
+    
+    /**
+     * Sends a message to the chat console for all players
+     * @param message The message to send
+     */
+    @Override
+    public void sendChat(String message) {
+        Player player = Balm.getProxy().getClientPlayer();
+        if (player != null) {
+            sendChat(player, message);
+        }
+    }
+    
+    /**
+     * Sends a message to the chat console for a specific player
+     * @param player The target player
+     * @param message The message to send
+     */
+    @Override
+    public void sendChat(Player player, String message) {
+        if (player == null || message == null || message.isEmpty()) return;
+        
+        // On client side, display as client message
+        player.displayClientMessage(net.minecraft.network.chat.Component.literal(message), false);
+    }
+    
+    /**
+     * Sends heads up message to the player centered on bottom of their screen
+     * @param player The target player
+     * @param message The message to display
+     */
+    @Override
+    public void sendBottomHeadsUp(Player player, String message) {
+        bottomScreenActionHint(message);
+    }
+    
+    /**
+     * Sends corner hint message to the player on the top right corner of their screen
+     * @param player The target player
+     * @param message The message to display
+     */
+    @Override
+    public void sendCornerHint(Player player, String message) {
+        // TODO: Implement corner hint display
+    }
+    
+    /**
+     * Sends a bottom screen action hint message to a specific player
+     * @param player The player to send the message to
+     * @param message The message text to display
+     */
+    @Override
+    public void sendBottomActionHint(Player player, String message) {
+        bottomScreenActionHint(message);
+    }
+    
+    /**
+     * Sends a bottom screen action hint message to all players
+     * @param message The message text to display
+     */
+    @Override
+    public void sendBottomActionHint(String message) {
+        bottomScreenActionHint(message);
+    }
     
     /**
      * Sends a hint message to the bottom center of the player's screen

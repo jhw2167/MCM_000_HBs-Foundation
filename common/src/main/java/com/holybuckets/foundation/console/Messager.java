@@ -16,7 +16,7 @@ import net.minecraft.world.entity.player.Player;
  *
  * Singleton
  */
-public class Messager {
+public class Messager implements IMessager {
 
     public static final String MSG_ID_BOTTOM_ACTION_HINT = "bottom_screen_action_hint";
 
@@ -35,6 +35,7 @@ public class Messager {
      * Sends a message to the chat console for all players
      * @param message
      */
+    @Override
     public void sendChat(String message) {
         for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
             sendChat(p, message);
@@ -46,6 +47,7 @@ public class Messager {
     * @param player
     * @param message
     */
+    @Override
     public void sendChat(Player player, String message)
     {
         if (player == null || message == null || message.isEmpty()) return;
@@ -66,6 +68,7 @@ public class Messager {
      * @param p
      * @param message
      */
+    @Override
     public void sendBottomHeadsUp(Player p, String message) {
     }
 
@@ -75,6 +78,7 @@ public class Messager {
      * @param p
      * @param message
      */
+    @Override
     public void sendCornerHint(Player p, String message) {
     }
 
@@ -83,6 +87,7 @@ public class Messager {
      * @param player The player to send the message to
      * @param message The message text to display
      */
+    @Override
     public void sendBottomActionHint(Player player, String message) {
         if (player == null || message == null || message.isEmpty()) return;
         
@@ -93,6 +98,7 @@ public class Messager {
      * Sends a bottom screen action hint message from server to all players
      * @param message The message text to display
      */
+    @Override
     public void sendBottomActionHint(String message) {
         for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
             sendBottomActionHint(p, message);

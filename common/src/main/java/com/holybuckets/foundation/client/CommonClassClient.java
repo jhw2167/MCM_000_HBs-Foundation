@@ -1,4 +1,5 @@
 package com.holybuckets.foundation.client;
+import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -7,6 +8,7 @@ import com.holybuckets.foundation.structure.StructureManager;
 import net.blay09.mods.balm.api.client.BalmClient;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
 
@@ -23,6 +25,7 @@ public class CommonClassClient {
     private static void initClientEvents() {
         ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
         MessagerClient messager = MessagerClient.getInstance();
+        reg.registerOnConnectedToServer(CommonClassClient::onPlayerConnectToServer, EventPriority.Highest);
         //reg.registerOnServerStop(CommonClassClient::onServerStop, EventPriority.Lowest);
         //reg.registerOnBlockHighlightDraw(CommonClassClient::onBlockHighlightDraw, EventPriority.Normal);
         ClientInput.init(reg);
@@ -52,6 +55,15 @@ public class CommonClassClient {
     private static void initRenderers() {
         ModRenderers.clientInitialize(BalmClient.getRenderers());
     }
+
+    //** Events
+    private static void onPlayerConnectToServer(ConnectedToServerEvent event) {
+        CommonClass.MESSAGER = MessagerClient.getInstance();
+    }
+
+
+
+    //** Tests
 
     private static void testRenderers() {
         ClientEventRegistrar reg = ClientEventRegistrar.getInstance();

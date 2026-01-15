@@ -4,6 +4,7 @@ import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
 import com.holybuckets.foundation.command.CommandList;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.ModItems;
@@ -40,6 +41,7 @@ public class FoundationInitializers {
     {
         if(commonIninitialized) return;
         commonIninitialized = true;
+        CommonClass.MESSAGER = Messager.getInstance();
 
         EventRegistrar.init();
         HBUtil.init(EventRegistrar.getInstance());

@@ -241,6 +241,11 @@ public class HBUtil {
 
     public static class BlockUtil {
 
+        public static final Vec3i[] NEIGHBOR_COORDS = {
+            new Vec3i(1, 0, 0), new Vec3i(-1, 0, 0), new Vec3i(0, 1, 0),
+            new Vec3i(0, -1, 0), new Vec3i(0, 0, 1), new Vec3i(0, 0, -1)
+        };
+
         public static Vec3 toVec3(Vec3i pos ) {
             if( pos == null ) return null;
             return new Vec3(pos.getX(), pos.getY(), pos.getZ());
@@ -660,6 +665,7 @@ public class HBUtil {
             levelIdCache.put(level, id);
             return id;
         }
+
 
         public static String toLevelId(LevelNameSpace nm, LevelAccessor level) {
           String id = toLevelId(level);

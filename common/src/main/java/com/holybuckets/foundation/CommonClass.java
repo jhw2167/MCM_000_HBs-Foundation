@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.block.ModBlocks;
+import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -31,6 +32,7 @@ import static java.lang.Thread.sleep;
 public class CommonClass {
 
     public static boolean isInitialized = false;
+    public static IMessager MESSAGER;
     public static void init()
     {
 

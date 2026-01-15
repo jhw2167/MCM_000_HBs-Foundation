@@ -118,8 +118,8 @@ public class MessagerClient implements IMessager {
      * Sends a hint message to the bottom center of the player's screen
      * @param message The message to display
      */
-    public void bottomScreenActionHint(String message) {
-        bottomScreenActionHint(message, 3000); // Default 3 second duration
+    private void bottomScreenActionHint(String message) {
+        bottomScreenActionHint(message, 5000); // Default 3 second duration
     }
     
     /**
@@ -127,7 +127,7 @@ public class MessagerClient implements IMessager {
      * @param message The message to display
      * @param durationMs Duration in milliseconds to show the message
      */
-    public void bottomScreenActionHint(String message, int durationMs) {
+    private void bottomScreenActionHint(String message, int durationMs) {
         if (message == null || message.isEmpty()) return;
         
         // Remove any existing messages with the same text to avoid duplicates

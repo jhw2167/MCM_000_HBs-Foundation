@@ -1,12 +1,18 @@
 package com.holybuckets.foundation.console;
 
+import com.holybuckets.foundation.CommonClass;
 import net.minecraft.world.entity.player.Player;
 
 /**
  * Interface for messaging functionality across server and client sides
  */
 public interface IMessager {
-    
+
+
+    public static IMessager getInstance() {
+        return CommonClass.MESSAGER;
+    }
+
     /**
      * Sends a message to the chat console for all players
      * @param message The message to send

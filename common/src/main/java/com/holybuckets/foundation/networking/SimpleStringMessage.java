@@ -2,11 +2,14 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -39,6 +42,30 @@ public class SimpleStringMessage {
         this(senderId, "default", content);
     }
 
+    public SimpleStringClientMessage toClientMessage() {
+        return new SimpleStringClientMessage(this.senderId, this.messageId, this.content);
+    }
+
+    public SimpleStringServerMessage toServerMessage() {
+        return new SimpleStringServerMessage(this.senderId, this.messageId, this.content);
+    }
+
+    /** To Servers **/
+    public class SimpleStringServerMessage extends SimpleStringMessage {
+        /**  To Servers */
+        public SimpleStringServerMessage(UUID senderId, String messageId, String content) {
+            super(senderId, messageId, content);
+        }
+    }
+
+    /** To Clients **/
+    public class SimpleStringClientMessage extends SimpleStringMessage {
+        /** To Clients */
+        public SimpleStringClientMessage(UUID senderId, String messageId, String content) {
+            super(senderId, messageId, content);
+        }
+    }
+
     /**
      * Clientbound AND serverbound event, avoid for integrated servers
      * @param p
@@ -56,8 +83,14 @@ public class SimpleStringMessage {
             return message;
         }
         else if (GeneralConfig.getInstance().isServerSide()) {
+            if(p==null) {
+                String error = "SimpleStringMessage.createAndFire: Attempt to send message from server to undefined player. MsgId "+ messageId;
+                LoggerBase.logError(null, "016001", error);
+            }
+            message = message.toClientMessage();
             HBUtil.NetworkUtil.serverSendToPlayer(p, message);
         } else {
+            message = message.toServerMessage();
             HBUtil.NetworkUtil.clientSendToServer(message);
         }
         return message;
@@ -65,6 +98,15 @@ public class SimpleStringMessage {
 
     public static SimpleStringMessage createAndFire(String messageId, String content) {
         return createAndFire(null, messageId, content);
+    }
+
+    public static SimpleStringMessage createAndFireToAll(String messageId, String content) {
+        List<Player> players = HBUtil.PlayerUtil.getAllSidedPlayers();
+        SimpleStringMessage lastMessage = null;
+        for(Player p : players) {
+            lastMessage = createAndFire(p, messageId, content);
+        }
+        return lastMessage;
     }
 
 

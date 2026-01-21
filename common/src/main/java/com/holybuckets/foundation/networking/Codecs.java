@@ -10,6 +10,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import static com.holybuckets.foundation.networking.ClientInputMessage.InputType;
 import static com.holybuckets.foundation.HBUtil.LevelUtil.LevelNameSpace;
 
+import com.holybuckets.foundation.networking.SimpleStringMessage.SimpleStringClientMessage;
+import com.holybuckets.foundation.networking.SimpleStringMessage.SimpleStringServerMessage;
+
 import java.util.*;
 
 public class Codecs {
@@ -54,7 +57,14 @@ public class Codecs {
     }
 
     //SimpleStringMessage
-    public static final FriendlyByteBuf encodeSimpleString(SimpleStringMessage object, FriendlyByteBuf buf) {
+    public static final FriendlyByteBuf encodeSimpleString(SimpleStringMessage.SimpleStringClientMessage object, FriendlyByteBuf buf) {
+        buf.writeUtf(object.senderId==null ? "" : object.senderId.toString());
+        buf.writeUtf(object.messageId, 256); // Reasonable limit for messageId
+        buf.writeUtf(object.content, SimpleStringMessage.MAX_SIZE);
+        return buf;
+    }
+
+    public static final FriendlyByteBuf encodeSimpleString(SimpleStringMessage.SimpleStringServerMessage object, FriendlyByteBuf buf) {
         buf.writeUtf(object.senderId==null ? "" : object.senderId.toString());
         buf.writeUtf(object.messageId, 256); // Reasonable limit for messageId
         buf.writeUtf(object.content, SimpleStringMessage.MAX_SIZE);
@@ -68,6 +78,16 @@ public class Codecs {
         String content = buf.readUtf(SimpleStringMessage.MAX_SIZE);
         return new SimpleStringMessage(senderId, messageId, content);
     }
+
+    public static final SimpleStringClientMessage decodeSimpleClientString(FriendlyByteBuf buf) {
+        return decodeSimpleString(buf).toClientMessage();
+    }
+
+    public static final SimpleStringServerMessage decodeSimpleServerString(FriendlyByteBuf buf) {
+        return decodeSimpleString(buf).toServerMessage();
+    }
+
+
 
     //StructureInfoMessage
     public static final FriendlyByteBuf encodeStructureInfo(StructureInfoMessage object, FriendlyByteBuf buf) {

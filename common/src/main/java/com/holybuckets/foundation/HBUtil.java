@@ -81,8 +81,18 @@ public class HBUtil {
         public static List<ServerPlayer> getAllPlayers() {
             MinecraftServer server = GeneralConfig.getInstance().getServer();
             if (server == null)
-                return Collections.emptyList();
+                return List.of();
             return server.getPlayerList().getPlayers();
+        }
+
+        public static List<Player> getAllSidedPlayers() {
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (GeneralConfig.getInstance().isServerSide()) {
+                List<Player> players = new ArrayList<>();
+                server.getPlayerList().getPlayers().forEach(p -> players.add(p) );
+                return players;
+            }
+            return List.of(GeneralConfig.getLocalPlayer());
         }
 
 
@@ -809,7 +819,7 @@ public class HBUtil {
         }
 
         public static String getId( BlockPos pos ) {
-            return getId( Math.floorDiv(pos.getX(), 16), Math.floorDiv(pos.getZ(), 16) );
+            return getId( getChunkPos(pos) );
         }
 
         public static BlockPos getWorldPos(String id) {
@@ -823,9 +833,7 @@ public class HBUtil {
         }
 
         public static ChunkPos getChunkPos(BlockPos pos) {
-            String id = getId(pos);
-            String[] parts = id.split(",");
-            return new ChunkPos(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+            return new ChunkPos(pos);
         }
 
         /** Check if chunk is within [-x, x] and [-z, z] **/
@@ -995,7 +1003,6 @@ public class HBUtil {
                 return;
             }
 
-            String id = LevelUtil.toLevelId(level) + ":" + getId(chunkPos);
             LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet() );
             Long chunkId = getChunkPos1DMap(chunkPos);
             if( !loadedChunkIds.contains( chunkId ) ) return;          //Chunk not force loaded
@@ -1011,7 +1018,7 @@ public class HBUtil {
                 return; //Dont remove if ticketId doesnt match
 
             }
-            loadedChunkIds.remove(id);
+            loadedChunkIds.remove( chunkId );
             forceLoadedChunkTicketIds.remove(chunkId);
         }
 

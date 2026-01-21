@@ -23,6 +23,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.storage.LevelData;
@@ -52,6 +53,7 @@ public class GeneralConfig {
     private volatile boolean running = true;
     private boolean isClientSide;
     private boolean isServerSide;
+    private Player localPlayer;
 
     private MinecraftServer server;
     private final Map<String, Level> LEVELS;
@@ -180,6 +182,14 @@ public class GeneralConfig {
         return new HashMap<>(LEVELS);
     }
 
+    public static void setLocalPlayer(Player player) {
+        if(instance != null) instance.localPlayer = player;
+    }
+
+    public static Player getLocalPlayer() {
+        if(instance != null) return instance.localPlayer;
+        return null;
+    }
 
     /** Server Events **/
 
@@ -247,8 +257,10 @@ public class GeneralConfig {
             LevelSaveData.validate(lsd, worldData);
         }
 
-        if( level.isClientSide() )
+        if( level.isClientSide() ) {
             this.isClientSide = true;
+        }
+
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event)  {

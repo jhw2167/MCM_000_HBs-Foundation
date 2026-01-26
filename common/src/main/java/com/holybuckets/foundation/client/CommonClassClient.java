@@ -16,9 +16,10 @@ public class CommonClassClient {
 
 
     public static void initClient() {
-        initClientEvents();
-        initRenderers();
         //testRenderers();
+        //testScreenDraw();
+        initRenderers();
+        initClientEvents();
     }
 
     //** CLIENT INITIALIZERS **//
@@ -65,7 +66,35 @@ public class CommonClassClient {
 
     //** Tests
 
-    private static void testRenderers() {
+
+    private static void onServerStop(ServerStoppedEvent event) {
+        //DataStore.removeClientWorldSaveData(Minecraft.getInstance().getLevelSource());
+    }
+
+    private static void onBlockHighlightDraw(BlockHighlightDrawEvent event) {
+        event.setCanceled(true);
+    }
+
+
+    private static void testScreenDraw()
+    {
+        ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
+
+        reg.registerOnScreenDrawPre( event -> {
+            if (Math.random() < 0.1) {
+                LoggerBase.logDebug(null, "SCREEN_DRAW_TEST", "ScreenDrawEvent PRE fired - mouseX: " + event.getMouseX() + ", mouseY: " + event.getMouseY());
+            }
+        });
+
+        reg.registerOnScreenDrawPost( event -> {
+            if (Math.random() < 0.1) {
+                LoggerBase.logDebug(null, "SCREEN_DRAW_TEST", "ScreenDrawEvent POST fired - screen width: " + event.getScreen().width + ", screen height: " + event.getScreen().height);
+            }
+        });
+    }
+
+    private static void testRenderers()
+    {
         ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
         
         // Test AFTER_SKY stage
@@ -109,14 +138,6 @@ public class CommonClassClient {
                 LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_LEVEL fired - projection matrix: " + event.getProjectionMatrix());
             }
         });
-    }
-
-    private static void onServerStop(ServerStoppedEvent event) {
-        //DataStore.removeClientWorldSaveData(Minecraft.getInstance().getLevelSource());
-    }
-
-    private static void onBlockHighlightDraw(BlockHighlightDrawEvent event) {
-        event.setCanceled(true);
     }
 
 }

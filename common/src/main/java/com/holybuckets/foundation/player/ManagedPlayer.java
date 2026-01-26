@@ -9,6 +9,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.*;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,7 +27,7 @@ public class ManagedPlayer {
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
-    static final LinkedHashSet<Player> PENDING_PLAYERS = new LinkedHashSet<>();
+    static final LinkedHashSet<ServerPlayer> PENDING_PLAYERS = new LinkedHashSet<>();
 
     public static ManagedPlayer CLIENT_PLAYER;
 
@@ -48,11 +49,11 @@ public class ManagedPlayer {
         this();
         this.player = player;
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        if(player instanceof ServerPlayer) {
-            this.serverPlayer = (ServerPlayer) player;
+        if(player instanceof ServerPlayer sp) {
+            this.serverPlayer = sp;
+            PENDING_PLAYERS.add(sp);
         }
         //player is not defined yet here, cannot collect id, but have ref to player
-        PENDING_PLAYERS.add(player);
     }
 
     public ManagedPlayer(Player player, String id)
@@ -87,8 +88,6 @@ public class ManagedPlayer {
         this.player = p;
         if (p instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) p;
-        } else {
-            this.serverPlayer = null; // Reset serverPlayer if not a ServerPlayer
         }
         String id = HBUtil.PlayerUtil.getId(p);
         PLAYERS.put(id, this);
@@ -377,8 +376,8 @@ public class ManagedPlayer {
         if(mp == null)
             mp = new ManagedPlayer(player, id);
         PLAYERS.put(id , mp);
-        if(player instanceof  ServerPlayer)
-            PENDING_PLAYERS.add(player);
+        if(player instanceof  ServerPlayer sp)
+            PENDING_PLAYERS.add(sp);
     }
 
     public static void onPlayerLogout(PlayerLogoutEvent event) {
@@ -461,7 +460,7 @@ public class ManagedPlayer {
     {
         if(PENDING_PLAYERS.isEmpty()) return;
 
-        Iterator<Player> mp = PENDING_PLAYERS.iterator();
+        Iterator<ServerPlayer> mp = PENDING_PLAYERS.iterator();
         while(mp.hasNext())
         {
             Player p = mp.next();
@@ -473,6 +472,12 @@ public class ManagedPlayer {
             if( pending.initJoinedPlayer(p) ) mp.remove(); // Remove after processing
         }
 
+    }
+
+    public static void onServerStarted(ServerStartedEvent event) {
+        PLAYERS.clear();
+        PENDING_PLAYERS.clear();
+        HBUtil.PlayerUtil.getAllPlayers().forEach(PENDING_PLAYERS::add);
     }
 
     public static void onServerStopped(ServerStoppedEvent event) {
@@ -491,6 +496,8 @@ public class ManagedPlayer {
         reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
+
+        //reg.registerOnServerStarted(ManagedPlayer::onServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
     }

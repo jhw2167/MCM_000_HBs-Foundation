@@ -95,7 +95,8 @@ public class EventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
-    final Map<AnvilUpdateEvent, Consumer<AnvilUpdateEvent>> ON_ANVIL_UPDATE = new ConcurrentHashMap<>();
+    final List<AnvilUpdateEvent> ANVIL_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
 
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
@@ -312,7 +313,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
-        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
+        generalTick EventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
     public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
@@ -459,7 +460,8 @@ public class EventRegistrar {
     }
 
     public void registerOnAnvilUpdate(AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
-        ON_ANVIL_UPDATE.put(eventKey, function);
+        ANVIL_UPDATE_EVENTS.add(eventKey);
+        ANVIL_UPDATE_CONSUMERS.add(function);
         PRIORITIES.put(function.hashCode(), priority);
     }
 
@@ -596,17 +598,22 @@ public class EventRegistrar {
     }
 
     public void onAnvilUpdate(AnvilUpdateEvent event){
-        // Find matching registered event handlers based on equals/hashCode
-        //iterate over the keys and use key.equals(event)
-        Consumer<AnvilUpdateEvent> consumer = null;
-        for( AnvilUpdateEvent key : ON_ANVIL_UPDATE.keySet()){
-            if( key.equals(event)){
-                consumer = ON_ANVIL_UPDATE.get(key);
-                break;
+        // Iterate through the events list to find matching registered event handlers
+        synchronized (ANVIL_UPDATE_EVENTS) {
+            for (int i = 0; i < ANVIL_UPDATE_EVENTS.size(); i++) {
+                AnvilUpdateEvent registeredEvent = ANVIL_UPDATE_EVENTS.get(i);
+                Consumer<AnvilUpdateEvent> consumer = ANVIL_UPDATE_CONSUMERS.get(i);
+                
+                // Skip null entries (maintain ordering)
+                if (registeredEvent == null || consumer == null) {
+                    continue;
+                }
+                
+                if (registeredEvent.equals(event)) {
+                    tryEvent(consumer, event);
+                    break; // Only execute the first matching handler
+                }
             }
-        }
-        if (consumer != null) {
-            tryEvent(consumer, event);
         }
     }
 

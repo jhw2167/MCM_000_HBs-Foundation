@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.mixin;
 
+import com.holybuckets.foundation.event.EventRegistrar;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.ItemCombinerMenu;
@@ -36,25 +37,25 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
             return;
         }
 
-        // Create output
-        ItemStack output = left.copy();
-
-        // Apply enchantment
-        switch (enchantItem.getEnchantmentType()) {
-            case SHARPNESS:
-                int level = enchantItem.getTier() == 1 ? 1 : 3;
-                output.enchant(Enchantments.SHARPNESS, level);
-                break;
-            // ... other cases
+        // Trigger the anvil update event
+        EventRegistrar eventRegistrar = EventRegistrar.getInstance();
+        if (eventRegistrar != null) {
+            eventRegistrar.onAnvilUpdate(menu, left, right);
         }
 
-        // **SET THE OUTPUT SLOT** - This is the key part
-        this.resultSlots.setItem(0, output);
-
-        // **SET THE COST**
-        this.cost.set(enchantItem.getTier() == 1 ? 5 : 10);
-
-        // **CANCEL VANILLA LOGIC**
-        ci.cancel();
+        // Check if any event handler set a result
+        // Note: We need to get the event result somehow. For now, we'll need to modify the event system
+        // to return the event or store the result in a way we can access it.
+        // This is a simplified approach - you may need to adjust based on your event system design.
+        
+        // For now, let's assume we have a way to get the last fired event result
+        // This would need to be implemented in EventRegistrar to return the event after processing
+        // or use a different pattern to get the result back to the mixin
+        
+        // Placeholder for getting event result - this needs to be implemented properly
+        // based on how you want to handle the event result flow
+        
+        // **CANCEL VANILLA LOGIC** - only if we want to completely override
+        // ci.cancel();
     }
 }

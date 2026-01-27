@@ -10,6 +10,8 @@ public class AnvilUpdateEvent {
     private final AnvilMenu anvilMenu;
     private final ItemStack leftItem;
     private final ItemStack rightItem;
+    private ItemStack resultItem = null;
+    private Integer cost = null;
 
     public AnvilUpdateEvent(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
         this.anvilMenu = anvilMenu;
@@ -27,5 +29,21 @@ public class AnvilUpdateEvent {
 
     public ItemStack getRightItem() {
         return rightItem;
+    }
+
+    public ItemStack getResultItem() {
+        return resultItem;
+    }
+
+    public void setResultItem(ItemStack resultItem) {
+        this.resultItem = resultItem;
+    }
+
+    public Integer getCost() {
+        return cost;
+    }
+
+    public void setCost(Integer cost) {
+        this.cost = cost;
     }
 }

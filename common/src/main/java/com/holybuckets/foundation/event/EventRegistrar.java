@@ -594,9 +594,7 @@ public class EventRegistrar {
         }
     }
 
-    public void onAnvilUpdate(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
-        AnvilUpdateEvent event = new AnvilUpdateEvent(anvilMenu, leftItem, rightItem);
-        
+    public void onAnvilUpdate(AnvilUpdateEvent event){
         // Sort consumers by priority
         List<Consumer<AnvilUpdateEvent>> sortedConsumers = ON_ANVIL_UPDATE.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))

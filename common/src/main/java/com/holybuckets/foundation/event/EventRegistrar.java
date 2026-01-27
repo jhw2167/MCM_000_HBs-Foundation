@@ -597,7 +597,14 @@ public class EventRegistrar {
 
     public void onAnvilUpdate(AnvilUpdateEvent event){
         // Find matching registered event handlers based on equals/hashCode
-        Consumer<AnvilUpdateEvent> consumer = ON_ANVIL_UPDATE.get(event);
+        //iterate over the keys and use key.equals(event)
+        Consumer<AnvilUpdateEvent> consumer = null;
+        for( AnvilUpdateEvent key : ON_ANVIL_UPDATE.keySet()){
+            if( key.equals(event)){
+                consumer = ON_ANVIL_UPDATE.get(key);
+                break;
+            }
+        }
         if (consumer != null) {
             tryEvent(consumer, event);
         }

@@ -25,6 +25,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
@@ -93,6 +95,7 @@ public class EventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
+    final Set<Consumer<AnvilUpdateEvent>> ON_ANVIL_UPDATE = new ConcurrentSet<>();
 
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
@@ -451,6 +454,14 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    public void registerOnAnvilUpdate(Consumer<AnvilUpdateEvent> function) {
+        registerOnAnvilUpdate(function, EventPriority.Normal);
+    }
+
+    public void registerOnAnvilUpdate(Consumer<AnvilUpdateEvent> function, EventPriority priority) {
+        generalRegister(function, ON_ANVIL_UPDATE, priority);
+    }
+
     /**
      * Custom Events
      **/
@@ -580,6 +591,20 @@ public class EventRegistrar {
         Set<Consumer<PlayerNearStructureEvent>> generalConsumers = ON_PLAYER_NEAR_STRUCTURE.get(EMPTY_LOC);
         if (generalConsumers != null) {
               generalConsumers.forEach(consumer -> tryEvent(consumer, event));
+        }
+    }
+
+    public void onAnvilUpdate(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
+        AnvilUpdateEvent event = new AnvilUpdateEvent(anvilMenu, leftItem, rightItem);
+        
+        // Sort consumers by priority
+        List<Consumer<AnvilUpdateEvent>> sortedConsumers = ON_ANVIL_UPDATE.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<AnvilUpdateEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
         }
     }
 

@@ -5,15 +5,21 @@ import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
-import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -23,6 +29,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -91,6 +98,64 @@ public class CommonClass {
         //reg.registerOnServerTick(TickType.ON_1200_TICKS , CommonClass::onServerTick);
 
         //reg.registerOnTossItem(CommonClass::onTossItem);
+        //reg.registerOnAnvilUpdate(swordUpdate, CommonClass::onAnvilUpdate);
+        //reg.registerOnAnvilUpdate(ironToolCobble, CommonClass::onAnvilUpdateIronToolCobble);
+        //reg.registerOnAnvilUpdate(empowerEnchant, CommonClass::onAnvilUpdateRepair);
+    }
+
+    private static AnvilUpdateEvent swordUpdate = new AnvilUpdateEvent(Items.DIAMOND_SWORD, Items.COBBLESTONE);
+    private static void onAnvilUpdateSword(AnvilUpdateEvent event) {
+        ItemStack sword = event.getLeftItem();
+
+        int currentSharpness = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SHARPNESS, sword);
+        int newSharpness = currentSharpness + 1;
+        newSharpness = Math.min(newSharpness, 5);
+
+        ItemStack enchantedSword = sword.copy();
+        enchantedSword.enchant(Enchantments.SHARPNESS, newSharpness);
+        event.setResultItem(enchantedSword);
+        event.setCost(1);
+        LoggerBase.logInfo(null, "ANVIL_UPDATE",
+            String.format("Upgraded Sharpness from %d to %d", currentSharpness, newSharpness));
+    }
+
+    private  static Set<Item> IRON_TOOLS = Set.of(Items.IRON_SWORD, Items.IRON_SHOVEL, Items.IRON_PICKAXE, Items.IRON_AXE, Items.IRON_HOE);
+    private static AnvilUpdateEvent.MaterialDriven ironToolCobble = new AnvilUpdateEvent.MaterialDriven(IRON_TOOLS, Items.COBBLESTONE);
+    private static void onAnvilUpdateIronToolCobble(AnvilUpdateEvent event) {
+        ItemStack leftItem = event.getLeftItem();
+
+      if(IRON_TOOLS.contains(leftItem.getItem())) {
+            ItemStack repairedTool = leftItem.copy();
+            repairedTool.setDamageValue(Math.max(0, leftItem.getDamageValue() - leftItem.getMaxDamage() / 4));
+            event.setResultItem(repairedTool);
+            event.setCost(1);
+      }
+    }
+
+    private static Set<Enchantment> REPAIR_ENCHANTMENTS = Set.of(Enchantments.UNBREAKING, Enchantments.SHARPNESS);
+    private static AnvilUpdateEvent.EnchantDriven empowerEnchant = new AnvilUpdateEvent.EnchantDriven( REPAIR_ENCHANTMENTS, Items.ROTTEN_FLESH);
+    //onAnvilUpatte method to repair rool if it contains enchant
+    private static void onAnvilUpdateRepair(AnvilUpdateEvent event) {
+        ItemStack leftItem = event.getLeftItem();
+
+        Enchantment repEnchant = null;
+        for (Enchantment enchantment : REPAIR_ENCHANTMENTS) {
+            if (EnchantmentHelper.getItemEnchantmentLevel(enchantment, leftItem) > 0) {
+                repEnchant = enchantment;
+                break;
+            }
+        }
+
+        if (repEnchant != null)
+        {
+            ItemStack empoweredTool = leftItem.copy();
+            Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(empoweredTool);
+            enchantments.put(repEnchant, enchantments.get(repEnchant) + 1);
+            EnchantmentHelper.setEnchantments(enchantments, empoweredTool);
+
+            event.setResultItem(empoweredTool);
+            event.setCost(1);
+        }
     }
 
     private static void onTossItem(TossItemEvent event) {

@@ -313,7 +313,7 @@ public class EventRegistrar {
 
     @SuppressWarnings("unchecked")
     public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
-        generalTick EventRegister(function, SERVER_TICK_EVENTS, type, priority);
+        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
     public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
@@ -455,11 +455,11 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    public void registerOnAnvilUpdate(AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function) {
+    public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function) {
         registerOnAnvilUpdate(eventKey, function, EventPriority.Normal);
     }
 
-    public void registerOnAnvilUpdate(AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
+    public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
         ANVIL_UPDATE_EVENTS.add(eventKey);
         ANVIL_UPDATE_CONSUMERS.add(function);
         PRIORITIES.put(function.hashCode(), priority);
@@ -600,16 +600,17 @@ public class EventRegistrar {
     public void onAnvilUpdate(AnvilUpdateEvent event){
         // Iterate through the events list to find matching registered event handlers
         synchronized (ANVIL_UPDATE_EVENTS) {
-            for (int i = 0; i < ANVIL_UPDATE_EVENTS.size(); i++) {
+            for (int i = 0; i < ANVIL_UPDATE_EVENTS.size(); i++)
+            {
                 AnvilUpdateEvent registeredEvent = ANVIL_UPDATE_EVENTS.get(i);
                 Consumer<AnvilUpdateEvent> consumer = ANVIL_UPDATE_CONSUMERS.get(i);
                 
                 // Skip null entries (maintain ordering)
-                if (registeredEvent == null || consumer == null) {
+                if (consumer == null) {
                     continue;
                 }
                 
-                if (registeredEvent.equals(event)) {
+                if (registeredEvent==null || registeredEvent.equals(event)) {
                     tryEvent(consumer, event);
                     break; // Only execute the first matching handler
                 }

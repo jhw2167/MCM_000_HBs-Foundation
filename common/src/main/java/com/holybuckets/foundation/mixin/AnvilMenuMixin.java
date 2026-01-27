@@ -4,7 +4,6 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.DataSlot;
-import net.minecraft.world.inventory.ItemCombinerMenu;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,15 +13,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(AnvilMenu.class)
-public abstract class AnvilMenuMixin {  // Don't extend ItemCombinerMenu
+public abstract class AnvilMenuMixin {
 
-    @Shadow
-    @Final
-    private DataSlot cost;
-
-    // Shadow the result slots from ItemCombinerMenu (parent class)
-    @Shadow
-    protected net.minecraft.world.Container resultSlots;
+    @Shadow @Final private DataSlot cost;
+    // No @Shadow for resultSlots!
 
     @Inject(
         method = "createResult",
@@ -32,34 +26,37 @@ public abstract class AnvilMenuMixin {  // Don't extend ItemCombinerMenu
     private void onCreateResult(CallbackInfo ci) {
         AnvilMenu menu = (AnvilMenu)(Object)this;
 
-        // Get input slots
-        ItemStack left = menu.slots.get(0).getItem();   // Left slot
-        ItemStack right = menu.slots.get(1).getItem();  // Right slot
+        // Get input items via menu slots
+        ItemStack left = menu.slots.get(0).getItem();
+        ItemStack right = menu.slots.get(1).getItem();
 
-        // Validate
         if (left.isEmpty()) {
             return;
         }
 
-        // Trigger the anvil update event
+        // Fire event
         EventRegistrar eventRegistrar = EventRegistrar.getInstance();
-        AnvilUpdateEvent event = new AnvilUpdateEvent(menu, left, right);
-        if (eventRegistrar != null) {
-            eventRegistrar.onAnvilUpdate(event);
+        if (eventRegistrar == null) {
+            return;
         }
+
+        AnvilUpdateEvent event = new AnvilUpdateEvent(menu, left, right);
+        eventRegistrar.onAnvilUpdate(event);
 
         // Check if event produced a result
         ItemStack resultItem = event.getResultItem();
-        if (resultItem != null && !resultItem.isEmpty())
-        {
+        if (resultItem != null && !resultItem.isEmpty()) {
+            // Set output slot directly - NO resultSlots shadow needed
+            menu.slots.get(2).set(resultItem);
 
-            this.resultSlots.setItem(0, resultItem);
-            int resultCost = event.getResultCost();
-            this.cost.set(resultCost);
+            // Set cost
+            this.cost.set(event.getResultCost());
 
+            // Cancel vanilla
             ci.cancel();
+
+            // Sync
             menu.broadcastChanges();
         }
-        // If event didn't set a result, let vanilla logic continue
     }
 }

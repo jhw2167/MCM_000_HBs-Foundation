@@ -91,6 +91,7 @@ public class ManagedChunkEvents {
     private static void onChunkLoad( final ChunkLoadingEvent.Load event )
     {
         LevelAccessor level = event.getLevel();
+        if(LOADED_CHUNKS.get(level)==null) return;
 
         String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
         ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
@@ -109,6 +110,7 @@ public class ManagedChunkEvents {
         LevelAccessor level = event.getLevel();
         ChunkAccess chunk = event.getChunk();
         String id = HBUtil.ChunkUtil.getId(chunk);
+        if(LOADED_CHUNKS.get(level) == null) return;
         ManagedChunk c = LOADED_CHUNKS.get(level).remove(id);
 
         if( c == null ) return;

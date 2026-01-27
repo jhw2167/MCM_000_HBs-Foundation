@@ -10,7 +10,9 @@ import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -52,21 +54,19 @@ public class ManagedPlayer {
         if(player instanceof ServerPlayer sp) {
             this.serverPlayer = sp;
             PENDING_PLAYERS.add(sp);
+            if(GeneralConfig.getInstance().getServer() instanceof IntegratedServer)
+                CLIENT_PLAYER = this;
         }
         //player is not defined yet here, cannot collect id, but have ref to player
     }
 
     public ManagedPlayer(Player player, String id)
     {
-        this();
-        this.player = player;
+        this(player);
         this.id = id;
-        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        if(player instanceof ServerPlayer) {
-            this.serverPlayer = (ServerPlayer) player;
+        if(player instanceof ServerPlayer sp) {
+            PLAYERS.put(this.id, this);
         }
-
-        PLAYERS.put(this.id, this);
     }
 
     public ManagedPlayer(CompoundTag tag) {
@@ -81,19 +81,28 @@ public class ManagedPlayer {
         }
 
         PLAYERS.put(this.id, this);
+        if(GeneralConfig.getInstance().getServer() instanceof IntegratedServer)
+            CLIENT_PLAYER = this;
     }
 
+    /**
+     * Sets the current player instance associated with the player and Managed Players, this is called
+     * - When client joins a remote server (LocalPlayer)
+     * - When player finishes loading into their survival world (LocalPlayer then ServerPlayer)
+     * - When a player respawns after death (ServerPlayer)
+     * - When a player loads into a remote server world (ServerPlayer)
+     * @param p
+     */
     public void setPlayer(Player p)
     {
         this.player = p;
         if (p instanceof ServerPlayer) {
             this.serverPlayer = (ServerPlayer) p;
-        }
-        String id = HBUtil.PlayerUtil.getId(p);
-        PLAYERS.put(id, this);
-        //setPlayer for all subsclasses
-        for(IManagedPlayer data : managedPlayerData.values()) {
-            data.setPlayer(p);
+            String id = HBUtil.PlayerUtil.getId(p);
+            PLAYERS.put(id, this);
+            for(IManagedPlayer data : managedPlayerData.values()) {
+                data.setPlayer(p);
+            }
         }
     }
 
@@ -131,14 +140,19 @@ public class ManagedPlayer {
      */
     private boolean initJoinedPlayer(Player p)
     {
-        if( this.player == null ) this.player = p;
-        if (this.id != null && this.player != null)
-        {
-            try {
-                if (this.holdNbt != null ) {
-                    this.initSubclassesFromNbt(this.holdNbt);
-                }
+        //subclasses not init here, cannot set
+        if(p instanceof ServerPlayer sp) {
+            this.serverPlayer = sp;
+            this.player = p;
+        } else {
+            this.player = p;
+        }
 
+        if (this.player != null)
+        {
+            if(id==null) id = HBUtil.PlayerUtil.getId(player);
+            try {
+                this.initSubclassesFromNbt(this.holdNbt);
                 this.holdNbt = null; // Clear the held NBT after processing
                 this.onPlayerJoinComplete();
             } catch (InvalidId e) {
@@ -218,7 +232,7 @@ public class ManagedPlayer {
     public static ManagedPlayer getManagedPlayer(Player player)
     {
         if(!GeneralConfig.getInstance().isServerSide()) return CLIENT_PLAYER;
-
+        if(player == null) return null;
         String id = HBUtil.PlayerUtil.getId(player);
         if(PLAYERS.containsKey(id)) {
             return PLAYERS.get(id);
@@ -250,11 +264,11 @@ public class ManagedPlayer {
             if( sub.isClientOnly() && (player instanceof ServerPlayer) ) {
                 continue;
             }
+            sub.setPlayer(this.player);
 
             if( sub.getStaticInstance(player, playerId) != null ) {
                 sub = sub.getStaticInstance(player, playerId);
             }
-            sub.setPlayer(player);
             this.setSubclass(sub.getClass(), sub);
 
         }
@@ -262,6 +276,7 @@ public class ManagedPlayer {
 
     private void initSubclassesFromNbt(CompoundTag tag) throws InvalidId
     {
+        if(tag == null) return;
         HashMap<String, String> errors = new HashMap<>();
         for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet())
         {
@@ -273,13 +288,13 @@ public class ManagedPlayer {
             if( sub.isClientOnly() && (this.player instanceof ServerPlayer) ) {
                 continue;
             }
+            sub.setPlayer(this.player);
 
             try {
                 CompoundTag nbt = tag.getCompound(sub.getClass().getName());
                 if(managedPlayerData.containsKey(sub.getClass())) {
                     managedPlayerData.get(sub.getClass()).deserializeNBT(nbt);
                 } else {
-                    sub.setPlayer(this.player);
                     sub.deserializeNBT(nbt);
                     setSubclass(sub.getClass(), sub);
                 }
@@ -334,7 +349,6 @@ public class ManagedPlayer {
             this.tickWritten = tag.getLong("tickWritten");
             this.id = tag.getString("id");
             this.holdNbt = tag; // Store the NBT for later use
-            //initSubclassesFromNbt(tag); //can only be read after playerLogin
         } catch (Exception e) {
             LoggerBase.logError(null, "004003", "Error deserializing ManagedPlayer: " + e.getMessage());
         }
@@ -362,22 +376,26 @@ public class ManagedPlayer {
 
     //** EVENT
     public static void onClientConnectedToServer(Player player) {
-        CLIENT_PLAYER = new ManagedPlayer(player, HBUtil.PlayerUtil.getId(player));
+        if(CLIENT_PLAYER == null)
+            CLIENT_PLAYER = new ManagedPlayer(player, HBUtil.PlayerUtil.getId(player));
         CLIENT_PLAYER.initJoinedPlayer(player);
     }
 
     //HERE
     public static void onPlayerLogin(PlayerLoginEvent event)
     {
+
         Player player = event.getPlayer();
-        if(player == null) return;
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
-        if(mp == null)
-            mp = new ManagedPlayer(player, id);
-        PLAYERS.put(id , mp);
         if(player instanceof  ServerPlayer sp)
+        {
+            String id = HBUtil.PlayerUtil.getId(player);
+            ManagedPlayer mp = PLAYERS.get(id);
+            if(mp == null) mp = new ManagedPlayer(player, id);
+
+            PLAYERS.put(id , mp);
             PENDING_PLAYERS.add(sp);
+            mp.initJoinedPlayer(player);
+        }
     }
 
     public static void onPlayerLogout(PlayerLogoutEvent event) {
@@ -393,7 +411,7 @@ public class ManagedPlayer {
     private static void onPlayerRespawn(PlayerRespawnEvent event)
     {
         PENDING_PLAYERS.remove(event.getOldPlayer());
-        ManagedPlayer mp = removeManagedPlayer(event.getOldPlayer());
+        ManagedPlayer mp = PLAYERS.get( HBUtil.PlayerUtil.getId(event.getOldPlayer()) );
         if(mp == null) {
             LoggerBase.logError(null, "004008", "ManagedPlayer not found for respawn event");
             return;
@@ -473,6 +491,12 @@ public class ManagedPlayer {
         }
 
     }
+    public static void onServerStarting(ServerStartingEvent event) {
+        PLAYERS.clear();
+        PENDING_PLAYERS.clear();
+        CLIENT_PLAYER = null;
+    }
+
 
     public static void onServerStarted(ServerStartedEvent event) {
         PLAYERS.clear();
@@ -497,6 +521,7 @@ public class ManagedPlayer {
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
 
+        reg.registerOnBeforeServerStarted(ManagedPlayer::onServerStarting, EventPriority.Highest);
         //reg.registerOnServerStarted(ManagedPlayer::onServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);

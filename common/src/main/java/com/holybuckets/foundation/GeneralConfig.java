@@ -18,10 +18,12 @@ import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -307,11 +309,16 @@ public class GeneralConfig {
         return this.isClientSide;
     }
     public boolean isServerSide() {
+        if(this.getServer()==null) return false;
+        if(this.getServer() instanceof DedicatedServer) return true;
         return this.isServerSide;
     }
 
     public boolean isIntegrated() {
-        return this.isServerSide && this.isClientSide;
+        if(this.getServer()==null) return false;
+        if(this.getServer() instanceof DedicatedServer) return false;
+        if(this.getServer() instanceof IntegratedServer) return true;
+        return isServerSide && isClientSide;
     }
 
 

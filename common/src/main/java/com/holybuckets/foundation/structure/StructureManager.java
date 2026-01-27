@@ -216,7 +216,7 @@ public class StructureManager {
 
     }
 
-    static final double nearDistance = 16.0; // Define what "near" means (100 blocks)
+    static final double nearDistance = 32.0; // Define what "near" means (100 blocks)
     private void checkPlayersNearStructures() {
         if (level.isClientSide()) return;
         
@@ -517,7 +517,7 @@ public class StructureManager {
 
         public String serialize() {
 
-            if(this.p.level() == null) return "{}";
+            if(p == null || p.level() == null) return "{}";
             else if( !syncedStructureCounts.containsKey(p.level())) {
                 put(p.level(), 0);
             }

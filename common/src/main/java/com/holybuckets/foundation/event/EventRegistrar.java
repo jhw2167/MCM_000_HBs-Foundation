@@ -95,7 +95,7 @@ public class EventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
-    final Set<Consumer<AnvilUpdateEvent>> ON_ANVIL_UPDATE = new ConcurrentSet<>();
+    final Map<AnvilUpdateEvent, Consumer<AnvilUpdateEvent>> ON_ANVIL_UPDATE = new ConcurrentHashMap<>();
 
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
@@ -256,7 +256,7 @@ public class EventRegistrar {
     }
 
     public void registerOnRegister(Consumer<RegisterEvent> function) { registerOnRegister(function, false); }
-    public void registerOnRegister(Consumer<RegisterEvent> function, EventPriority priority) {
+    public void register OnRegister(Consumer<RegisterEvent> function, EventPriority priority) {
         generalRegister(function, ON_REGISTER, priority);
     }
 
@@ -454,12 +454,13 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    public void registerOnAnvilUpdate(Consumer<AnvilUpdateEvent> function) {
-        registerOnAnvilUpdate(function, EventPriority.Normal);
+    public void registerOnAnvilUpdate(AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function) {
+        registerOnAnvilUpdate(eventKey, function, EventPriority.Normal);
     }
 
-    public void registerOnAnvilUpdate(Consumer<AnvilUpdateEvent> function, EventPriority priority) {
-        generalRegister(function, ON_ANVIL_UPDATE, priority);
+    public void registerOnAnvilUpdate(AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
+        ON_ANVIL_UPDATE.put(eventKey, function);
+        PRIORITIES.put(function.hashCode(), priority);
     }
 
     /**
@@ -595,13 +596,9 @@ public class EventRegistrar {
     }
 
     public void onAnvilUpdate(AnvilUpdateEvent event){
-        // Sort consumers by priority
-        List<Consumer<AnvilUpdateEvent>> sortedConsumers = ON_ANVIL_UPDATE.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
-            .toList();
-            
-        // Execute in priority order
-        for (Consumer<AnvilUpdateEvent> consumer : sortedConsumers) {
+        // Find matching registered event handlers based on equals/hashCode
+        Consumer<AnvilUpdateEvent> consumer = ON_ANVIL_UPDATE.get(event);
+        if (consumer != null) {
             tryEvent(consumer, event);
         }
     }

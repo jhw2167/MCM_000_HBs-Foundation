@@ -3,6 +3,8 @@ package com.holybuckets.foundation.player;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -13,10 +15,13 @@ import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -41,9 +46,13 @@ public class ManagedPlayer {
     private CompoundTag holdNbt;
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
 
+    //utility
+    public final ConcurrentLinkedSet<Entity> nearbyMobs;
+
 
     public ManagedPlayer() {
         super();
+        this.nearbyMobs = new ConcurrentLinkedSet<>();
     }
 
     public ManagedPlayer(Player player)
@@ -126,11 +135,13 @@ public class ManagedPlayer {
     }
 
     public Boolean setSubclass(Class<? extends IManagedPlayer> classObject, IManagedPlayer data) {
-        if (classObject == null || data == null) {
-            return false;
-        }
+        if (classObject == null || data == null) return false;
         managedPlayerData.put(classObject, data);
         return true;
+    }
+
+    public Set<Entity> getNearbyMobs() {
+        return nearbyMobs;
     }
 
     /**
@@ -165,6 +176,49 @@ public class ManagedPlayer {
         }
         return false;
     }
+
+    //** CORE **//
+    private static int MOB_DETECTION_RADIUS = 48;
+    private void updateNearbyMobs()
+    {
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
+
+        Level level = serverPlayer.level();
+        BlockPos playerPos = serverPlayer.blockPosition();
+
+        // Calculate AABB boundaries
+        int radius = MOB_DETECTION_RADIUS;
+        int minX = playerPos.getX() - radius;
+        int maxX = playerPos.getX() + radius;
+        int minZ = playerPos.getZ() - radius;
+        int maxZ = playerPos.getZ() + radius;
+
+        // Calculate Y bounds (full height range around player)
+        int yMax = Math.min(level.getMaxBuildHeight(), playerPos.getY() + radius);
+        int yMin = Math.max(level.getMinBuildHeight(), playerPos.getY() - radius);
+        AABB aabb = new AABB(minX, yMin, minZ, maxX, yMax, maxZ);
+
+        // Query entities in this AABB
+        List<Entity> entitiesInArea = level.getEntities((Entity) null, aabb, this::mobPredicate);
+        nearbyMobs.clear();
+        nearbyMobs.addAll(entitiesInArea);
+
+    }
+
+    private boolean mobPredicate(Entity entity) {
+        if(entity == null || entity.isRemoved()) return false;
+        if(entity == player || entity == serverPlayer) return false;
+        if (!(entity instanceof net.minecraft.world.entity.LivingEntity)) {
+            return false;
+        }
+        //if(nearbyMobs.contains(entity)) return false;
+        return true;
+    }
+
+
+
+
+    //** EVENT HANDLERS **//
 
     private void onPlayerJoinComplete()
     {
@@ -312,7 +366,8 @@ public class ManagedPlayer {
         }
     }
 
-    //HERE
+    //** SERIALIZERS **//
+
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
         
@@ -491,6 +546,13 @@ public class ManagedPlayer {
         }
 
     }
+
+    public static void on20ServerTicks(ServerTickEvent e) {
+        for(ManagedPlayer mp : PLAYERS.values()) {
+            mp.updateNearbyMobs();
+        }
+    }
+
     public static void onServerStarting(ServerStartingEvent event) {
         PLAYERS.clear();
         PENDING_PLAYERS.clear();
@@ -525,6 +587,7 @@ public class ManagedPlayer {
         //reg.registerOnServerStarted(ManagedPlayer::onServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
+        reg.registerOnServerTick(TickType.ON_20_TICKS, ManagedPlayer::on20ServerTicks, EventPriority.Highest);
     }
 
 

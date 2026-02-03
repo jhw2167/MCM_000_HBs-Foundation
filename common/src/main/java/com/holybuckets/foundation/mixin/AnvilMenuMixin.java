@@ -52,6 +52,7 @@ public abstract class AnvilMenuMixin {
             // Set cost
             this.cost.set(event.getResultCost());
 
+
             // Cancel vanilla
             ci.cancel();
 

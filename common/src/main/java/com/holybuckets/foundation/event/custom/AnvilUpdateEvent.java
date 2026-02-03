@@ -22,6 +22,7 @@ public class AnvilUpdateEvent {
     ItemStack rightItem;
     private ItemStack resultItem = null;
     private Integer cost = 0;
+    private Integer repairItemCountCost = 1;
 
     public AnvilUpdateEvent(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
         this.anvilMenu = anvilMenu;
@@ -69,6 +70,14 @@ public class AnvilUpdateEvent {
 
     public void setCost(Integer cost) {
         this.cost = cost;
+    }
+
+    public Integer getRepairItemCost() {
+        return repairItemCountCost;
+    }
+
+    public void setRepairItemCost(Integer repairItemCountCost) {
+        this.repairItemCountCost = repairItemCountCost;
     }
 
     @Override

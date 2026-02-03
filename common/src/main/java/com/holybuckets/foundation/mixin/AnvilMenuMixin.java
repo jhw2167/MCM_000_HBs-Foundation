@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class AnvilMenuMixin {
 
     @Shadow @Final private DataSlot cost;
-    // No @Shadow for resultSlots!
+    @Shadow private int repairItemCountCost;
 
     @Inject(
         method = "createResult",
@@ -52,6 +52,8 @@ public abstract class AnvilMenuMixin {
             // Set cost
             this.cost.set(event.getResultCost());
 
+            // Set repair item count cost
+            this.repairItemCountCost = event.getRepairItemCost();
 
             // Cancel vanilla
             ci.cancel();

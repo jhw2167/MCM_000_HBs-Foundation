@@ -602,6 +602,7 @@ public class HBUtil {
     }
     //END BLOCK UTIL
 
+
     public static class LevelUtil {
 
         public static void init(EventRegistrar reg) {
@@ -1043,6 +1044,40 @@ public class HBUtil {
     public static class EntityUtil {
 
         //All entities: SuggestionProviders.SUMMONABLE_ENTITIES;
+
+        public static EntityType<?> entityNameToEntityType(String qualifiedEntityName)
+        {
+            String nmspc;
+            String entityName = qualifiedEntityName;
+
+            if( !qualifiedEntityName.contains(":") ) {
+                nmspc = "minecraft";
+            } else {
+                nmspc = qualifiedEntityName.split(":")[0];
+                entityName = qualifiedEntityName.split(":")[1];
+            }
+
+            return entityNameToEntityType(nmspc, entityName);
+        }
+
+        public static EntityType<?> entityNameToEntityType(String namespace, String entityName) {
+            ResourceLocation key = new ResourceLocation(namespace.trim(), entityName.trim());
+            return BuiltInRegistries.ENTITY_TYPE.get(key);
+        }
+
+        public static String entityTypeToCommonName(EntityType<?> entityType) {
+            String name = entityType.toShortString();
+            String[] split = name.split("_");
+            String commonName = Character.toUpperCase(split[0].charAt(0)) + split[0].substring(1);
+            for(int i = 1; i < split.length; i++) {
+                if(split[i].length()>1)
+                    commonName += " " + Character.toUpperCase(split[i].charAt(0)) + split[i].substring(1);
+                else if(split[i].length()>0)
+                    commonName += " " + split[i];
+            }
+            return commonName;
+        }
+
 
         /**
          * Desciption: - You can do entity create in place if you want, here the argument are described

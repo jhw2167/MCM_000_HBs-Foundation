@@ -48,14 +48,8 @@ public abstract class AnvilMenuMixin {
         if (resultItem != null && !resultItem.isEmpty()) {
             // Set output slot directly - NO resultSlots shadow needed
             menu.slots.get(2).set(resultItem);
-
-            // Set cost
             this.cost.set(event.getResultCost());
-
-            // Set repair item count cost
             this.repairItemCountCost = event.getRepairItemCost();
-
-            // Cancel vanilla
             ci.cancel();
 
             // Sync

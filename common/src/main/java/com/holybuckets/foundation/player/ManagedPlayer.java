@@ -4,7 +4,6 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
-import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -47,12 +46,12 @@ public class ManagedPlayer {
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
 
     //utility
-    public final ConcurrentLinkedSet<Entity> nearbyMobs;
+    public final ConcurrentLinkedSet<Entity> nearbyLivingEntities;
 
 
     public ManagedPlayer() {
         super();
-        this.nearbyMobs = new ConcurrentLinkedSet<>();
+        this.nearbyLivingEntities = new ConcurrentLinkedSet<>();
     }
 
     public ManagedPlayer(Player player)
@@ -140,8 +139,8 @@ public class ManagedPlayer {
         return true;
     }
 
-    public Set<Entity> getNearbyMobs() {
-        return nearbyMobs;
+    public Set<Entity> getNearbyLivingEntities() {
+        return nearbyLivingEntities;
     }
 
     /**
@@ -181,8 +180,7 @@ public class ManagedPlayer {
     private static int MOB_DETECTION_RADIUS = 48;
     private void updateNearbyMobs()
     {
-        if (!(player instanceof ServerPlayer serverPlayer)) return;
-
+        if (!(serverPlayer instanceof ServerPlayer)) return;
         Level level = serverPlayer.level();
         BlockPos playerPos = serverPlayer.blockPosition();
 
@@ -200,8 +198,8 @@ public class ManagedPlayer {
 
         // Query entities in this AABB
         List<Entity> entitiesInArea = level.getEntities((Entity) null, aabb, this::mobPredicate);
-        nearbyMobs.clear();
-        nearbyMobs.addAll(entitiesInArea);
+        nearbyLivingEntities.clear();
+        nearbyLivingEntities.addAll(entitiesInArea);
 
     }
 

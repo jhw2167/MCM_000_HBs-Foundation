@@ -52,4 +52,10 @@ public interface IMessager {
      * @param message The message text to display
      */
     void sendBottomActionHint(String message);
+    
+    /**
+     * Sends a bottom screen error hint message to all players in red text
+     * @param message The error message text to display
+     */
+    void bottomScreenErrorHint(String message);
 }

@@ -19,6 +19,7 @@ import net.minecraft.world.entity.player.Player;
 public class Messager implements IMessager {
 
     public static final String MSG_ID_BOTTOM_ACTION_HINT = "bottom_screen_action_hint";
+    public static final String MSG_ID_BOTTOM_ERROR_HINT = "bottom_screen_error_hint";
 
     private static Messager INSTANCE;
 
@@ -102,6 +103,17 @@ public class Messager implements IMessager {
     public void sendBottomActionHint(String message) {
         for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
             sendBottomActionHint(p, message);
+        }
+    }
+
+    /**
+     * Sends a bottom screen error hint message from server to all players in red text
+     * @param message The error message text to display
+     */
+    @Override
+    public void bottomScreenErrorHint(String message) {
+        for(Player p : HBUtil.PlayerUtil.getAllPlayers()) {
+            SimpleStringMessage.createAndFire(p, MSG_ID_BOTTOM_ERROR_HINT, message);
         }
     }
 }

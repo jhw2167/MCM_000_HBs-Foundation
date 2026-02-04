@@ -43,7 +43,10 @@ public class MessagerClient implements IMessager {
         // Subscribe to bottom screen action hint messages from server
         registrar.registerOnGuiDrawPost(this::onGuiDraw, EventPriority.Lowest);
         registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, (event) -> {
-            bottomScreenActionHint(event.getContent());
+            bottomScreenHint(event.getContent(), 0xFFFFFF); // White text
+        });
+        registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ERROR_HINT, (event) -> {
+            bottomScreenHint(event.getContent(), 0xFF0000); // Red text
         });
     }
     
@@ -82,7 +85,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomHeadsUp(Player player, String message) {
-        bottomScreenActionHint(message);
+        bottomScreenHint(message, 0xFFFFFF); // White text
     }
     
     /**
@@ -102,7 +105,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomActionHint(Player player, String message) {
-        bottomScreenActionHint(message);
+        bottomScreenHint(message, 0xFFFFFF); // White text
     }
     
     /**
@@ -111,35 +114,41 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomActionHint(String message) {
-        bottomScreenActionHint(message);
-    }
-
-    @Override
-    public void bottomScreenErrorHint(String message) {
-
+        bottomScreenHint(message, 0xFFFFFF); // White text
     }
 
     /**
-     * Sends a hint message to the bottom center of the player's screen
-     * @param message The message to display
+     * Sends a bottom screen error hint message to all players in red text
+     * @param message The error message text to display
      */
-    private void bottomScreenActionHint(String message) {
-        bottomScreenActionHint(message, 5000); // Default 3 second duration
+    @Override
+    public void bottomScreenErrorHint(String message) {
+        bottomScreenHint(message, 0xFF0000); // Red text
+    }
+
+    /**
+     * General method to send a hint message to the bottom center of the player's screen
+     * @param message The message to display
+     * @param textColor The color of the text (RGB format)
+     */
+    private void bottomScreenHint(String message, int textColor) {
+        bottomScreenHint(message, textColor, 5000); // Default 5 second duration
     }
     
     /**
-     * Sends a hint message to the bottom center of the player's screen
+     * General method to send a hint message to the bottom center of the player's screen
      * @param message The message to display
+     * @param textColor The color of the text (RGB format)
      * @param durationMs Duration in milliseconds to show the message
      */
-    private void bottomScreenActionHint(String message, int durationMs) {
+    private void bottomScreenHint(String message, int textColor, int durationMs) {
         if (message == null || message.isEmpty()) return;
         
         // Remove any existing messages with the same text to avoid duplicates
         bottomScreenMessages.removeIf(msg -> msg.text.equals(message));
         
         // Add new message
-        bottomScreenMessages.add(new BottomScreenMessage(message, durationMs));
+        bottomScreenMessages.add(new BottomScreenMessage(message, textColor, durationMs));
     }
     
     /**
@@ -177,7 +186,7 @@ public class MessagerClient implements IMessager {
             
             // Calculate alpha based on fade in/out
             float alpha = message.getAlpha();
-            int color = (int)(alpha * 255) << 24 | 0xFFFFFF; // White text with alpha
+            int color = (int)(alpha * 255) << 24 | (message.textColor & 0xFFFFFF); // Apply alpha to text color
             int outlineColor = (int)(alpha * 255) << 24 | 0x000000; // Black outline with alpha
             
             // Draw text with outline effect
@@ -206,15 +215,32 @@ public class MessagerClient implements IMessager {
      */
     private static class BottomScreenMessage {
         private final String text;
+        private final int textColor;
         private final int durationMs;
         private final long startTime;
         private final int fadeInMs = 300;  // 300ms fade in
         private final int fadeOutMs = 500; // 500ms fade out
         
-        public BottomScreenMessage(String text, int durationMs) {
+        /**
+         * Constructor with custom text color
+         * @param text The message text
+         * @param textColor The color of the text (RGB format)
+         * @param durationMs Duration in milliseconds
+         */
+        public BottomScreenMessage(String text, int textColor, int durationMs) {
             this.text = text;
+            this.textColor = textColor;
             this.durationMs = durationMs;
             this.startTime = System.currentTimeMillis();
+        }
+        
+        /**
+         * Constructor with default white text color
+         * @param text The message text
+         * @param durationMs Duration in milliseconds
+         */
+        public BottomScreenMessage(String text, int durationMs) {
+            this(text, 0xFFFFFF, durationMs); // Default to white
         }
         
         public void update() {

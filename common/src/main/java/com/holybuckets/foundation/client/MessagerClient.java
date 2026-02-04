@@ -113,7 +113,12 @@ public class MessagerClient implements IMessager {
     public void sendBottomActionHint(String message) {
         bottomScreenActionHint(message);
     }
-    
+
+    @Override
+    public void bottomScreenErrorHint(String message) {
+
+    }
+
     /**
      * Sends a hint message to the bottom center of the player's screen
      * @param message The message to display

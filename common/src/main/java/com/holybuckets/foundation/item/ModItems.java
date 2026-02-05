@@ -14,15 +14,19 @@ import net.minecraft.world.level.ItemLike;
 public class ModItems {
     public static DeferredObject<CreativeModeTab> creativeModeTab;
     public static ResourceLocation FOUNDATIONS_TAB = id(Constants.MOD_ID);
+
     public static Item emptyBlockItem;
+    public static SimpleRewardItem enchantedEssence;
 
     public static void commonInitialize(BalmItems items)
     {
         creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
+        items.registerItem(() -> enchantedEssence = new SimpleRewardItem("enchanted_essence"), id("enchanted_essence"));
     }
 
     public static void initialize(BalmItems items) {
         //items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
+
 
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
             ModBlocks.empty,

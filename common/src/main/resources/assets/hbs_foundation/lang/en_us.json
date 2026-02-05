@@ -1,4 +1,7 @@
 {
   "block.hbs_foundation.stone_brick_block_entity": "Stone Bricks",
-  "itemGroup.hbs_foundation.hbs_foundation": "HB's Utility Blocks"
+  "itemGroup.hbs_foundation.hbs_foundation": "HB's Utility Blocks",
+
+  "item.hbs_foundation.enchanted_essence": "Enchanted Essence",
+  "item.hbs_foundation.enchanted_essence_desc": "Can be enchanted with a wide range of items in an anvil to target a particular essence"
 }

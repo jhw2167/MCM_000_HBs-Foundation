@@ -24,12 +24,24 @@ public class AnvilUpdateEvent {
     private Integer cost = 0;
     private Integer repairItemCountCost = 1;
 
+    public AnvilUpdateEvent() {
+        this.anvilMenu = null;
+        this.leftItem = null;
+        this.rightItem = null;
+    }
+
     public AnvilUpdateEvent(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
         this.anvilMenu = anvilMenu;
         this.leftItem = leftItem;
         this.rightItem = rightItem;
     }
 
+    /**
+     * Be aware that items are defined in a registry so most items aren't defined when you are constructing this object
+     * to register the event. Use the dummy contructor and set right and left items on the ServerStartedEvent
+     * @param leftItem
+     * @param rightItem
+     */
     public AnvilUpdateEvent(Item leftItem, Item rightItem) {
         this.anvilMenu = null;
         this.leftItem = leftItem.getDefaultInstance();
@@ -88,6 +100,15 @@ public class AnvilUpdateEvent {
         AnvilUpdateEvent that = (AnvilUpdateEvent) obj;
         
         // Compare based on item types only
+        //if the event item is null, passes
+        if( this.leftItem == null ) {
+            return Objects.equals(getItemType(rightItem), getItemType(that.rightItem));
+        }
+
+        if( this.rightItem == null ) {
+            return Objects.equals(getItemType(leftItem), getItemType(that.leftItem));
+        }
+
         return Objects.equals(getItemType(leftItem), getItemType(that.leftItem)) &&
                Objects.equals(getItemType(rightItem), getItemType(that.rightItem));
     }

@@ -1,11 +1,24 @@
 package com.holybuckets.foundation.config;
 
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.config.model.EssenceDataJsonConfig;
+import com.holybuckets.foundation.core.EssenceType;
+import com.holybuckets.foundation.event.EventRegistrar;
+import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 
+import javax.annotation.Nullable;
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Singleton configuration class for mod settings and data
@@ -13,6 +26,8 @@ import java.util.Set;
 public class ModConfig {
     
     private static ModConfig INSTANCE;
+    public final Map<String, Set<ResourceLocation>> essenceData;
+    public final Map<Item, String> enchantedEssenceItemMap;
     
     public static ModConfig getInstance() {
         if (INSTANCE == null) {
@@ -22,66 +37,84 @@ public class ModConfig {
     }
     
     private ModConfig() {
-        this.essenceData = new HashMap<>();
+        this.essenceData = new ConcurrentHashMap<>();
+        this.enchantedEssenceItemMap = new HashMap<>();
     }
-    
-    /**
-     * Map of essence data where each string key maps to a set of ResourceLocations
-     */
-    private final Map<String, Set<ResourceLocation>> essenceData;
-    
-    /**
-     * Gets the essence data map
-     * @return The essence data map
-     */
-    public Map<String, Set<ResourceLocation>> getEssenceData() {
-        return essenceData;
+
+    public static void init(EventRegistrar registrar)
+    {
+        INSTANCE = ModConfig.getInstance();
+        registrar.registerOnBeforeServerStarted(INSTANCE::onBeforeServerStarted, EventPriority.Lowest);
+        registrar.registerOnServerStopped(INSTANCE::onServerStopped, EventPriority.Lowest);
     }
-    
-    /**
-     * Adds a ResourceLocation to the specified essence key
-     * @param key The essence key
-     * @param location The ResourceLocation to add
-     */
-    public void addEssenceData(String key, ResourceLocation location) {
-        essenceData.computeIfAbsent(key, k -> new HashSet<>()).add(location);
+    private void onServerStopped(ServerStoppedEvent event) {
+        essenceData.clear();
+        enchantedEssenceItemMap.clear();
+        INSTANCE = null;
     }
-    
-    /**
-     * Gets the set of ResourceLocations for the specified essence key
-     * @param key The essence key
-     * @return The set of ResourceLocations, or empty set if key doesn't exist
-     */
-    public Set<ResourceLocation> getEssenceData(String key) {
-        return essenceData.getOrDefault(key, new HashSet<>());
+
+    private void onBeforeServerStarted(ServerStartingEvent event) {
+        EssenceType.init(event.getServer());
+
+        // Load essence data from config
+        String pathName =  PerformanceImpactConfig.getActive().configFiles.essenceConfigFilePath;
+        File configFile = new File( pathName );
+        File defaultConfigFile = new File(EssenceDataJsonConfig.DEF_ESSENCE_FILE_CONFIG_PATH );
+        String jsonEssenceData = HBUtil.FileIO.loadJsonConfigs( configFile, defaultConfigFile, EssenceDataJsonConfig.DEFAULT_CONFIG );
+
+        EssenceDataJsonConfig essenceDataConfig = new EssenceDataJsonConfig(jsonEssenceData);
+        loadEssenceData(essenceDataConfig);
     }
-    
-    /**
-     * Removes a ResourceLocation from the specified essence key
-     * @param key The essence key
-     * @param location The ResourceLocation to remove
-     * @return true if the location was removed, false if it wasn't present
-     */
-    public boolean removeEssenceData(String key, ResourceLocation location) {
-        Set<ResourceLocation> locations = essenceData.get(key);
-        if (locations != null) {
-            return locations.remove(location);
+
+    private void loadEssenceData(EssenceDataJsonConfig configJson)
+    {
+        essenceData.clear();
+        Set<String> essenceIds = configJson.getAllEssenceIds();
+        for( String id : essenceIds ) {
+            EssenceDataJsonConfig.EssenceConfig entry = configJson.getConfig( id );
+            if(entry.all.isEmpty()) continue;
+            essenceData.put( id, entry.all.stream().map(this::toResourceLocation).collect( Collectors.toSet() ) );
+            if(entry.items==null || entry.items.isEmpty()) continue;
+            for( String itemName : entry.items ) {
+                Item item = HBUtil.ItemUtil.itemNameToItem( addNameSpaceMap(itemName) );
+                if( item != null ) enchantedEssenceItemMap.put( item, id );
+            }
         }
+    }
+        private String addNameSpaceMap(String name) {
+            return (!name.contains(":")) ? "minecraft:" + name : name;
+        }
+
+        private ResourceLocation toResourceLocation(String name) {
+            return new ResourceLocation(addNameSpaceMap(name));
+        }
+
+    @Nullable
+    public Set<ResourceLocation> getEssenceData(String key) {
+        return essenceData.get(key);
+    }
+
+    @Nullable
+    public String getEssence(ResourceLocation loc) {
+        for (Map.Entry<String, Set<ResourceLocation>> entry : essenceData.entrySet()) {
+            if (entry.getValue().contains(loc)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public String getEssence(Item item) {
+        return enchantedEssenceItemMap.get(item);
+    }
+
+    @Nullable
+    public boolean hasEssence(String essenceName, ResourceLocation loc) {
+        Set<ResourceLocation> essenceSet = essenceData.get(essenceName);
+        if(essenceSet != null) return essenceSet.contains(loc);
         return false;
     }
-    
-    /**
-     * Clears all essence data for the specified key
-     * @param key The essence key to clear
-     */
-    public void clearEssenceData(String key) {
-        essenceData.remove(key);
-    }
-    
-    /**
-     * Clears all essence data
-     */
-    public void clearAllEssenceData() {
-        essenceData.clear();
-    }
+
+
 }

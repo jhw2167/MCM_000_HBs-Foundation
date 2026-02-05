@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.config.model;
 
 import com.google.gson.*;
+import com.holybuckets.foundation.core.EssenceType;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import net.minecraft.resources.ResourceLocation;
 
@@ -9,7 +10,7 @@ import java.util.*;
 public class EssenceDataJsonConfig implements IStringSerializable {
 
     public static final String DEF_ESSENCE_FILE_CONFIG_PATH = "config/HBFoundationEssenceConfig.json";
-    public static final String DEFAULT_CONFIG = buildDefaultConfig();
+    public static final EssenceDataJsonConfig DEFAULT_CONFIG = buildDefaultConfig();
 
     private JsonObject rootObject;
     private Map<String, EssenceConfig> essenceMap;
@@ -22,6 +23,8 @@ public class EssenceDataJsonConfig implements IStringSerializable {
         public Set<String> levels;
         public Set<String> items;
 
+        public Set<String> all;
+
         public EssenceConfig(String id, Set<String> biomes, Set<String> entities, Set<String> dimensions, Set<String> levels, Set<String> items) {
             this.id = id;
             this.biomes = biomes;
@@ -29,15 +32,21 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             this.dimensions = dimensions;
             this.levels = levels;
             this.items = items;
+            this.all = new HashSet<>();
+
+            if (biomes != null) this.all.addAll(biomes);
+            if (entities != null) this.all.addAll(entities);
+            if (dimensions != null) this.all.addAll(dimensions);
+            if (levels != null) this.all.addAll(levels);
+            if (items != null) this.all.addAll(items);
         }
 
         public EssenceConfig(String id, JsonObject obj) {
-            this.id = id;
-            this.biomes = parseResourceLocationArray(obj, "biomes");
-            this.entities = parseResourceLocationArray(obj, "entities");
-            this.dimensions = parseResourceLocationArray(obj, "dimensions");
-            this.levels = parseResourceLocationArray(obj, "levels");
-            this.items = parseResourceLocationArray(obj, "items");
+            this(id, parseResourceLocationArray(obj, "biomes")
+                , parseResourceLocationArray(obj, "entities")
+                , parseResourceLocationArray(obj, "dimensions")
+                , parseResourceLocationArray(obj, "levels")
+                , parseResourceLocationArray(obj, "items"));
         }
     }
 
@@ -90,7 +99,13 @@ public class EssenceDataJsonConfig implements IStringSerializable {
         return essenceMap.keySet();
     }
 
-    private static String buildDefaultConfig() {
+    public EssenceConfig getConfig(String id) {
+        return essenceMap.get(id);
+    }
+
+
+    private static EssenceDataJsonConfig buildDefaultConfig()
+    {
         List<EssenceConfig> configs = new ArrayList<>();
         EssenceDataJsonConfig temp = new EssenceDataJsonConfig("{}");
 
@@ -213,7 +228,7 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:the_end"), null, 
             Set.of("minecraft:end_stone", "minecraft:ender_pearl", "minecraft:shulker_shell", "minecraft:chorus_fruit")));
 
-        return serializeConfigs(configs);
+        return temp;
     }
 
     private static String serializeConfigs(List<EssenceConfig> configs) {

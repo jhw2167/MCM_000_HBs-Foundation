@@ -8,6 +8,12 @@ import net.blay09.mods.balm.api.config.Config;
 @Config(Constants.MOD_ID)
 public class PerformanceImpactConfigData implements BalmConfigData {
     public CPerformanceImpactConfig performanceImpactConfig = new CPerformanceImpactConfig();
+    public ConfigFiles configFiles = new ConfigFiles();
+
+    public static class ConfigFiles {
+        @Comment("File path to EnchantedEssence config file")
+        public String essenceConfigFilePath = "config/HBEnchantedEssenceConfig.json";
+    }
 
     public static class CPerformanceImpactConfig {
 

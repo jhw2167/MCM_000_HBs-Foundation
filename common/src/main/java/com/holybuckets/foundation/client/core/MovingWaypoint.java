@@ -44,24 +44,35 @@ public class MovingWaypoint {
             this.levelId = levelId;
             this.targetPos = targetPos;
             this.colorId = colorId;
-            setActive(CURRENT_LEVEL_ID, Minecraft.getInstance().player);
+            setActive(CURRENT_LEVEL_ID);
         }
 
-        public void setActive(String currentLevelId, Player p)
-        {
-            this.isActive = false;
-            if(!currentLevelId.equals(this.levelId) ) return;
-            this.isActive = true; activeCount++;
+        public void setActive(String currentLevelId) {
+            boolean wasActive = this.isActive;
+            this.isActive = currentLevelId.equals(this.levelId);
+            
+            if (wasActive && !this.isActive) {
+                activeCount--;
+            } else if (!wasActive && this.isActive) {
+                activeCount++;
+            }
+        }
+
+        public void deactivate() {
+            if (this.isActive) {
+                this.isActive = false;
+                activeCount--;
+            }
         }
 
         public static void remove(BlockPos pos) {
             String msg = "Waypoint at " + HBUtil.BlockUtil.positionToString(pos) + " removed";
             IMessager.getInstance().sendBottomActionHint(msg);
         }
-
     }
 
     public static String CURRENT_LEVEL_ID = "";
+    private static final IntObjectMap<Waypoint> originalWaypoints = new IntObjectHashMap<>();
     private static final IntObjectMap<Waypoint> activeWaypoints = new IntObjectHashMap<>();
     private static BufferBuilder bufferBuilder = null;
     private static final int MAX_BEACON_VERTICES = 256 * 1024;
@@ -107,21 +118,25 @@ public class MovingWaypoint {
     }
 
     private void setWaypointFlare() {
-        activeWaypoints.computeIfAbsent(playerId, k -> new HashMap<>())
-            .put(waypointKey, new Waypoint(waypointPosition, colorId));
+        // Remove existing active waypoint for this color
+        activeWaypoints.remove(colorId);
+        
+        // Add new active waypoint at calculated position
+        activeWaypoints.put(colorId, new Waypoint(CURRENT_LEVEL_ID, waypointPosition, colorId));
     }
 
     public void clearWaypoint() {
-        Map<String, Waypoint> playerWaypoints = activeWaypoints.get(playerId);
-        if (playerWaypoints != null) {
-            Waypoint wp = playerWaypoints.get(waypointKey);
-            if (wp != null) {
-                wp.deactivate();
-                playerWaypoints.remove(waypointKey);
-            }
-            if (playerWaypoints.isEmpty()) {
-                activeWaypoints.remove(playerId);
-            }
+        // Remove from both original and active waypoints
+        Waypoint originalWp = originalWaypoints.get(colorId);
+        if (originalWp != null) {
+            originalWp.deactivate();
+            originalWaypoints.remove(colorId);
+        }
+        
+        Waypoint activeWp = activeWaypoints.get(colorId);
+        if (activeWp != null) {
+            activeWp.deactivate();
+            activeWaypoints.remove(colorId);
         }
     }
 
@@ -154,10 +169,41 @@ public class MovingWaypoint {
     }
 
     public static void clearAllWaypoints(UUID playerId) {
-        Map<String, Waypoint> playerWaypoints = activeWaypoints.get(playerId);
-        if (playerWaypoints != null) {
-            playerWaypoints.values().forEach(Waypoint::deactivate);
-            activeWaypoints.remove(playerId);
+        // Clear all waypoints (this method might need to be redesigned if we need per-player tracking)
+        for (Waypoint wp : originalWaypoints.values()) {
+            wp.deactivate();
+        }
+        for (Waypoint wp : activeWaypoints.values()) {
+            wp.deactivate();
+        }
+        originalWaypoints.clear();
+        activeWaypoints.clear();
+    }
+
+    public static void updateAllActiveWaypoints(Player player) {
+        // Update active waypoints based on original waypoints and player position
+        activeWaypoints.clear();
+        
+        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries()) {
+            int colorId = entry.key();
+            Waypoint originalWp = entry.value();
+            
+            if (!originalWp.isActive) continue;
+            
+            Vec3 playerPos = player.position();
+            Vec3 targetPos = Vec3.atCenterOf(originalWp.targetPos);
+            double distanceToTarget = playerPos.distanceTo(targetPos);
+            
+            BlockPos waypointPos;
+            if (distanceToTarget <= MAX_RANGE) {
+                waypointPos = originalWp.targetPos;
+            } else {
+                Vec3 direction = targetPos.subtract(playerPos).normalize();
+                Vec3 waypoint = playerPos.add(direction.scale(MAX_RANGE));
+                waypointPos = BlockPos.containing(waypoint.x, waypoint.y, waypoint.z);
+            }
+            
+            activeWaypoints.put(colorId, new Waypoint(CURRENT_LEVEL_ID, waypointPos, colorId));
         }
     }
 
@@ -166,33 +212,52 @@ public class MovingWaypoint {
     public static final String MSG_ID_MOVING_WAYPOINT = "moving_waypoint";
     public static void registerEvents(ClientEventRegistrar registrar ) {
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
-            registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
-
+        registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
+        registrar.registerOnClientLevelTick(TickType.END, MovingWaypoint::onClientTick);
     }
 
-    private static void onMovingWaypointMessage(SimpleMessageEvent event)
-    {
-        JsonElement json = JsonParser.parseString( event.getContent() );
-        if(json.isJsonNull() || !json.isJsonObject()) return;
+    private static void onMovingWaypointMessage(SimpleMessageEvent event) {
+        JsonElement json = JsonParser.parseString(event.getContent());
+        if (json.isJsonNull() || !json.isJsonObject()) return;
         JsonObject obj = json.getAsJsonObject();
 
         int colorId = 0;
-        if( obj.has("colorId") )
+        if (obj.has("colorId"))
             colorId = obj.get("colorId").getAsInt();
 
-        if(!obj.has("levelId") || !obj.has("targetPos")) {
-            activeWaypoints.remove( colorId );
+        if (!obj.has("levelId") || !obj.has("targetPos")) {
+            // Remove waypoint
+            Waypoint originalWp = originalWaypoints.get(colorId);
+            if (originalWp != null) {
+                originalWp.deactivate();
+                originalWaypoints.remove(colorId);
+            }
+            activeWaypoints.remove(colorId);
             return;
         }
 
+        // Add or update original waypoint
         Waypoint w = new Waypoint(
             obj.get("levelId").getAsString(),
-            HBUtil.BlockUtil.stringToBlockPos( obj.get("targetPos").getAsString() ),
+            HBUtil.BlockUtil.stringToBlockPos(obj.get("targetPos").getAsString()),
             colorId
         );
+        
+        originalWaypoints.put(colorId, w);
+        
+        // Update active waypoints if player is available
+        Player player = Minecraft.getInstance().player;
+        if (player != null) {
+            updateAllActiveWaypoints(player);
+        }
     }
 
-
+    private static void onClientTick(ClientLevelTickEvent event) {
+        Player player = Minecraft.getInstance().player;
+        if (player != null && !originalWaypoints.isEmpty()) {
+            updateAllActiveWaypoints(player);
+        }
+    }
 
     //** RENDERING
 
@@ -222,43 +287,41 @@ public class MovingWaypoint {
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance()
             .renderBuffers().bufferSource();
 
-        for (var waypoints : activeWaypoints.values()) {
-            for (var wp : waypoints.values()) {
+        int renderedCount = 0;
+        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : activeWaypoints.entries()) {
+            Waypoint wp = entry.value();
 
-                if (!wp.isActive) continue;
-                if (Waypoint.activeCount > MAX_CONCURRENT_BEACONS) {
-                    if (Math.random() > ((double) MAX_CONCURRENT_BEACONS / (double) Waypoint.activeCount)) {
-                        continue;
-                    }
-                }
-                BlockPos targetPos = wp.targetPos;
+            if (!wp.isActive) continue;
+            if (renderedCount >= MAX_CONCURRENT_BEACONS) break;
+            
+            BlockPos targetPos = wp.targetPos;
 
-                poseStack.pushPose();
+            poseStack.pushPose();
 
-                poseStack.translate(
-                    targetPos.getX() - cameraPos.x + 0.5,
-                    targetPos.getY() - cameraPos.y,
-                    targetPos.getZ() - cameraPos.z + 0.5
-                );
+            poseStack.translate(
+                targetPos.getX() - cameraPos.x + 0.5,
+                targetPos.getY() - cameraPos.y,
+                targetPos.getZ() - cameraPos.z + 0.5
+            );
 
-                float[] colors = WoolDustHelper.getWoolColorRGB(wp.colorId);
+            float[] colors = WoolDustHelper.getWoolColorRGB(wp.colorId);
 
-                BeaconRenderer.renderBeaconBeam(
-                    poseStack,
-                    bufferSource,
-                    BeaconRenderer.BEAM_LOCATION,
-                    event.getPartialTick(),
-                    1.0f,
-                    gameTime,
-                    0,
-                    Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
-                    colors,
-                    0.2f,
-                    0.25f
-                );
+            BeaconRenderer.renderBeaconBeam(
+                poseStack,
+                bufferSource,
+                BeaconRenderer.BEAM_LOCATION,
+                event.getPartialTick(),
+                1.0f,
+                gameTime,
+                0,
+                Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
+                colors,
+                0.2f,
+                0.25f
+            );
 
-                poseStack.popPose();
-            }
+            poseStack.popPose();
+            renderedCount++;
         }
     }
 }

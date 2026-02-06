@@ -15,18 +15,21 @@ import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
+import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.blay09.mods.balm.api.event.
+import net.blay09.mods.balm.api.event.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.google.common.collect.HashBasedTable;
@@ -99,6 +102,12 @@ public class EventRegistrar {
     final List<AnvilUpdateEvent> ANVIL_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
 
+    // ItemEntity tick event support
+    final List<DeferredObject<Item>> ITEM_ENTITY_DEFERRED_OBJECTS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<ItemEntityTickEvent>> ITEM_ENTITY_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+    final Map<Item, List<Consumer<ItemEntityTickEvent>>> ITEM_ENTITY_TICK_MAP = new ConcurrentHashMap<>();
+    final Set<Consumer<ItemEntityTickEvent>> ALL_ITEM_ENTITY_CONSUMERS = new ConcurrentSet<>();
+
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
 
@@ -122,6 +131,9 @@ public class EventRegistrar {
     }
 
     void onBeforeServerStarted(ServerStartingEvent event) {
+        // Process deferred item objects for ItemEntity tick events
+        processItemEntityDeferredObjects();
+
         // Sort consumers by priority
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
@@ -133,6 +145,26 @@ public class EventRegistrar {
             tryEvent(consumer, event);
         }
 
+    }
+
+    private void processItemEntityDeferredObjects() {
+        synchronized (ITEM_ENTITY_DEFERRED_OBJECTS) {
+            for (int i = 0; i < ITEM_ENTITY_DEFERRED_OBJECTS.size(); i++) {
+                DeferredObject<Item> deferredItem = ITEM_ENTITY_DEFERRED_OBJECTS.get(i);
+                Consumer<ItemEntityTickEvent> consumer = ITEM_ENTITY_CONSUMERS.get(i);
+                
+                if (consumer == null) continue;
+                
+                if (deferredItem == null) {
+                    // null means subscribe to all item entity ticks
+                    ALL_ITEM_ENTITY_CONSUMERS.add(consumer);
+                } else {
+                    // Subscribe to specific item type
+                    Item item = deferredItem.get();
+                    ITEM_ENTITY_TICK_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
+                }
+            }
+        }
     }
 
     void onServerStopped(ServerStoppedEvent event) {
@@ -182,7 +214,7 @@ public class EventRegistrar {
 
         GeneralConfig.fireEvent(LevelLoadingEvent.Unload.class, event);
         // Execute in priority order
-        for (Consumer<LevelLoadingEvent.Unload> consumer : sortedConsumers) {
+        for (Consumer<LevelLoadingEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
     }
@@ -262,7 +294,7 @@ public class EventRegistrar {
         generalRegister(function, ON_REGISTER, priority);
     }
 
-    public void registerOnModConfig(Consumer<ModConfigEvent> function) { registerOnModConfig(function, false); }
+    public void registerOnMod Config(Consumer<ModConfigEvent> function) { registerOnModConfig(function, false); }
     public void registerOnModConfig(Consumer<ModConfigEvent> function, EventPriority priority) {
         generalRegister(function, ON_MOD_CONFIG, priority);
     }
@@ -466,6 +498,16 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    public void registerOnItemEntityTick(@Nullable DeferredObject<Item> itemType, Consumer<ItemEntityTickEvent> function) {
+        registerOnItemEntityTick(itemType, function, EventPriority.Normal);
+    }
+
+    public void registerOnItemEntityTick(@Nullable DeferredObject<Item> itemType, Consumer<ItemEntityTickEvent> function, EventPriority priority) {
+        ITEM_ENTITY_DEFERRED_OBJECTS.add(itemType);
+        ITEM_ENTITY_CONSUMERS.add(function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
     /**
      * Custom Events
      **/
@@ -604,7 +646,7 @@ public class EventRegistrar {
     {
         // Iterate through the events list to find matching registered event handlers
         synchronized (ANVIL_UPDATE_EVENTS) {
-            for (int i = 0; i < ANVIL_UPDATE_EVENTS.size(); i++)
+            for (int i =  0; i < ANVIL_UPDATE_EVENTS.size(); i++)
             {
                 AnvilUpdateEvent registeredEvent = ANVIL_UPDATE_EVENTS.get(i);
                 Consumer<AnvilUpdateEvent> consumer = ANVIL_UPDATE_CONSUMERS.get(i);
@@ -619,6 +661,23 @@ public class EventRegistrar {
                     break; // Only execute the first matching handler
                 }
             }
+        }
+    }
+
+    public static void onItemEntityTick(ItemEntity itemEntity) {
+        EventRegistrar registrar = getInstance();
+        if (registrar == null) return;
+        
+        ItemEntityTickEvent event = new ItemEntityTickEvent(itemEntity);
+        
+        // Fire for all item entity consumers (registered with null)
+        registrar.ALL_ITEM_ENTITY_CONSUMERS.forEach(consumer -> registrar.tryEvent(consumer, event));
+        
+        // Fire for specific item type consumers
+        Item item = itemEntity.getItem().getItem();
+        List<Consumer<ItemEntityTickEvent>> specificConsumers = registrar.ITEM_ENTITY_TICK_MAP.get(item);
+        if (specificConsumers != null) {
+            specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
         }
     }
 

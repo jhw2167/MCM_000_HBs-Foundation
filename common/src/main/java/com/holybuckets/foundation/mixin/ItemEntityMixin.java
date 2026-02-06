@@ -1,6 +1,6 @@
 package com.holybuckets.foundation.mixin;
 
-import com.holybuckets.foundation.event.custom.ItemEntityTickEvent;
+import com.holybuckets.foundation.event.EventRegistrar;
 import net.minecraft.world.entity.item.ItemEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,6 +16,6 @@ public abstract class ItemEntityMixin {
     )
     private void onItemEntityTick(CallbackInfo ci) {
         ItemEntity itemEntity = (ItemEntity)(Object)this;
-        ItemEntityTickEvent.EVENT.invoke(itemEntity);
+        EventRegistrar.onItemEntityTick(itemEntity);
     }
 }

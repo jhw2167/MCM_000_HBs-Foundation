@@ -34,7 +34,7 @@ public class SimpleRewardItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
         super.appendHoverText(stack, level, tooltipComponents, isAdvanced);
-        tooltipComponents.add(Component.translatable("item.hbs_traveler_rewards." + itemId + ".desc"));
+        tooltipComponents.add(Component.translatable(modDescKey));
     }
 
     public String getItemId() {

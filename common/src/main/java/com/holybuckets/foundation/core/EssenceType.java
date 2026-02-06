@@ -3,7 +3,6 @@ package com.holybuckets.foundation.core;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.config.ModConfig;
-import com.holybuckets.foundation.enchantment.EssenceEnchantment;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
@@ -32,7 +31,8 @@ public class EssenceType {
     private static Registry<Level> levelRegistry;
 
     // Initialize registries from server
-    public static void init(MinecraftServer server) {
+    public static void onServerStart(MinecraftServer server)
+    {
         RegistryAccess registryAccess = server.registryAccess();
         biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
         entityRegistry = registryAccess.registryOrThrow(Registries.ENTITY_TYPE);
@@ -53,8 +53,24 @@ public class EssenceType {
         this.essenceName = essenceName;
     }
 
-    public String getEssenceName() {
+    public String getEssenceId() {
         return essenceName;
+    }
+
+    public String getEssenceName() {
+        //to proper case
+        String[] parts = essenceName.split("_");
+        StringBuilder displayName = new StringBuilder();
+        for (String part : parts) {
+            if (part.length() > 0) {
+                displayName.append(Character.toUpperCase(part.charAt(0)));
+                if (part.length() > 1) {
+                    displayName.append(part.substring(1));
+                }
+                displayName.append(" ");
+            }
+        }
+        return displayName.toString().trim();
     }
 
     private Set<ResourceLocation> getEssenceLocations() {

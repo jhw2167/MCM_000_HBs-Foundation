@@ -3,6 +3,8 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
+import com.holybuckets.foundation.core.MovingWaypoint;
+import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
@@ -10,10 +12,13 @@ import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.*;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -50,9 +55,12 @@ public class CommonClass {
         }
 
         FoundationInitializers.init();
-        //test(EventRegistrar.getInstance()); BalmEventRegister.registerEvents();
-        //testMessager(EventRegistrar.getInstance());
+        EventRegistrar reg = EventRegistrar.getInstance();
+        reg.registerOnBeforeServerStarted(CommonClass::onServerStarting);
+        //test(EventRegistrar.getInstance());
+        testMessager(EventRegistrar.getInstance());
 
+        BalmEventRegister.registerEvents();
         isInitialized = true;
     }
 
@@ -79,9 +87,19 @@ public class CommonClass {
         
         // Send the message using the Messager system
         Messager.getInstance().sendBottomActionHint(event.getPlayer(), keyMessage.toString());
+
+        //Set a MovingWaypoint to the players current position
+        BlockPos pos = event.getPlayer().blockPosition();
+
+        if(keyCodes.stream().toList().get(0)==1)
+            MovingWaypoint.setWaypoint((ServerPlayer) event.getPlayer(), pos);
         
         // Also log it for debugging
         //LoggerBase.logInfo(null, "MESSAGER_TEST", "Player input: " + keyMessage.toString());
+    }
+
+    private static void onServerStarting(ServerStartingEvent event) {
+        WoolColorHelper.initWoolColors();
     }
 
     /**

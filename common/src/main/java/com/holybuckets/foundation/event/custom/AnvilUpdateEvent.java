@@ -10,19 +10,25 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Event fired when an anvil menu is updated with new items
  */
 public class AnvilUpdateEvent {
+
+    public static Map<AnvilMenu, AnvilUpdateEvent> ANVIL_EVENTS = new ConcurrentHashMap<>();
+
     private final AnvilMenu anvilMenu;
     ItemStack leftItem;
     ItemStack rightItem;
     private ItemStack resultItem = null;
     private Integer cost = 0;
     private Integer repairItemCountCost = 1;
+    private Integer mainItemCost = 0;
 
     public AnvilUpdateEvent() {
         this.anvilMenu = null;
@@ -82,6 +88,14 @@ public class AnvilUpdateEvent {
 
     public void setCost(Integer cost) {
         this.cost = cost;
+    }
+
+    public void setMainItemCost(Integer mainItemCost) {
+        this.mainItemCost = mainItemCost;
+    }
+
+    public int getMainItemCost() {
+        return mainItemCost;
     }
 
     public Integer getRepairItemCost() {

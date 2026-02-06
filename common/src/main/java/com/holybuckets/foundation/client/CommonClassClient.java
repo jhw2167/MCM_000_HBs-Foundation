@@ -1,6 +1,8 @@
 package com.holybuckets.foundation.client;
 import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.client.core.MovingWaypoint;
+import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.player.ManagedPlayer;
@@ -33,6 +35,7 @@ public class CommonClassClient {
         messager.init(reg);
         initManagedPlayer(reg);
         initStructureManager(reg);
+        MovingWaypoint.registerEvents(reg);
 
 
         ClientBalmEventRegister.registerEvents();
@@ -60,6 +63,7 @@ public class CommonClassClient {
     //** Events
     private static void onPlayerConnectToServer(ConnectedToServerEvent event) {
         CommonClass.MESSAGER = MessagerClient.getInstance();
+        WoolColorHelper.initWoolColors();
     }
 
 

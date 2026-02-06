@@ -15,6 +15,9 @@ import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * Description: Client-side messaging class for templated message types
@@ -51,7 +54,7 @@ public class MessagerClient implements IMessager {
     }
     
     // List to track active bottom screen messages
-    private final List<BottomScreenMessage> bottomScreenMessages = new ArrayList<>();
+    private final Queue<BottomScreenMessage> bottomScreenMessages = new LinkedBlockingDeque<>();
     
     /**
      * Sends a message to the chat console for all players

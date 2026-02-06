@@ -21,6 +21,7 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.blay09.mods.balm.api.event.
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -545,6 +546,8 @@ public class EventRegistrar {
         DAILY_TICK_EVENTS.get(EMPTY_LOC).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
         ResourceLocation levelId = level.dimension().location();
         DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
+
+        cleanupOnNewDay();
     }
 
     public void onClientInput(ClientInputMessage message) {
@@ -597,7 +600,8 @@ public class EventRegistrar {
         }
     }
 
-    public void onAnvilUpdate(AnvilUpdateEvent event){
+    public void onAnvilUpdate(AnvilUpdateEvent event)
+    {
         // Iterate through the events list to find matching registered event handlers
         synchronized (ANVIL_UPDATE_EVENTS) {
             for (int i = 0; i < ANVIL_UPDATE_EVENTS.size(); i++)
@@ -633,6 +637,13 @@ public class EventRegistrar {
                 MixinManager.recordError(id, e);
             }
         }
+    }
+
+    /**
+     * Cleanup janky code concepts. e.g. my "use multiple items in anvil recipes fix"
+     */
+    private static void cleanupOnNewDay() {
+        AnvilUpdateEvent.ANVIL_EVENTS.clear();
     }
 
 

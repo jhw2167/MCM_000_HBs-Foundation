@@ -3,31 +3,29 @@ package com.holybuckets.foundation.client.core;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.console.IMessager;
+import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
-import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.UUID;
 
 public class MovingWaypoint {
@@ -42,14 +40,19 @@ public class MovingWaypoint {
 
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
             this.levelId = levelId;
-            this.targetPos = targetPos;
             this.colorId = colorId;
+            this.targetPos = targetPos;
             setActive(CURRENT_LEVEL_ID);
         }
 
         public void setActive(String currentLevelId) {
             boolean wasActive = this.isActive;
             this.isActive = currentLevelId.equals(this.levelId);
+
+            if(isActive) {
+                Level level = Minecraft.getInstance().level;
+               targetPos = targetPos.atY(level.getMinBuildHeight());
+            }
             
             if (wasActive && !this.isActive) {
                 activeCount--;
@@ -77,7 +80,7 @@ public class MovingWaypoint {
     private static BufferBuilder bufferBuilder = null;
     private static final int MAX_BEACON_VERTICES = 256 * 1024;
     private static final int MAX_CONCURRENT_BEACONS = 8;
-    private static final int MAX_RANGE = 256;
+    private static final int MAX_RANGE = 192;
 
     private final UUID playerId;
     private final String waypointKey;
@@ -184,11 +187,13 @@ public class MovingWaypoint {
         // Update active waypoints based on original waypoints and player position
         activeWaypoints.clear();
         
-        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries()) {
+        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
+        {
             int colorId = entry.key();
             Waypoint originalWp = entry.value();
+            originalWp.setActive(CURRENT_LEVEL_ID);
             
-            if (!originalWp.isActive) continue;
+            if(!originalWp.isActive) continue;
             
             Vec3 playerPos = player.position();
             Vec3 targetPos = Vec3.atCenterOf(originalWp.targetPos);
@@ -213,10 +218,11 @@ public class MovingWaypoint {
     public static void registerEvents(ClientEventRegistrar registrar ) {
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
         registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
-        registrar.registerOnClientLevelTick(TickType.END, MovingWaypoint::onClientTick);
+        registrar.registerOnClientLevelTick(TickType.ON_120_TICKS, MovingWaypoint::onClient120Tick);
     }
 
-    private static void onMovingWaypointMessage(SimpleMessageEvent event) {
+    private static void onMovingWaypointMessage(SimpleMessageEvent event)
+    {
         JsonElement json = JsonParser.parseString(event.getContent());
         if (json.isJsonNull() || !json.isJsonObject()) return;
         JsonObject obj = json.getAsJsonObject();
@@ -252,11 +258,12 @@ public class MovingWaypoint {
         }
     }
 
-    private static void onClientTick(ClientLevelTickEvent event) {
+    private static void onClient120Tick(ClientLevelTickEvent event) {
         Player player = Minecraft.getInstance().player;
         if (player != null && !originalWaypoints.isEmpty()) {
             updateAllActiveWaypoints(player);
         }
+        CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(Minecraft.getInstance().level);
     }
 
     //** RENDERING
@@ -304,7 +311,7 @@ public class MovingWaypoint {
                 targetPos.getZ() - cameraPos.z + 0.5
             );
 
-            float[] colors = WoolDustHelper.getWoolColorRGB(wp.colorId);
+            float[] colors = WoolColorHelper.getWoolColorRGB(wp.colorId);
 
             BeaconRenderer.renderBeaconBeam(
                 poseStack,

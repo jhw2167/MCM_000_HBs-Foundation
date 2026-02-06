@@ -2,6 +2,7 @@ package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.item.ItemStack;
@@ -17,6 +18,7 @@ public abstract class AnvilMenuMixin {
 
     @Shadow @Final private DataSlot cost;
     @Shadow private int repairItemCountCost;
+
 
     @Inject(
         method = "createResult",
@@ -41,6 +43,7 @@ public abstract class AnvilMenuMixin {
         }
 
         AnvilUpdateEvent event = new AnvilUpdateEvent(menu, left, right);
+        AnvilUpdateEvent.ANVIL_EVENTS.put(menu, event);
         eventRegistrar.onAnvilUpdate(event);
 
         // Check if event produced a result
@@ -55,5 +58,18 @@ public abstract class AnvilMenuMixin {
             // Sync
             menu.broadcastChanges();
         }
+    }
+    //END ONCREATE RESULT
+
+    @Inject(
+        method = "onTake",
+        at = @At("HEAD"),
+        cancellable = true
+    )
+    protected void onOnTake(Player $$0, ItemStack $$1, CallbackInfo ci) {
+        AnvilMenu menu = (AnvilMenu)(Object)this;
+        AnvilUpdateEvent event = AnvilUpdateEvent.ANVIL_EVENTS.remove(menu);
+        if(event==null || event.getMainItemCost()==0 || event.getLeftItem()==null) return;
+        event.getLeftItem().shrink(event.getMainItemCost());
     }
 }

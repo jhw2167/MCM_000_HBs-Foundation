@@ -677,6 +677,10 @@ public class HBUtil {
             return id;
         }
 
+        public static String toLevelIdAgnostic(LevelAccessor level) {
+            String id = toLevelId(level);
+            return id.replace("CLIENT:", "").replace("SERVER:", "");
+        }
 
         public static String toLevelId(LevelNameSpace nm, LevelAccessor level) {
           String id = toLevelId(level);

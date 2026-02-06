@@ -5,7 +5,6 @@ import com.holybuckets.foundation.config.model.EssenceDataJsonConfig;
 import com.holybuckets.foundation.core.EssenceType;
 import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.resources.ResourceLocation;
@@ -14,7 +13,6 @@ import net.minecraft.world.item.Item;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,9 +51,8 @@ public class ModConfig {
         INSTANCE = null;
     }
 
-    private void onBeforeServerStarted(ServerStartingEvent event) {
-        EssenceType.init(event.getServer());
-
+    private void onBeforeServerStarted(ServerStartingEvent event)
+    {
         // Load essence data from config
         String pathName =  PerformanceImpactConfig.getActive().configFiles.essenceConfigFilePath;
         File configFile = new File( pathName );
@@ -64,6 +61,8 @@ public class ModConfig {
 
         EssenceDataJsonConfig essenceDataConfig = new EssenceDataJsonConfig(jsonEssenceData);
         loadEssenceData(essenceDataConfig);
+
+        EssenceType.onServerStart(event.getServer());
     }
 
     private void loadEssenceData(EssenceDataJsonConfig configJson)

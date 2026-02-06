@@ -18,6 +18,12 @@ import com.holybuckets.foundation.structure.StructureManager;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import com.holybuckets.foundation.core.WoolColorHelper;
+import net.minecraft.world.level.block.Blocks;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class FoundationInitializers {
 
@@ -96,10 +102,8 @@ public class FoundationInitializers {
         ModItems.initialize(Balm.getItems());
     }
 
-
-
-
     public static ResourceLocation id(String location) {
         return new ResourceLocation(Constants.MOD_ID, location);
     }
+
 }

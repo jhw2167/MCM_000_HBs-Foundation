@@ -22,15 +22,12 @@ import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.blay09.mods.balm.api.event.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
@@ -41,6 +38,7 @@ import com.google.common.collect.Multimap;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTickEvent;
 
@@ -103,7 +101,7 @@ public class EventRegistrar {
     final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
 
     // ItemEntity tick event support
-    final List<DeferredObject<Item>> ITEM_ENTITY_DEFERRED_OBJECTS = Collections.synchronizedList(new ArrayList<>());
+    final List<Supplier<Item>> ITEM_ENTITY_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<ItemEntityTickEvent>> ITEM_ENTITY_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
     final Map<Item, List<Consumer<ItemEntityTickEvent>>> ITEM_ENTITY_TICK_MAP = new ConcurrentHashMap<>();
     final Set<Consumer<ItemEntityTickEvent>> ALL_ITEM_ENTITY_CONSUMERS = new ConcurrentSet<>();
@@ -148,26 +146,25 @@ public class EventRegistrar {
     }
 
     private void processItemEntityDeferredObjects() {
-        synchronized (ITEM_ENTITY_DEFERRED_OBJECTS) {
-            for (int i = 0; i < ITEM_ENTITY_DEFERRED_OBJECTS.size(); i++) {
-                DeferredObject<Item> deferredItem = ITEM_ENTITY_DEFERRED_OBJECTS.get(i);
-                Consumer<ItemEntityTickEvent> consumer = ITEM_ENTITY_CONSUMERS.get(i);
-                
-                if (consumer == null) continue;
-                
-                if (deferredItem == null) {
-                    // null means subscribe to all item entity ticks
-                    ALL_ITEM_ENTITY_CONSUMERS.add(consumer);
-                } else {
-                    // Subscribe to specific item type
-                    Item item = deferredItem.get();
-                    ITEM_ENTITY_TICK_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
-                }
+        for (int i = 0; i < ITEM_ENTITY_SUPPLIERS.size(); i++)
+        {
+            Supplier<Item> deferredItem = ITEM_ENTITY_SUPPLIERS.get(i);
+            Consumer<ItemEntityTickEvent> consumer = ITEM_ENTITY_CONSUMERS.get(i);
+
+            if (consumer == null) continue;
+
+            if (deferredItem == null) {
+                ALL_ITEM_ENTITY_CONSUMERS.add(consumer);
+            } else {
+                Item item = deferredItem.get();
+                ITEM_ENTITY_TICK_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
             }
         }
+
     }
 
-    void onServerStopped(ServerStoppedEvent event) {
+    void onServerStopped(ServerStoppedEvent event)
+    {
         // Sort consumers by priority
         List<Consumer<ServerStoppedEvent>> sortedConsumers = ON_SERVER_STOP.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
@@ -214,7 +211,7 @@ public class EventRegistrar {
 
         GeneralConfig.fireEvent(LevelLoadingEvent.Unload.class, event);
         // Execute in priority order
-        for (Consumer<LevelLoadingEvent> consumer : sortedConsumers) {
+        for (Consumer<LevelLoadingEvent.Unload> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
     }
@@ -498,12 +495,12 @@ public class EventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
-    public void registerOnItemEntityTick(@Nullable DeferredObject<Item> itemType, Consumer<ItemEntityTickEvent> function) {
+    public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function) {
         registerOnItemEntityTick(itemType, function, EventPriority.Normal);
     }
 
-    public void registerOnItemEntityTick(@Nullable DeferredObject<Item> itemType, Consumer<ItemEntityTickEvent> function, EventPriority priority) {
-        ITEM_ENTITY_DEFERRED_OBJECTS.add(itemType);
+    public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function, EventPriority priority) {
+        ITEM_ENTITY_SUPPLIERS.add(itemType);
         ITEM_ENTITY_CONSUMERS.add(function);
         PRIORITIES.put(function.hashCode(), priority);
     }
@@ -664,21 +661,18 @@ public class EventRegistrar {
         }
     }
 
-    public static void onItemEntityTick(ItemEntity itemEntity) {
+    public static void onItemEntityTick(ItemEntity itemEntity)
+    {
         EventRegistrar registrar = getInstance();
         if (registrar == null) return;
-        
+        if( !registrar.ITEM_ENTITY_TICK_MAP.containsKey(itemEntity.getItem().getItem()) ) return;
+
         ItemEntityTickEvent event = new ItemEntityTickEvent(itemEntity);
-        
-        // Fire for all item entity consumers (registered with null)
         registrar.ALL_ITEM_ENTITY_CONSUMERS.forEach(consumer -> registrar.tryEvent(consumer, event));
-        
-        // Fire for specific item type consumers
+
         Item item = itemEntity.getItem().getItem();
         List<Consumer<ItemEntityTickEvent>> specificConsumers = registrar.ITEM_ENTITY_TICK_MAP.get(item);
-        if (specificConsumers != null) {
-            specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
-        }
+        specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
     }
 
     private <T> void tryEvent(Consumer<T> consumer, T event) {

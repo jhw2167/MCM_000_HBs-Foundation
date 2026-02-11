@@ -21,7 +21,7 @@ public class ModItems {
     public static void commonInitialize(BalmItems items)
     {
         creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
-        items.registerItem(() -> enchantedEssence = new SimpleRewardItem("enchanted_essence"), id("enchanted_essence"));
+        items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"));
     }
 
     public static void initialize(BalmItems items) {

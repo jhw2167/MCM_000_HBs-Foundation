@@ -8,6 +8,7 @@ import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.core.CustomRecipes;
 import com.holybuckets.foundation.core.EssenceType;
+import com.holybuckets.foundation.enchantment.ModEnchantments;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.ModItems;
@@ -40,6 +41,7 @@ public class FoundationInitializers {
 
         initBlocks();
         initItems();
+        ModEnchantments.register();
     }
 
 

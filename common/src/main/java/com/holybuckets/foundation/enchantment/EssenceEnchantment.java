@@ -2,6 +2,8 @@ package com.holybuckets.foundation.enchantment;
 
 import com.holybuckets.foundation.core.EssenceType;
 import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -20,6 +22,7 @@ public class EssenceEnchantment extends Enchantment {
     public EssenceEnchantment(EssenceType type) {
         super(Rarity.COMMON, EnchantmentCategory.VANISHABLE, EquipmentSlot.values());
         this.type = type;
+        this.descriptionId = (type==null) ? "" : type.getEssenceId();
     }
 
     public EssenceEnchantment() {
@@ -32,18 +35,6 @@ public class EssenceEnchantment extends Enchantment {
         return (essenceType != null) ? new EssenceEnchantment(essenceType) : null;
     }
 
-    public static ItemStack applyEssenceEnchantment(ItemStack stack, EssenceType essenceType) {
-        if (essenceType == null) return stack;
-
-        EssenceEnchantment enchantment = new EssenceEnchantment(essenceType);
-        stack.enchant(enchantment, 1);
-
-        // Save essence type to NBT
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putString(NBT_ESSENCE_TYPE, essenceType.getEssenceId());
-
-        return stack;
-    }
 
     @Nullable
     public static EssenceType getEssenceType(ItemStack stack) {
@@ -66,10 +57,8 @@ public class EssenceEnchantment extends Enchantment {
 
     @Override
     public Component getFullname(int level) {
+        if(this.getDescriptionId()==null) return Component.empty();
         MutableComponent name = Component.translatable(this.getDescriptionId());
-        if (type != null) {
-            name.append(" (").append(type.getEssenceName()).append(")");
-        }
         return name.withStyle(ChatFormatting.GRAY);
     }
 
@@ -101,4 +90,22 @@ public class EssenceEnchantment extends Enchantment {
     public EssenceType getType() {
         return type;
     }
+
+    @Override
+    protected String getOrCreateDescriptionId() {
+        return this.descriptionId;
+    }
+
+    @Override //equals method
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof EssenceEnchantment)) return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
 }

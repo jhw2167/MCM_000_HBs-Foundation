@@ -796,6 +796,42 @@ public class HBUtil {
             if (sec.getBiomes() == null) return null;
             return sec.getNoiseBiome(x>>2, y>>2, z>>2);
         }
+
+        public static List<String> getBiomeNames(Collection<Holder<Biome>> biomes) {
+            StringBuilder sb = new StringBuilder();
+            List<String> names = new ArrayList<>(biomes.size());
+            Runnable empty = new Runnable() {
+                @Override
+                public void run() {}
+            };
+            for(Holder<Biome> h : biomes) {
+                h.unwrapKey().ifPresentOrElse( key -> names.add(key.toString()), empty );
+            }
+
+            return names;
+        }
+
+        public static String getBiomeSimpleNames(Collection<Holder<Biome>> biomes) {
+            StringBuilder sb = new StringBuilder();
+            Runnable empty = new Runnable() {
+                @Override
+                public void run() {}
+            };
+            List<String> names = new ArrayList<>(biomes.size());
+            biomes.forEach(h -> h.unwrapKey().ifPresentOrElse( key -> names.add(key.location().getPath()), empty ));
+            for(String name : names ) {
+                String[] parts = name.split("_");
+                StringBuilder simpleName = new StringBuilder();
+                for(String part : parts) {
+                    simpleName.append(part.substring(0, 1).toUpperCase()).append(part.substring(1)).append(" ");
+                }
+                sb.append(simpleName.toString().trim()).append(", ");
+            }
+                if( sb.length() > 2 )
+                    sb.delete(sb.length() - 2, sb.length());
+            return sb.toString();
+        }
+
     }
 
     private static LevelChunk threadedChunkResult = null;

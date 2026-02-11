@@ -58,8 +58,13 @@ public class EssenceType {
     }
 
     public String getEssenceName() {
+        return getEssenceName(essenceName);
+    }
+
+    public static String getEssenceName(String essenceId )
+    {
         //to proper case
-        String[] parts = essenceName.split("_");
+        String[] parts = essenceId.split("_");
         StringBuilder displayName = new StringBuilder();
         for (String part : parts) {
             if (part.length() > 0) {
@@ -77,18 +82,24 @@ public class EssenceType {
         return MOD_CONFIG.getEssenceData(essenceName);
     }
 
+    public static Set<ResourceLocation> getEssenceLocations(String essenceName) {
+        return MOD_CONFIG.getEssenceData(essenceName);
+    }
+
     public boolean matches(ResourceLocation loc) {
         return getEssenceLocations().contains(loc);
     }
 
-    public Set<Holder<Biome>> getBiomes() {
+
+    public static Set<Holder<Biome>> getBiomes(String essenceName)
+    {
         Set<Holder<Biome>> biomes = new HashSet<>();
         if (biomeRegistry == null) {
             LoggerBase.logError( null, "05100", "EssenceType.getBiomes() called before init()");
             return biomes;
         }
 
-        for (ResourceLocation loc : getEssenceLocations()) {
+        for (ResourceLocation loc : getEssenceLocations(essenceName)) {
             if (biomeRegistry.containsKey(loc)) {
                 Biome b = biomeRegistry.get(loc);
                 if(b != null) biomes.add(biomeRegistry.wrapAsHolder(b));

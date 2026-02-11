@@ -68,7 +68,7 @@ public class CommonClass {
      * Description: Test the Messager system by subscribing to player input events
      */
     public static void testMessager(EventRegistrar reg) {
-        reg.registerOnClientInput(CommonClass::onPlayerInput);
+        //reg.registerOnClientInput(CommonClass::onPlayerInput);
     }
 
     private static void onPlayerInput(ClientInputEvent event) {

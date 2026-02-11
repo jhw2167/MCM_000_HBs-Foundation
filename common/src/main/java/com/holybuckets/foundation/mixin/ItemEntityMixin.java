@@ -16,6 +16,7 @@ public abstract class ItemEntityMixin {
     )
     private void onItemEntityTick(CallbackInfo ci) {
         ItemEntity itemEntity = (ItemEntity)(Object)this;
-        EventRegistrar.onItemEntityTick(itemEntity);
+        if(!itemEntity.level().isClientSide())
+            EventRegistrar.onItemEntityTick(itemEntity);
     }
 }

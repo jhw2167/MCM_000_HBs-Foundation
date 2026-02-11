@@ -3,14 +3,19 @@ package com.holybuckets.foundation.core;
 import com.holybuckets.foundation.enchantment.EssenceEnchantment;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
+import com.holybuckets.foundation.event.custom.ItemEntityTickEvent;
 import com.holybuckets.foundation.item.ModItems;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import static com.holybuckets.foundation.item.EnchantedEssence.ESSENCE_DATA_TAG;
 
 public class CustomRecipes {
 
@@ -18,10 +23,24 @@ public class CustomRecipes {
     public static void init(EventRegistrar registrar) {
         registrar.registerOnAnvilUpdate(enchantEssenceEvent, CustomRecipes::onAnvilUpdateEnchantEssence);
         registrar.registerOnServerStarted(CustomRecipes::onServerStartedComplteAnvilRegistration);
-        registrar.registerOnTossItem(CustomRecipes::onTossItem);
+        registrar.registerOnItemEntityTick(() -> ModItems.enchantedEssence, CustomRecipes::onEnchantedEssenceTick);
     }
 
-    //** PLAYER TOSS RECIPES **//
+    //** ENTITY TICK RECIPES **//
+
+    private static void onEnchantedEssenceTick(ItemEntityTickEvent event)
+     {
+        if(!event.is( ModItems.enchantedEssence) ) return;
+         ItemEntity entity = event.getItemEntity();
+        if(!entity.getItem().isEnchanted()) return;
+        ItemStack newStack = ModItems.enchantedEssence.getDefaultInstance();
+        newStack.setCount(entity.getItem().getCount());
+        ItemEntity newEntity = new ItemEntity(entity.level(),
+        entity.getX(), entity.getY(), entity.getZ(), newStack);
+        newEntity.setPickUpDelay(20);
+        event.getItemEntity().level().addFreshEntity( newEntity );
+        event.getItemEntity().discard();
+    }
 
 
     //** ANVIL RECIPES **//
@@ -47,6 +66,7 @@ public class CustomRecipes {
         ItemStack result = essence.copy();
         result.setCount(total);
         result.enchant(essenceEnchantment, 1);
+        result.getOrCreateTag().putString(ESSENCE_DATA_TAG, essenceEnchantment.getDescriptionId());
 
         event.setResultItem(result);
         event.setRepairItemCost(total);

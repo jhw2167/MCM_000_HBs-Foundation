@@ -1,25 +1,30 @@
 package com.holybuckets.foundation.item;
 
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.core.EssenceType;
+import com.holybuckets.foundation.enchantment.EssenceEnchantment;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Set;
 
 public class EnchantedEssence extends SimpleRewardItem {
     
     @Nullable
     private final EssenceEnchantment essenceEnchantment;
-    
-    public EnchantedEssence(Properties properties) {
-        this(properties, null);
-    }
-    
-    public EnchantedEssence(Properties properties, @Nullable EssenceEnchantment essenceEnchantment) {
-        super(properties);
+
+    public static final String ESSENCE_DATA_TAG = "EssenceData";
+
+    public EnchantedEssence(@Nullable EssenceEnchantment essenceEnchantment) {
+        super("enchanted_essence");
         this.essenceEnchantment = essenceEnchantment;
     }
     
@@ -28,38 +33,37 @@ public class EnchantedEssence extends SimpleRewardItem {
         return essenceEnchantment;
     }
     
-    public boolean hasEssenceEnchantment() {
-        return essenceEnchantment != null;
-    }
-    
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
         super.appendHoverText(stack, level, tooltipComponents, isAdvanced);
         
-        if (hasEssenceEnchantment()) {
-            // Add the full name with description
-            String fullName = essenceEnchantment.getFullName();
-            String description = essenceEnchantment.getDescription();
-            
-            if (fullName != null && !fullName.isEmpty()) {
-                tooltipComponents.add(Component.literal(fullName).withStyle(ChatFormatting.GOLD));
-            }
-            
-            if (description != null && !description.isEmpty()) {
-                tooltipComponents.add(Component.literal(description).withStyle(ChatFormatting.GRAY));
+        if (stack.getOrCreateTag().contains(ESSENCE_DATA_TAG)) {
+            String id = stack.getTag().getString(ESSENCE_DATA_TAG);
+            Set<Holder<Biome>> biomes = EssenceType.getBiomes(id);
+
+            if (!biomes.isEmpty()) {
+                String list = "Target Biomes: " + HBUtil.LevelUtil.getBiomeSimpleNames(biomes);
+                tooltipComponents.add(Component.literal(list).withStyle(ChatFormatting.GRAY));
             }
         }
     }
     
     @Override
     public Component getName(ItemStack stack) {
-        if (hasEssenceEnchantment()) {
-            String fullName = essenceEnchantment.getFullName();
-            if (fullName != null && !fullName.isEmpty()) {
-                return Component.literal(fullName);
-            }
+        if (stack.getOrCreateTag().contains(ESSENCE_DATA_TAG)) {
+            String id = stack.getTag().getString(ESSENCE_DATA_TAG);
+            String fullName = EssenceType.getEssenceName(id) +" Essence";
+
+            return Component.literal(fullName);
         }
-        
+
         return super.getName(stack);
+    }
+
+    @Override
+    public ItemStack getDefaultInstance() {
+        ItemStack stack = super.getDefaultInstance();
+        stack.getOrCreateTag();
+        return stack;
     }
 }

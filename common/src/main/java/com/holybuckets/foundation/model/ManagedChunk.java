@@ -13,6 +13,7 @@ import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -37,7 +38,6 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
-    static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, LongSet> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
 
     private String id;
@@ -81,10 +81,10 @@ public class ManagedChunk implements IMangedChunkData {
         }
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
-        INITIALIZED_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
+        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, new LongOpenHashSet());
         CHUNK_CACHE.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
-        INITIALIZED_CHUNKS.get(this.level).add(this.id);
+        INITIALIZED_LONG_CHUNKS.get(this.level).add(HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
     }
 
 
@@ -374,10 +374,10 @@ public class ManagedChunk implements IMangedChunkData {
         DataStore ds = event.getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
-        Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
+        LongSet initChunks = INITIALIZED_LONG_CHUNKS.get(level);
         if(initChunks == null) return;
 
-        String[] chunkIds = initChunks.toArray(new String[0]);
+        long[] chunkIds = initChunks.toLongArray();
         levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
 
     }

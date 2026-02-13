@@ -50,6 +50,8 @@ public class CustomRecipes {
             BlockPos blockPos = entity.blockPosition();
             Level level = entity.level();
             boolean inCauldron = level.getBlockState(blockPos).getBlock() instanceof CauldronBlock;
+            boolean randomTick = level.random.nextFloat() < 0.07f; // 5% chance each tick to process the essence
+            if(!randomTick) return;
             if(inCauldron)
                 createPortalToBiome(entity);
             else
@@ -73,13 +75,14 @@ public class CustomRecipes {
             BlockPos pos = entity.blockPosition();
             Level level = entity.level();
             BiomeManager manager = BiomeManager.get(level);
-            //send some failure particles and noise
-                // failure particles
-                // failure sound
-            if(manager == null) return;
+            if(manager == null) { enchantedEssenceFailed(entity); return; }
+
             CompoundTag tag = entity.getItem().getTagElement(ESSENCE_DATA_TAG);
-            if(tag == null) return;
+            if(tag == null) { enchantedEssenceFailed(entity); return; }
+
             Set<Holder<Biome>> holderBiomes = EssenceType.getBiomes(tag.getString(ESSENCE_DATA_TAG));
+            if(holderBiomes.isEmpty()) { enchantedEssenceFailed(entity); return; }
+
             List<BlockPos> biomePos = new ArrayList<>(holderBiomes.size());
             for(Holder<Biome> biome : holderBiomes) {
                 ResourceLocation loc = HBUtil.LevelUtil.toBiomeResourceLocation(biome);
@@ -88,9 +91,18 @@ public class CustomRecipes {
             }
 
             BlockPos tpPos = biomePos.stream().findAny().get();
-            //find a safe place to teleport
+            if(tpPos != null) {
+                EssenceCauldronManager.addEssenceCauldron(level, tpPos);
+            } else {
+                enchantedEssenceFailed(entity);
+            }
+            entity.discard();
+        }
 
-
+        private static void enchantedEssenceFailed(ItemEntity entity)
+        {
+            // failure particles
+            // failure sound
         }
 
 

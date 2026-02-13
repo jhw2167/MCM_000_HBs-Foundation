@@ -8,6 +8,7 @@ import com.holybuckets.foundation.config.ModConfig;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.core.CustomRecipes;
+import com.holybuckets.foundation.core.EssenceCauldronManager;
 import com.holybuckets.foundation.core.EssenceType;
 import com.holybuckets.foundation.enchantment.ModEnchantments;
 import com.holybuckets.foundation.event.BalmEventRegister;
@@ -80,6 +81,9 @@ public class FoundationInitializers {
         StructureManager.init(reg);
         BiomeManager.init(reg);
         //ClientInput.init(reg);
+
+        //Core Operations
+        EssenceCauldronManager.init(reg);
 
         BalmEventRegister.registerEvents();
     }

@@ -82,6 +82,8 @@ public class EventRegistrar {
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
     final Multimap<ResourceLocation, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = HashMultimap.create();
+    // Subscribers must test for level equality if they want to execute their code in only a specific dimension
+    final Set<Consumer<Level>> ON_SERVER_LEVEL_TICK = new ConcurrentSet<>();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
     final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
@@ -346,6 +348,25 @@ public class EventRegistrar {
         generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
     }
 
+    /**
+     * Registers a consumer for server level tick events.
+     * Note: Subscribers must test for level equality if they want to execute their code in only a specific dimension.
+     * @param function the consumer to register
+     */
+    public void registerOnServerLevelTick(Consumer<Level> function) {
+        registerOnServerLevelTick(function, EventPriority.Normal);
+    }
+
+    /**
+     * Registers a consumer for server level tick events with priority.
+     * Note: Subscribers must test for level equality if they want to execute their code in only a specific dimension.
+     * @param function the consumer to register
+     * @param priority the event priority
+     */
+    public void registerOnServerLevelTick(Consumer<Level> function, EventPriority priority) {
+        generalRegister(function, ON_SERVER_LEVEL_TICK, priority);
+    }
+
     public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
         registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
@@ -562,6 +583,16 @@ public class EventRegistrar {
     public void onServerLevelTick(Level level) {
         if( level == null ) return;
         ManagedChunkEvents.onWorldTickStart(level);
+        
+        // Sort consumers by priority
+        List<Consumer<Level>> sortedConsumers = ON_SERVER_LEVEL_TICK.stream()
+            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<Level> consumer : sortedConsumers) {
+            tryEvent(consumer, level);
+        }
     }
 
 

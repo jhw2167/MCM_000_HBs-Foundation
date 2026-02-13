@@ -38,8 +38,10 @@ public class ChunkExplorerManager {
 
     private static final String TICKET_PREFIX = "chunk_explorer_";
     private static final Map<Level, ChunkExplorerManager> managers = new HashMap<>();
+    private static GeneralConfig GENERAL_CONFIG;
 
     private final Level level;
+    private final ManagedChunkUtility util;
 
     // Ordered queue of positions still needing exploration this pass
     private final ArrayDeque<ChunkPos> queue = new ArrayDeque<>();
@@ -50,6 +52,7 @@ public class ChunkExplorerManager {
 
     private ChunkExplorerManager(Level level) {
         this.level = level;
+        this.util = ManagedChunkUtility.getInstance(level);
     }
 
     //** GETTERS
@@ -61,7 +64,7 @@ public class ChunkExplorerManager {
     //** PER-TICK LOGIC
 
     private void onTick(ServerTickEvent event) {
-        long now = GeneralConfig.getInstance().getTotalTickCount();
+        long now = GENERAL_CONFIG.getTotalTickCount();
 
         // 1. Release the held probe once listeners have had time to process it
         if (heldChunk != null && (now - heldSince) >= HOLD_TICKS) {
@@ -85,15 +88,11 @@ public class ChunkExplorerManager {
      * initialized organically (player walked in, loaded by another system, etc.)
      */
     private ChunkPos pollNextUninitialized() {
-        ManagedChunkUtility util = ManagedChunkUtility.getInstance(level);
-        Set<String> initialized = ManagedChunk.INITIALIZED_CHUNKS.get(level);
-
         while (!queue.isEmpty()) {
             ChunkPos candidate = queue.poll();
-            String id = HBUtil.ChunkUtil.getId(candidate);
-
-            boolean alreadyInitialized = (initialized != null && initialized.contains(id));
-            if (!alreadyInitialized) {
+            
+            // Use ManagedChunkUtility for efficient initialization checking
+            if (!util.isChunkInitialized(candidate)) {
                 return candidate;
             }
         }
@@ -111,8 +110,9 @@ public class ChunkExplorerManager {
     {
         if (playerPositions.isEmpty()) return;
 
-        Set<String> initialized = ManagedChunkUtility.
-        Set<String>       seen       = new LinkedHashSet<>();
+        // Use the static map directly for better performance
+        Set<String> initialized = ManagedChunk.INITIALIZED_CHUNKS.get(level);
+        Set<String> seen = new LinkedHashSet<>();
         List<ScoredChunk> candidates = new ArrayList<>();
 
         for (BlockPos origin : playerPositions) {
@@ -126,6 +126,8 @@ public class ChunkExplorerManager {
 
                 if (seen.contains(id)) continue;
                 seen.add(id);
+                
+                // Use direct map lookup for efficiency
                 if (initialized != null && initialized.contains(id)) continue;
 
                 // Score = min squared chunk distance to any player
@@ -165,7 +167,7 @@ public class ChunkExplorerManager {
     //** STATICS
 
     public static ChunkExplorerManager get(Level level) {
-        if (GeneralConfig.getInstance().isIntegrated()) {
+        if (GENERAL_CONFIG.isIntegrated()) {
             level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, level.dimension());
         }
         if (!managers.containsKey(level))
@@ -190,6 +192,7 @@ public class ChunkExplorerManager {
 
     private static void onServerStart(ServerStartingEvent event) {
         managers.clear();
+        GENERAL_CONFIG = GeneralConfig.getInstance();
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
@@ -220,10 +223,10 @@ public class ChunkExplorerManager {
      * @param event
      */
     private static void on1200Ticks(ServerTickEvent event) {
-        if (GeneralConfig.getInstance().getServer() == null) return;
+        if (GENERAL_CONFIG.getServer() == null) return;
 
         Map<Level, List<BlockPos>> playersByLevel = new HashMap<>();
-        for (ServerPlayer player : GeneralConfig.getInstance().getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer player : GENERAL_CONFIG.getServer().getPlayerList().getPlayers()) {
             playersByLevel
                 .computeIfAbsent(player.serverLevel(), k -> new ArrayList<>())
                 .add(player.blockPosition());

@@ -17,15 +17,14 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 import javax.annotation.Nullable;
 
-import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
-import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
-
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalField;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+import static com.holybuckets.foundation.model.ManagedChunk.*;
 
 /**
  * Description: Used to declutter the ManagedChunk class from static utility methods
@@ -50,18 +49,16 @@ public class ManagedChunkUtility {
     }
 
     //** CHUNK STATUS **//
+    //isChunkLoaded, chunkIsLoaded, chunkLoaded
     public boolean isLoaded(String id) {
         if(id == null) return false;
-
         if(LOADED_CHUNKS.get(level) == null) return false;
-
-        ManagedChunk mc = LOADED_CHUNKS.get(level).get(id);
-        if(mc == null) return false;
-
+        if(LOADED_CHUNKS.get(level).get(id) == null) return false;
         return true;
     }
 
     public boolean isLoaded(BlockPos p) {
+        if(level == null) return false;
         Level levelType = (Level) level;
         return levelType.isLoaded(p) && isLoaded(levelType.getChunk(p));
     }
@@ -72,7 +69,24 @@ public class ManagedChunkUtility {
     }
 
     public boolean isLoaded(ChunkPos p) {
-        return isLoaded(HBUtil.ChunkUtil.getId(p));
+        return  LOADED_CHUNKPOS.get(level) != null &&
+                LOADED_CHUNKPOS.get(level).containsKey(p);
+    }
+
+    public boolean isChunkInitialized(String id) {
+        if(id == null) return false;
+        if(INITIALIZED_CHUNKS.get(level) == null) return false;
+        return INITIALIZED_CHUNKS.get(level).contains(id);
+    }
+
+    public boolean isChunkInitialized(ChunkPos p) {
+        if(p == null) return false;
+        return isChunkInitialized(p.x, p.z);
+    }
+
+    public boolean isChunkInitialized(int x, int z) {
+        if(INITIALIZED_CHUNKS.get(level) == null) return false;
+        return INITIALIZED_LONG_CHUNKS.get(level).contains(HBUtil.ChunkUtil.getChunkPos1DMap(x, z));
     }
 
 
@@ -154,9 +168,10 @@ public class ManagedChunkUtility {
 
     public ManagedChunk getManagedChunk(ChunkPos pos) {
         if(pos == null) return null;
-        if(LOADED_CHUNKS.get(level) == null) return null;
-
-        return LOADED_CHUNKS.get(level).get(HBUtil.ChunkUtil.getId(pos));
+        if(LOADED_CHUNKPOS.get(level) == null) return null;
+        if(!LOADED_CHUNKPOS.get(level).containsKey(pos)) return null;
+        String id = LOADED_CHUNKPOS.get(level).get(pos);
+        return LOADED_CHUNKS.get(level).get(id);
     }
 
     //* STATICS
@@ -166,6 +181,12 @@ public class ManagedChunkUtility {
         if(LOADED_CHUNKS.get(level) == null) return null;
 
         return LOADED_CHUNKS.get(level).get(id);
+    }
+
+    public static ManagedChunk getManagedChunk(LevelAccessor level, ChunkPos pos) {
+        if(pos == null || level == null) return null;
+        if( !getInstance(level).isLoaded(pos) )  return null;
+        return LOADED_CHUNKS.get(level).get( LOADED_CHUNKPOS.get(level).containsKey(pos) );
     }
 
     /**

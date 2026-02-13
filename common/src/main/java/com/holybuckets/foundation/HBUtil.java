@@ -925,7 +925,8 @@ public class HBUtil {
         }
 
         public static Long getChunkPos1DMap(String id) {
-            return getChunkPos1DMap(getChunkPos(id));
+            String[] parts = id.split(",");
+            return getChunkPos1DMap(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
         }
 
         public static Long getChunkPos1DMap(ChunkPos pos ) {

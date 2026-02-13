@@ -12,8 +12,8 @@ import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -37,8 +37,10 @@ public class ManagedChunk implements IMangedChunkData {
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, Map<ChunkPos, String>> LOADED_CHUNKPOS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
-    static final Map<LevelAccessor, LongSet> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, ConcurrentSet<Long>> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
 
     private String id;
     private LevelAccessor level;
@@ -64,6 +66,8 @@ public class ManagedChunk implements IMangedChunkData {
         this.pos = HBUtil.ChunkUtil.getChunkPos(this.id);
         this.util = ManagedChunkUtility.getInstance(this.level);
         LOADED_CHUNKS.get(this.level).put(this.id, this);
+        if(pos != null)
+            LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
     }
 
     public ManagedChunk(LevelAccessor level, ChunkPos pos )
@@ -81,9 +85,16 @@ public class ManagedChunk implements IMangedChunkData {
         }
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
-        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, new LongOpenHashSet());
+        LOADED_CHUNKPOS.putIfAbsent(this.level, new ConcurrentHashMap<>());
+
+        INITIALIZED_CHUNKS.putIfAbsent(this.level, new HashSet<>());
+        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
+
         CHUNK_CACHE.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
+        LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
+
+        INITIALIZED_CHUNKS.get(this.level).add(this.id);
         INITIALIZED_LONG_CHUNKS.get(this.level).add(HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
     }
 
@@ -103,7 +114,7 @@ public class ManagedChunk implements IMangedChunkData {
 
     public ChunkPos getChunkPos() {
         if(this.pos == null)
-        this.pos = HBUtil.ChunkUtil.getChunkPos(this.id);
+            this.pos = HBUtil.ChunkUtil.getChunkPos(this.id);
         return this.pos;
     }
 
@@ -190,7 +201,7 @@ public class ManagedChunk implements IMangedChunkData {
                 sub.setLevel(this.level);
 
                 if( managedChunkData.containsKey(sub.getClass()) ) {
-                     managedChunkData.get(sub.getClass()).deserializeNBT(nbt);
+                    managedChunkData.get(sub.getClass()).deserializeNBT(nbt);
                 }
                 else {
                     sub.deserializeNBT(nbt);
@@ -374,10 +385,10 @@ public class ManagedChunk implements IMangedChunkData {
         DataStore ds = event.getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
-        LongSet initChunks = INITIALIZED_LONG_CHUNKS.get(level);
+        Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
         if(initChunks == null) return;
 
-        long[] chunkIds = initChunks.toLongArray();
+        String[] chunkIds = initChunks.toArray(new String[0]);
         levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
 
     }

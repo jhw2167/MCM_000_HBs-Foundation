@@ -24,8 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import static com.holybuckets.foundation.model.ManagedChunk.LOADED_CHUNKS;
-import static com.holybuckets.foundation.model.ManagedChunk.INITIALIZED_CHUNKS;
+import static com.holybuckets.foundation.model.ManagedChunk.*;
 
 public class ManagedChunkEvents {
 
@@ -47,6 +46,7 @@ public class ManagedChunkEvents {
 
     private static void onServerStopped(final ServerStoppedEvent event) {
         LOADED_CHUNKS.clear();
+        LOADED_CHUNKPOS.clear();
         INITIALIZED_CHUNKS.clear();
     }
 
@@ -57,6 +57,7 @@ public class ManagedChunkEvents {
         if(LOADED_CHUNKS.get(level) == null) {
             LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
             INITIALIZED_CHUNKS.put(level,  new ConcurrentSet<>());
+            INITIALIZED_LONG_CHUNKS.put(level, new ConcurrentSet<>());
         }
 
         if(level.isClientSide()) return;
@@ -74,7 +75,9 @@ public class ManagedChunkEvents {
 
         Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
         chunksIds.getAsJsonArray().forEach( chunkId -> {
-            initChunks.add(chunkId.getAsString());
+            String id = chunkId.getAsString();
+            initChunks.add(id);
+            INITIALIZED_LONG_CHUNKS.get(level).add(HBUtil.ChunkUtil.getChunkPos1DMap(id));
         });
 
         Consumer<DatastoreSaveEvent> save = (datastoreSaveEvent) -> ManagedChunk.save(datastoreSaveEvent, level);
@@ -93,12 +96,10 @@ public class ManagedChunkEvents {
         LevelAccessor level = event.getLevel();
         if(LOADED_CHUNKS.get(level)==null) return;
 
-        String chunkId = HBUtil.ChunkUtil.getId(event.getChunk());
+        String chunkId = LOADED_CHUNKPOS.get(level).computeIfAbsent(event.getChunkPos(),
+             k -> HBUtil.ChunkUtil.getId(event.getChunkPos()));
         ManagedChunk loadedChunk = LOADED_CHUNKS.get(level).get(chunkId);
-
-        if(loadedChunk == null)
-        {
-            //LoggerBase.logDebug(null, "003008.1", "Creating new managed Chunk: " + chunkId);
+        if(loadedChunk == null) {
             loadedChunk = new ManagedChunk(level, event.getChunkPos());
         }
 
@@ -112,6 +113,7 @@ public class ManagedChunkEvents {
         String id = HBUtil.ChunkUtil.getId(chunk);
         if(LOADED_CHUNKS.get(level) == null) return;
         ManagedChunk c = LOADED_CHUNKS.get(level).remove(id);
+        LOADED_CHUNKPOS.get(level).remove(chunk.getPos());
 
         if( c == null ) return;
         c.handleChunkUnloaded(event);

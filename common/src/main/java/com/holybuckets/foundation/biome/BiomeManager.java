@@ -8,6 +8,7 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.model.ManagedChunkUtility;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -31,7 +32,7 @@ public class BiomeManager {
 
     private Level level;
     private Registry<Biome> biomeRegistry; // Nullable - only available on server side
-    private Map<BlockPos, BiomeInfo> biomes;
+    private Map<ChunkPos, BiomeInfo> biomes;
     private Map<ResourceLocation, Set<BlockPos>> biomesByType;
     private Set<ChunkPos> activeChunks;
 

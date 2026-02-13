@@ -1,5 +1,6 @@
 package com.holybuckets.foundation;
 
+import com.holybuckets.foundation.biome.BiomeManager;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
 import com.holybuckets.foundation.command.CommandList;
@@ -77,6 +78,7 @@ public class FoundationInitializers {
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
         StructureManager.init(reg);
+        BiomeManager.init(reg);
         //ClientInput.init(reg);
 
         BalmEventRegister.registerEvents();

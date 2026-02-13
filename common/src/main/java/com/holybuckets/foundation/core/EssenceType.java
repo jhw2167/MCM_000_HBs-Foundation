@@ -93,6 +93,8 @@ public class EssenceType {
 
     public static Set<Holder<Biome>> getBiomes(String essenceName)
     {
+        if(essenceName == null) return Set.of();
+
         Set<Holder<Biome>> biomes = new HashSet<>();
         if (biomeRegistry == null) {
             LoggerBase.logError( null, "05100", "EssenceType.getBiomes() called before init()");

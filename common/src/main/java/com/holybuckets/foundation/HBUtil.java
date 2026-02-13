@@ -613,6 +613,8 @@ public class HBUtil {
             levelIdCache.clear();
         }
 
+
+
         public enum LevelNameSpace {
             CLIENT,
             SERVER
@@ -764,6 +766,13 @@ public class HBUtil {
             return biomeRegistry.getKey(biome);
         }
 
+        public static ResourceLocation toBiomeResourceLocation(Holder<Biome> holderBiome) {
+            if (holderBiome == null) return null;
+            if( !holderBiome.unwrapKey().isPresent() ) return null;
+
+            return holderBiome.unwrapKey().get().location();
+        }
+
         /**
          * Gets a biome from the vanilla biome registry using a ResourceLocation
          * @param location ResourceLocation for the biome
@@ -791,6 +800,14 @@ public class HBUtil {
             return biomeRegistry.getKey(b);
         }
 
+        /**
+         * Get biome from portion of section, coordinates 0-16
+         * @param sec
+         * @param x - section x
+         * @param y - section y
+         * @param z - section z
+         * @return
+         */
         public static Holder<Biome> getBiomeFromSection(LevelChunkSection sec, int x, int y, int z) {
             if (sec == null) return null;
             if (sec.getBiomes() == null) return null;

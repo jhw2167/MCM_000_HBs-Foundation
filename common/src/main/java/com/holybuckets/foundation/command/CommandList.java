@@ -3,6 +3,8 @@ package com.holybuckets.foundation.command;
 //Project imports
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.biome.BiomeAPI;
+import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.structure.StructureAPI;
@@ -50,6 +52,12 @@ public class CommandList {
         CommandRegistry.register(NearestStructuresOfType::withTypeAndLimit);
         CommandRegistry.register(NearestDistinctStructures::withLimit);
         CommandRegistry.register(AllStructures::list);
+
+        CommandRegistry.register(NearestBiomes::noLimit);
+        CommandRegistry.register(NearestBiomes::withLimit);
+        CommandRegistry.register(NearestBiomesOfType::withTypeAndLimit);
+        CommandRegistry.register(NearestDistinctBiomes::withLimit);
+        CommandRegistry.register(AllBiomes::list);
     }
 
     //**** SUGGETTIONS ****//
@@ -74,18 +82,7 @@ public class CommandList {
         };
 
 
-    //**** END SUGGESTIONS ****//
-
-
-
-
-
-
-    //**** STATIC UTILITY ****//
-
-    static String posString(BlockPos pos) {
-        return HBUtil.BlockUtil.positionToString(pos);
-    }
+    //**** STRUCTURES ****//
 
     //1. Locate Clusters
     private static class LocateClusters
@@ -337,6 +334,204 @@ public class CommandList {
         }
     }
 
+
+    //**** BIOMES ****//
+
+
+    private static final Set<ResourceLocation> validBiomeTypes = new HashSet<>();
+    private static final SuggestionProvider<CommandSourceStack> BIOME_TYPE_SUGGESTIONS =
+        (context, builder) -> SharedSuggestionProvider.suggest(
+            validBiomeTypes.stream().map(ResourceLocation::toString),
+            builder
+        );
+
+
+    //1. Nearest Biomes
+    private static class NearestBiomes {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> noLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestBiomes")
+                    .executes(context -> execute(context.getSource(), 1))
+                );
+        }
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestBiomes")
+                    .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                        .executes(context -> {
+                            int limit = IntegerArgumentType.getInteger(context, "limit");
+                            return execute(context.getSource(), limit);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int limit) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            Level level = player.level();
+            BlockPos playerPos = player.blockPosition();
+
+            try {
+                BiomeAPI api = new BiomeAPI(level);
+                List<BiomeInfo> biomes = api.nearestBiomes(playerPos, limit);
+
+                if (biomes.isEmpty()) {
+                    source.sendSuccess(() -> Component.literal("No biomes found. This command can only locate biomes in chunks that have been loaded."), false);
+                } else {
+                    source.sendSuccess(() -> Component.literal("Found " + biomes.size() + " biomes:"), false);
+                    for (BiomeInfo biome : biomes) {
+                        String message = biome.getId().toString() + " at " + posString(biome.getSamplePos());
+                        source.sendSuccess(() -> Component.literal(message), false);
+                    }
+                }
+            } catch (Exception e) {
+                source.sendFailure(Component.literal("Error accessing biome data: " + e.getMessage()));
+                return 0;
+            }
+
+            return 1;
+        }
+    }
+
+    //2. Nearest Biomes Of Type
+    private static class NearestBiomesOfType {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestBiomesOfType")
+                    .then(Commands.argument("type", StringArgumentType.greedyString())
+                        .suggests(BIOME_TYPE_SUGGESTIONS)
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                            .executes(context -> {
+                                String type = StringArgumentType.getString(context, "type");
+                                int limit = IntegerArgumentType.getInteger(context, "limit");
+                                return execute(context.getSource(), type, limit);
+                            })
+                        )
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, String type, int limit) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            Level level = player.level();
+            BlockPos playerPos = player.blockPosition();
+
+            try {
+                ResourceLocation biomeType = new ResourceLocation(type);
+                BiomeAPI api = new BiomeAPI(level);
+                List<BiomeInfo> biomes = api.nearestBiomesOfType(playerPos, biomeType, limit);
+
+                if (biomes.isEmpty()) {
+                    source.sendSuccess(() -> Component.literal("No biomes of type " + type + " found. This command can only locate biomes in chunks that have been loaded."), false);
+                } else {
+                    source.sendSuccess(() -> Component.literal("Found " + biomes.size() + " biomes of type " + type + ":"), false);
+                    for (BiomeInfo biome : biomes) {
+                        String message = biome.getId().toString() + " at " + posString(biome.getSamplePos());
+                        source.sendSuccess(() -> Component.literal(message), false);
+                    }
+                }
+            } catch (Exception e) {
+                source.sendFailure(Component.literal("Error accessing biome data: " + e.getMessage()));
+                return 0;
+            }
+
+            return 1;
+        }
+    }
+
+    //3. Nearest Distinct Biomes
+    private static class NearestDistinctBiomes {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("nearestDistinctBiomes")
+                    .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                        .executes(context -> {
+                            int limit = IntegerArgumentType.getInteger(context, "limit");
+                            return execute(context.getSource(), limit);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int limit) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            Level level = player.level();
+            BlockPos playerPos = player.blockPosition();
+
+            try {
+                BiomeAPI api = new BiomeAPI(level);
+                List<BiomeInfo> biomes = api.nearestBiomesDistinct(playerPos, limit);
+
+                if (biomes.isEmpty()) {
+                    source.sendSuccess(() -> Component.literal("No distinct biomes found. This command can only locate biomes in chunks that have been loaded."), false);
+                } else {
+                    source.sendSuccess(() -> Component.literal("Found " + biomes.size() + " distinct biomes:"), false);
+                    for (BiomeInfo biome : biomes) {
+                        String message = biome.getCommonName() + " (" + biome.getId() + ") at " + posString(biome.getSamplePos());
+                        source.sendSuccess(() -> Component.literal(message), false);
+                    }
+                }
+            } catch (Exception e) {
+                source.sendFailure(Component.literal("Error accessing biome data: " + e.getMessage()));
+                return 0;
+            }
+
+            return 1;
+        }
+    }
+
+    //4. All Biomes
+    private static class AllBiomes {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> list() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("allBiomes")
+                    .executes(context -> execute(context.getSource()))
+                );
+        }
+
+        private static int execute(CommandSourceStack source) {
+            if (validBiomeTypes.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("No biome types available. Biome data may not be loaded yet."), false);
+                return 0;
+            }
+
+            List<String> sortedBiomes = validBiomeTypes.stream()
+                .map(ResourceLocation::toString)
+                .sorted()
+                .collect(Collectors.toList());
+
+            source.sendSuccess(() -> Component.literal("Available biome types (" + sortedBiomes.size() + "):"), false);
+            for (String biome : sortedBiomes) {
+                source.sendSuccess(() -> Component.literal("  " + biome), false);
+            }
+
+            return 1;
+        }
+    }
+
+
+    //**** STATIC UTILITY ****//
+
+    static String posString(BlockPos pos) {
+        return HBUtil.BlockUtil.positionToString(pos);
+    }
 
 }
 //END CLASS COMMANDLIST

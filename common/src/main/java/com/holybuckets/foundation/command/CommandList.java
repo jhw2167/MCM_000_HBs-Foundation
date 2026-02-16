@@ -67,6 +67,9 @@ public class CommandList {
         try {
             StructureAPI api = new StructureAPI( (Level) event.getLevel());
             validStructureTypes.addAll(api.getAllStructures());
+
+            BiomeAPI biomeAPI = new BiomeAPI((Level) event.getLevel());
+            validBiomeTypes.addAll(biomeAPI.getAllBiomes());
         } catch (Exception e) {
             // Log error if needed
         }
@@ -352,7 +355,7 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> noLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestBiomes")
-                    .executes(context -> execute(context.getSource(), 1))
+                    .executes(context -> execute(context.getSource(), 5))
                 );
         }
 
@@ -525,6 +528,8 @@ public class CommandList {
             return 1;
         }
     }
+
+
 
 
     //**** STATIC UTILITY ****//

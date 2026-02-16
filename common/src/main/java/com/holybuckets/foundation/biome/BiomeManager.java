@@ -61,7 +61,7 @@ public class BiomeManager {
         return biomes;
     }
 
-    public List<ChunkPos> getBiomePosByType(ResourceLocation location) {
+    public List<BlockPos> getBiomePosByType(ResourceLocation location) {
         if (!biomesByType.containsKey(location)) return List.of();
         return List.copyOf(biomesByType.get(location));
     }
@@ -69,10 +69,9 @@ public class BiomeManager {
     public List<BiomeInfo> getBiomesByType(ResourceLocation location) {
         if (!biomesByType.containsKey(location)) return List.of();
         return biomesByType.get(location).stream()
-                .map(pos -> biomes.get(pos.getBlockAt()))
+                .map(pos -> biomes.get(pos))
                 .filter(Objects::nonNull)
-                .toList()
-        );
+                .toList();
     }
 
     public BiomeInfo getNearestBiomeOfType(ResourceLocation location, BlockPos center) {
@@ -133,8 +132,7 @@ public class BiomeManager {
     private void onChunkLoad(ChunkAccess chunk)
     {
         if (biomeRegistry == null) return;
-        if(activeChunks.contains(chunk.getPos())) return; // already loaded this chunk
-        activeChunks.add(chunk.getPos());
+        if(ManagedChunkUtility.isChunkLoaded(level, chunk.getPos())) return; // already loaded this chunk
 
         int chunkX = chunk.getPos().getMinBlockX() + 8;
         int chunkZ = chunk.getPos().getMinBlockZ() + 8;
@@ -165,7 +163,8 @@ public class BiomeManager {
             List<ChunkPos> nearbyChunks = HBUtil.ChunkUtil.getLocalChunkPos(chunk.getPos(), 2);
             boolean skipBiome = false;
             for (ChunkPos nearbyPos : nearbyChunks) {
-                BiomeInfo nearbyBiome = biomes.get(nearbyPos);
+                BlockPos nearbyWorldPos = toWorldPos(nearbyPos, i);
+                BiomeInfo nearbyBiome = biomes.get(nearbyWorldPos);
                 if (nearbyBiome != null && biomeId.equals(nearbyBiome.getId())) {
                     skipBiome = true;
                     break;
@@ -173,12 +172,12 @@ public class BiomeManager {
             }
             if (skipBiome) continue;
 
-            if (biomes.containsKey(chunk.getPos())) continue;
-
             BlockPos samplePos = new BlockPos(chunkX, worldY, chunkZ);
+            if (biomes.containsKey(samplePos)) continue;
+
             BiomeInfo info = BiomeInfo.of(holder, samplePos, biomeRegistry);
-            biomes.put(chunk.getPos(), info);
-            biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(chunk.getPos());
+            biomes.put(samplePos, info);
+            biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(samplePos);
         }
     }
 
@@ -204,10 +203,9 @@ public class BiomeManager {
                 if (biomeId == null) continue;
 
                 BiomeInfo info = BiomeInfo.of(registryId, elem.getAsString(), biomeRegistry);
-                ChunkPos chunkPos = new ChunkPos(info.samplePos);
-                if (biomes.containsKey(chunkPos)) continue;
-                biomes.put(chunkPos, info);
-                biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(chunkPos);
+                if (biomes.containsKey(info.samplePos)) continue;
+                biomes.put(info.samplePos, info);
+                biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(info.samplePos);
             }
         }
     }

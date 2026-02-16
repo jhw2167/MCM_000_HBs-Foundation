@@ -32,9 +32,8 @@ public class BiomeManager {
 
     private Level level;
     private Registry<Biome> biomeRegistry; // Nullable - only available on server side
-    private Map<ChunkPos, BiomeInfo> biomes;
-    private Map<ResourceLocation, Set<ChunkPos>> biomesByType;
-    private Set<ChunkPos> activeChunks;
+    private Map<BlockPos, BiomeInfo> biomes;
+    private Map<ResourceLocation, Set<BlockPos>> biomesByType;
 
     private static Map<Level, BiomeManager> managers = new HashMap<>();
 
@@ -42,7 +41,6 @@ public class BiomeManager {
         this.level = level;
         this.biomes = new HashMap<>();
         this.biomesByType = new HashMap<>();
-        this.activeChunks = new HashSet<>();
         if (!level.isClientSide()) {
             this.biomeRegistry = level.registryAccess().registryOrThrow(Registries.BIOME);
         }
@@ -59,8 +57,8 @@ public class BiomeManager {
         return biomeRegistry.keySet();
     }
 
-    public Map<ChunkPos, BiomeInfo> getBiomes() {
-        return Maps.newHashMap(biomes);
+    public Map<BlockPos, BiomeInfo> getBiomes() {
+        return biomes;
     }
 
     public List<ChunkPos> getBiomePosByType(ResourceLocation location) {
@@ -70,9 +68,8 @@ public class BiomeManager {
 
     public List<BiomeInfo> getBiomesByType(ResourceLocation location) {
         if (!biomesByType.containsKey(location)) return List.of();
-        return List.copyOf(
-            biomesByType.get(location).stream()
-                .map(pos -> biomes.get(pos))
+        return biomesByType.get(location).stream()
+                .map(pos -> biomes.get(pos.getBlockAt()))
                 .filter(Objects::nonNull)
                 .toList()
         );
@@ -154,7 +151,7 @@ public class BiomeManager {
             int worldY = level.getSectionYFromSectionIndex(i) * 16 + 8;
 
             // Sample the center of this section (biome palette is 4-block resolution)
-            Holder<Biome> holder = HBUtil.LevelUtil.getBiomeFromSection(section, chunkX, 8, chunkZ & 15);
+            Holder<Biome> holder = HBUtil.LevelUtil.getBiomeFromSection(section, 8, 0, 8);
             if (holder == null) continue;
 
             ResourceLocation biomeId = holder.unwrapKey()
@@ -186,15 +183,7 @@ public class BiomeManager {
     }
 
     private void onChunkUnload(ChunkAccess chunk) {
-        BiomeInfo removed = biomes.remove(chunk.getPos());
-        if (removed != null && removed.getId() != null) {
-            Set<ChunkPos> typeSet = biomesByType.get(removed.getId());
-            if (typeSet != null) {
-                typeSet.remove(chunk.getPos());
-                if (typeSet.isEmpty()) biomesByType.remove(removed.getId());
-            }
-        }
-        activeChunks.remove(chunk.getPos());
+
     }
 
     //** PERSISTENCE
@@ -238,6 +227,10 @@ public class BiomeManager {
     }
 
     //** STATICS
+
+    public static BlockPos toWorldPos(ChunkPos pos, int sectionIndex) {
+        return pos.getBlockAt(0, sectionIndex*16, 0);
+    }
 
     private static BiomeManager init(Level level) {
         if (!managers.containsKey(level)) {

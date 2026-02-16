@@ -56,6 +56,7 @@ public class ManagedChunkEvents {
 
         if(LOADED_CHUNKS.get(level) == null) {
             LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
+            LOADED_CHUNKPOS.put(level, new ConcurrentHashMap<>());
             INITIALIZED_CHUNKS.put(level,  new ConcurrentSet<>());
             INITIALIZED_LONG_CHUNKS.put(level, new ConcurrentSet<>());
         }

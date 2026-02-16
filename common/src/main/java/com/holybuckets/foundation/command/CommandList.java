@@ -410,11 +410,11 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestBiomesOfType")
-                    .then(Commands.argument("type", StringArgumentType.greedyString())
+                    .then(Commands.argument("biomeName", StringArgumentType.greedyString())
                         .suggests(BIOME_TYPE_SUGGESTIONS)
-                        .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(5))
                             .executes(context -> {
-                                String type = StringArgumentType.getString(context, "type");
+                                String type = StringArgumentType.getString(context, "biomeName");
                                 int limit = IntegerArgumentType.getInteger(context, "limit");
                                 return execute(context.getSource(), type, limit);
                             })

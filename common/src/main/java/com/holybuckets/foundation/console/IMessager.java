@@ -58,4 +58,6 @@ public interface IMessager {
      * @param message The error message text to display
      */
     void bottomScreenErrorHint(String message);
+
+    void bottomScreenErrorHint(Player player, String message);
 }

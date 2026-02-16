@@ -99,6 +99,22 @@ public class BiomeManager {
             .toList();
     }
 
+    //locates nearest biomes with 5 chunks of a point
+    public List<BiomeInfo> getBiomesInChunkRange(BlockPos point, int chunkrange) {
+        List<BiomeInfo> nearbyBiomes = new LinkedList<>();
+        ChunkPos init = new ChunkPos(point);
+        List<ChunkPos> localPoints = HBUtil.ChunkUtil.getLocalChunkPos(init, chunkrange);
+        for (ChunkPos local : localPoints) {
+            for(int i : SECTIONS_INDICES) {
+                BiomeInfo info = biomes.get(toWorldPos(local, i));
+                if (info != null) nearbyBiomes.add(info);
+            }
+        }
+        return nearbyBiomes;
+    }
+
+
+
     public List<BiomeInfo> getNearestWhitelistedBiomes(Set<ResourceLocation> whiteList, BlockPos center, int limit) {
         if (limit < 1) limit = biomes.size();
         List<BiomeInfo> allBiomes = new LinkedList<>();
@@ -128,27 +144,22 @@ public class BiomeManager {
     }
 
     //** CHUNK HANDLING
-
+    private static  int[] SECTIONS_INDICES = new int[] {0, 7, 14, 21};
     private void onChunkLoad(ChunkAccess chunk)
     {
         if (biomeRegistry == null) return;
         if(ManagedChunkUtility.isChunkLoaded(level, chunk.getPos())) return; // already loaded this chunk
 
-        int chunkX = chunk.getPos().getMinBlockX() + 8;
-        int chunkZ = chunk.getPos().getMinBlockZ() + 8;
-
         LevelChunkSection[] sections = chunk.getSections();
         Set<ResourceLocation> biomesInSection = new HashSet<>();
-        for (int i = 0; i < sections.length; i++)
+        for (int i : SECTIONS_INDICES)
         {
+            if(i >= sections.length) continue;
             LevelChunkSection section = sections[i];
             if (section == null || section.getBiomes() == null) continue;
             if(section.hasOnlyAir()) continue;
+            BlockPos secPos = toWorldPos(chunk.getPos(), i);
 
-            int sectionY = chunk.getSectionYFromSectionIndex(i);
-            int worldY = level.getSectionYFromSectionIndex(i) * 16 + 8;
-
-            // Sample the center of this section (biome palette is 4-block resolution)
             Holder<Biome> holder = HBUtil.LevelUtil.getBiomeFromSection(section, 8, 0, 8);
             if (holder == null) continue;
 
@@ -160,7 +171,7 @@ public class BiomeManager {
             biomesInSection.add(biomeId);
 
             // Check if any adjacent chunk has the same biome already recorded
-            List<ChunkPos> nearbyChunks = HBUtil.ChunkUtil.getLocalChunkPos(chunk.getPos(), 2);
+            List<ChunkPos> nearbyChunks = HBUtil.ChunkUtil.getLocalChunkPos(chunk.getPos(), 4);
             boolean skipBiome = false;
             for (ChunkPos nearbyPos : nearbyChunks) {
                 BlockPos nearbyWorldPos = toWorldPos(nearbyPos, i);
@@ -171,13 +182,11 @@ public class BiomeManager {
                 }
             }
             if (skipBiome) continue;
+            if (biomes.containsKey(secPos)) continue;
 
-            BlockPos samplePos = new BlockPos(chunkX, worldY, chunkZ);
-            if (biomes.containsKey(samplePos)) continue;
-
-            BiomeInfo info = BiomeInfo.of(holder, samplePos, biomeRegistry);
-            biomes.put(samplePos, info);
-            biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(samplePos);
+            BiomeInfo info = BiomeInfo.of(holder, secPos, biomeRegistry);
+            biomes.put(secPos, info);
+            biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(secPos);
         }
     }
 

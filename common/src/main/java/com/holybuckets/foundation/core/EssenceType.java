@@ -8,7 +8,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -31,17 +30,18 @@ public class EssenceType {
     private static Registry<Level> levelRegistry;
 
     // Initialize registries from server
-    public static void onServerStart(MinecraftServer server)
+    public static void init()
     {
-        RegistryAccess registryAccess = server.registryAccess();
+        GENERAL_CONFIG = GeneralConfig.getInstance();
+        MOD_CONFIG = MOD_CONFIG.getInstance();
+
+        RegistryAccess registryAccess = GENERAL_CONFIG.getServer().registryAccess();
         biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
         entityRegistry = registryAccess.registryOrThrow(Registries.ENTITY_TYPE);
         structureRegistry = registryAccess.registryOrThrow(Registries.STRUCTURE);
         levelRegistry = registryAccess.registryOrThrow(Registries.DIMENSION);
         itemRegistry = registryAccess.registryOrThrow(Registries.ITEM);
 
-        GENERAL_CONFIG = GeneralConfig.getInstance();
-        MOD_CONFIG = MOD_CONFIG.getInstance();
     }
 
     public static EssenceType of(Item itemType) {

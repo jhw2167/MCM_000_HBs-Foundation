@@ -129,6 +129,11 @@ public class MessagerClient implements IMessager {
         bottomScreenHint(message, 0xFF0000); // Red text
     }
 
+    @Override
+    public void bottomScreenErrorHint(Player player, String message) {
+        bottomScreenHint(message, 0xFF0000); // Red text
+    }
+
     /**
      * General method to send a hint message to the bottom center of the player's screen
      * @param message The message to display

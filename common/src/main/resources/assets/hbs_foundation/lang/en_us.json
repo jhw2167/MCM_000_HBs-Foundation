@@ -3,5 +3,6 @@
   "itemGroup.hbs_foundation.hbs_foundation": "HB's Foundation",
 
   "item.hbs_foundation.enchanted_essence": "Enchanted Essence",
-  "item.hbs_foundation.enchanted_essence.desc": "Can be enchanted with a wide range of items in an anvil to target a particular essence. Wash in water to purify."
+  "item.hbs_foundation.enchanted_essence.desc": "Can be enchanted with a wide range of items in an anvil to target a particular essence. Wash in water to purify.",
+  "item.hbs_foundation.enchanted_essence.teleport_success": "Teleported to %s!"
 }

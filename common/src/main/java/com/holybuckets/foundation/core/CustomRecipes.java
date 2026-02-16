@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.core;
 
+import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.biome.BiomeManager;
@@ -13,12 +14,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.CauldronBlock;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,15 +51,21 @@ public class CustomRecipes {
          //1. If the essence is in a cauldron in water
         if(entity.isInWater())
         {
+            entity.setPickUpDelay(20);
+            purifyEssence(entity);
+        }
+        else
+        {
             BlockPos blockPos = entity.blockPosition();
             Level level = entity.level();
-            boolean inCauldron = level.getBlockState(blockPos).getBlock() instanceof CauldronBlock;
             boolean randomTick = level.random.nextFloat() < 0.07f; // 5% chance each tick to process the essence
-            if(!randomTick) return;
-            if(inCauldron)
-                createPortalToBiome(entity);
-            else
-                purifyEssence(entity);
+            //if(!randomTick) return;
+
+            if( level.getBlockState(blockPos).getBlock() instanceof LayeredCauldronBlock cauldronBlock)
+            {
+                if(cauldronBlock.isFull(level.getBlockState(blockPos)))
+                    createPortalToBiome(entity);
+            }
         }
     }
 
@@ -65,7 +75,6 @@ public class CustomRecipes {
             newStack.setCount(entity.getItem().getCount());
             ItemEntity newEntity = new ItemEntity(entity.level(),
                 entity.getX(), entity.getY(), entity.getZ(), newStack);
-            newEntity.setPickUpDelay(20);
             entity.level().addFreshEntity( newEntity );
             entity.discard();
         }
@@ -74,14 +83,18 @@ public class CustomRecipes {
         {
             BlockPos pos = entity.blockPosition();
             Level level = entity.level();
+            if(EssenceCauldronManager.hasEssenceCauldron(level, pos)) return;
             BiomeManager manager = BiomeManager.get(level);
-            if(manager == null) { enchantedEssenceFailed(entity); return; }
+            if(manager == null) { enchantedEssenceFailed(entity, null); return; }
 
-            CompoundTag tag = entity.getItem().getTagElement(ESSENCE_DATA_TAG);
-            if(tag == null) { enchantedEssenceFailed(entity); return; }
+            CompoundTag tag = entity.getItem().getTag();
+            if(tag == null) { enchantedEssenceFailed(entity, null); return; }
 
             Set<Holder<Biome>> holderBiomes = EssenceType.getBiomes(tag.getString(ESSENCE_DATA_TAG));
-            if(holderBiomes.isEmpty()) { enchantedEssenceFailed(entity); return; }
+            if(holderBiomes.isEmpty()) {
+                enchantedEssenceFailed(entity, EssenceType.getEssenceName(tag.getString(ESSENCE_DATA_TAG)));
+                return;
+            }
 
             List<BlockPos> biomePos = new ArrayList<>(holderBiomes.size());
             for(Holder<Biome> biome : holderBiomes) {
@@ -90,19 +103,27 @@ public class CustomRecipes {
                 if(info != null) biomePos.add(info.getSamplePos());
             }
 
-            BlockPos tpPos = biomePos.stream().findAny().get();
+            BlockPos tpPos = biomePos.stream().findAny().orElse(null);
             if(tpPos != null) {
-                EssenceCauldronManager.addEssenceCauldron(level, tpPos);
+                EssenceCauldronManager.addEssenceCauldron(level, pos, tpPos);
+                entity.setPickUpDelay(100);
             } else {
-                enchantedEssenceFailed(entity);
+                enchantedEssenceFailed(entity, EssenceType.getEssenceName(tag.getString(ESSENCE_DATA_TAG)));
             }
             entity.discard();
         }
 
-        private static void enchantedEssenceFailed(ItemEntity entity)
+        private static void enchantedEssenceFailed(ItemEntity entity, String biomeTypes)
         {
-            // failure particles
-            // failure sound
+            List<ServerPlayer> players = HBUtil.PlayerUtil
+                .getAllPlayersInBlockRange(entity.blockPosition(), 3);
+            for(ServerPlayer player : players) {
+                if(biomeTypes!=null)
+                    CommonClass.MESSAGER.bottomScreenErrorHint(player,
+                     "No biomes of type " + biomeTypes + " found nearby");
+                else
+                    CommonClass.MESSAGER.bottomScreenErrorHint(player, "No biomes found nearby");
+            }
         }
 
 

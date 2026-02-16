@@ -811,7 +811,7 @@ public class HBUtil {
         public static Holder<Biome> getBiomeFromSection(LevelChunkSection sec, int x, int y, int z) {
             if (sec == null) return null;
             if (sec.getBiomes() == null) return null;
-            return sec.getNoiseBiome(x>>2, y>>2, z>>2);
+            return sec.getNoiseBiome(x, y, z);
         }
 
         public static List<String> getBiomeNames(Collection<Holder<Biome>> biomes) {
@@ -935,13 +935,12 @@ public class HBUtil {
 
         //override with integer arguments
         public static Long getChunkPos1DMap(int x, int z) {
-            //map the chunks x and z position to a random number
-            final Long WIDTH = 10_000_000l;
-            return (x * WIDTH) + z;
+           return ChunkPos.asLong(x, z);
         }
 
         /**
          * Gets all chunk ids for all chunks around the provided chunk
+         * nearbyChunks, nearChunks, localChunks, adjacentChunks
          * @param radius
          * @param center
          * @return
@@ -951,6 +950,16 @@ public class HBUtil {
             for (int x = -radius; x <= radius; x++) {
                 for (int z = -radius; z <= radius; z++) {
                     ids.add(getId(posAdd(center, x, z)));
+                }
+            }
+            return ids;
+        }
+
+        public static List<ChunkPos> getLocalChunkPos(ChunkPos center, int radius) {
+            List<ChunkPos> ids = new ArrayList<>(4*radius*radius);
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    ids.add(posAdd(center, x, z));
                 }
             }
             return ids;

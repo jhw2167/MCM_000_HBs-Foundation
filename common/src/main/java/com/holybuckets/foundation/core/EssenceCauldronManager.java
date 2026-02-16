@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.core;
 
+import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -7,13 +8,13 @@ import com.holybuckets.foundation.model.ManagedChunkUtility;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Manages magic cauldrons that an Enchanted Essence has triggered.
@@ -50,12 +51,12 @@ public class EssenceCauldronManager {
 
     //** MUTATION
 
-    public void addCauldron(BlockPos pos) {
-        if (cauldrons.containsKey(pos)) {
-            EssenceCauldronData data = cauldrons.get(pos);
+    public void addCauldron(BlockPos cauldronPos, BlockPos pos) {
+        if (cauldrons.containsKey(cauldronPos)) {
+            EssenceCauldronData data = cauldrons.get(cauldronPos);
             data.endTick+= ESSENCE_CAULDRON_DURATION;
         }
-        cauldrons.put(pos, new EssenceCauldronData(level, pos, CONFIG.getTotalTickCount()) );
+        cauldrons.put(cauldronPos, new EssenceCauldronData(level, pos, CONFIG.getTotalTickCount()) );
     }
 
 
@@ -68,9 +69,11 @@ public class EssenceCauldronManager {
     {
         List<ServerPlayer> players = HBUtil.PlayerUtil.getAllPlayers();
         List<BlockPos> cauldronPos = cauldrons.keySet().stream().toList();
-        for (BlockPos pos : cauldronPos) {
+        for (BlockPos pos : cauldronPos)
+        {
              EssenceCauldronData data = cauldrons.get(pos);
              if(data == null) continue;
+             if(data.startTick <= CONFIG.getTotalTickCount()) continue;
              if (data.endTick <= CONFIG.getTotalTickCount()) {
                  cauldrons.remove(pos);
                  continue;
@@ -78,20 +81,36 @@ public class EssenceCauldronManager {
              if(data.getTeleportPos()==null) continue;
              BlockPos tp = data.getTeleportPos();
              for(ServerPlayer player : players) {
-                if( player.level().equals(level) && player.blockPosition().closerThan(pos, 2)) {
+                if( player.level().equals(level) && player.blockPosition().closerThan(pos, 3)) {
                     player.teleportTo(tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5);
+                    String tpRes = HBUtil.BlockUtil.positionToString(tp);
+                    CommonClass.MESSAGER.sendBottomActionHint(player,
+                    Component.translatable("item.hbs_foundation.enchanted_essence.teleport_success",
+                     tpRes).getString() );
                 }
              }
 
         }
+
     }
 
 
     //** STATICS
-    public static void addEssenceCauldron(Level level, BlockPos pos) {
+    private static Set<Player> errorPlayers = new HashSet<>();
+    public static void essenceCauldronErrorMsgCooldown(Player player) {
+        errorPlayers.add(player);
+    }
+
+    public static boolean hasEssenceCauldron(Level level, BlockPos cauldronPos) {
+        EssenceCauldronManager manager = EssenceCauldronManager.get(level);
+        if(manager == null) return false;
+        return manager.hasCauldron(cauldronPos);
+    }
+
+    public static void addEssenceCauldron(Level level, BlockPos cauldronPos, BlockPos pos) {
         EssenceCauldronManager manager = EssenceCauldronManager.get(level);
         if(manager == null) return;
-        manager.addCauldron(pos);
+        manager.addCauldron(cauldronPos, pos);
     }
 
     private static EssenceCauldronManager init(Level level) {
@@ -137,12 +156,17 @@ public class EssenceCauldronManager {
         if(level.isClientSide()) return;
         if(!EssenceCauldronManager.managers.containsKey(level)) return;
         EssenceCauldronManager manager = EssenceCauldronManager.get(level);
-        if(!manager.hasActiveCauldrons()) return;
-        manager.onLevelTick();
+        if(manager.hasActiveCauldrons())
+            manager.onLevelTick();
+
+
+        if(CONFIG.getTotalTickCount()%120L == 0)
+            errorPlayers.clear();
     }
 
     //** PLACEHOLDER DATA CLASS
 
+    public static final long ESSENCE_CAULDRON_START_DELAY = 20L;
     public static final long ESSENCE_CAULDRON_DURATION = 200L; //ticks
     public static class EssenceCauldronData {
         final BlockPos targetBiomePos;
@@ -151,8 +175,8 @@ public class EssenceCauldronManager {
         long endTick;
 
         EssenceCauldronData(Level level, BlockPos targetBiomePos, long startTick) {
-            this.startTick = startTick;
-            this.endTick = startTick + ESSENCE_CAULDRON_DURATION;
+            this.startTick = startTick + ESSENCE_CAULDRON_START_DELAY;
+            this.endTick = this.startTick + ESSENCE_CAULDRON_DURATION;
             this.targetBiomePos = targetBiomePos;
             setSafeTeleportPos(level, targetBiomePos);
         }

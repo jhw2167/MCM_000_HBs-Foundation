@@ -7,9 +7,7 @@ import com.holybuckets.foundation.command.CommandList;
 import com.holybuckets.foundation.config.ModConfig;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.console.Messager;
-import com.holybuckets.foundation.core.CustomRecipes;
-import com.holybuckets.foundation.core.EssenceCauldronManager;
-import com.holybuckets.foundation.core.EssenceType;
+import com.holybuckets.foundation.core.*;
 import com.holybuckets.foundation.enchantment.ModEnchantments;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -22,7 +20,6 @@ import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import com.holybuckets.foundation.core.WoolColorHelper;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.HashSet;
@@ -78,8 +75,10 @@ public class FoundationInitializers {
         //SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
+
         StructureManager.init(reg);
         BiomeManager.init(reg);
+        ChunkExplorerManager.init(reg);
         //ClientInput.init(reg);
 
         //Core Operations

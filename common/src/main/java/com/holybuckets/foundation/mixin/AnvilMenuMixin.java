@@ -2,6 +2,8 @@ package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.DataSlot;
@@ -66,10 +68,20 @@ public abstract class AnvilMenuMixin {
         at = @At("HEAD"),
         cancellable = true
     )
-    protected void onOnTake(Player $$0, ItemStack $$1, CallbackInfo ci) {
+    protected void onOnTake(Player p, ItemStack $$1, CallbackInfo ci) {
+        if(p.isLocalPlayer()) return;
         AnvilMenu menu = (AnvilMenu)(Object)this;
         AnvilUpdateEvent event = AnvilUpdateEvent.ANVIL_EVENTS.remove(menu);
-        if(event==null || event.getMainItemCost()==0 || event.getLeftItem()==null) return;
-        event.getLeftItem().shrink(event.getMainItemCost());
+        if(event==null || event.getMainItemCost()==0 || menu.slots.get(0).getItem()==null) return;
+
+        ItemStack stack = menu.slots.get(0).getItem();
+        stack.shrink(event.getMainItemCost());
+        if(stack.getCount()==0) return;
+
+        BlockPos pPos = p.getOnPos().above();
+        ItemEntity newEntity = new ItemEntity(p.level(), pPos.getX() + 0.5, pPos.getY(), pPos.getZ() + 0.5, stack.copy());
+
+        p.level().addFreshEntity(newEntity);
+        if(stack.getEntityRepresentation()!=null) stack.getEntityRepresentation().discard();
     }
 }

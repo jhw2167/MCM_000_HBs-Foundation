@@ -69,6 +69,7 @@ public class ManagedChunkUtility {
     }
 
     public boolean isLoaded(ChunkPos p) {
+        if(p == null || level == null) return false;
         return  LOADED_CHUNKPOS.get(level) != null &&
                 LOADED_CHUNKPOS.get(level).containsKey(p);
     }
@@ -130,6 +131,29 @@ public class ManagedChunkUtility {
         if(util == null) return false;
         return util.isChunkFullyLoaded(id);
     }
+
+    public static boolean isChunkLoaded(LevelAccessor level, String id) {
+        ManagedChunkUtility util = getInstance(level);
+        if(util == null) return false;
+        return util.isLoaded(id);
+    }
+
+    public static boolean isChunkLoaded(LevelAccessor level, ChunkPos id) {
+        ManagedChunkUtility util = getInstance(level);
+        if(util == null) return false;
+        return util.isChunkFullyLoaded(id);
+    }
+
+    //One for BlockPos
+    public static boolean isChunkLoaded(LevelAccessor level, BlockPos pos) {
+        ManagedChunkUtility util = getInstance(level);
+        if(util == null) return false;
+        return util.isLoaded(pos);
+    }
+
+
+
+
 
 
 

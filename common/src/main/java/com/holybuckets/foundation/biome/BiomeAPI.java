@@ -40,6 +40,11 @@ public class BiomeAPI {
         return distinct;
     }
 
+    /** Returns the nearest biomes with no duplicate types (one entry per ResourceLocation). */
+    public List<BiomeInfo> getBiomesInChunkRange(BlockPos pos, int chunkRange) {
+        return manager.getBiomesInChunkRange(pos, chunkRange);
+    }
+
     public Set<ResourceLocation> getAllBiomes() {
         return manager.getAllBiomes();
     }

@@ -116,4 +116,10 @@ public class Messager implements IMessager {
             SimpleStringMessage.createAndFire(p, MSG_ID_BOTTOM_ERROR_HINT, message);
         }
     }
+
+    @Override
+    public void bottomScreenErrorHint(Player player, String message) {
+        if (player == null || message == null || message.isEmpty()) return;
+        SimpleStringMessage.createAndFire(player, MSG_ID_BOTTOM_ERROR_HINT, message);
+    }
 }

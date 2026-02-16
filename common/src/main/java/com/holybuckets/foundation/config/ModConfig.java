@@ -42,16 +42,14 @@ public class ModConfig {
     public static void init(EventRegistrar registrar)
     {
         INSTANCE = ModConfig.getInstance();
-        registrar.registerOnBeforeServerStarted(INSTANCE::onBeforeServerStarted, EventPriority.Lowest);
-        registrar.registerOnServerStopped(INSTANCE::onServerStopped, EventPriority.Lowest);
+        registrar.registerOnBeforeServerStarted(ModConfig::onBeforeServerStarted, EventPriority.Lowest);
+        registrar.registerOnServerStopped(ModConfig::onServerStopped, EventPriority.Lowest);
     }
-    private void onServerStopped(ServerStoppedEvent event) {
-        essenceData.clear();
-        enchantedEssenceItemMap.clear();
+    private void onServerStopped() {
         INSTANCE = null;
     }
 
-    private void onBeforeServerStarted(ServerStartingEvent event)
+    private void onBeforeServerStarted()
     {
         // Load essence data from config
         String pathName =  PerformanceImpactConfig.getActive().configFiles.essenceConfigFilePath;
@@ -62,12 +60,11 @@ public class ModConfig {
         EssenceDataJsonConfig essenceDataConfig = new EssenceDataJsonConfig(jsonEssenceData);
         loadEssenceData(essenceDataConfig);
 
-        EssenceType.onServerStart(event.getServer());
+        EssenceType.init();
     }
 
     private void loadEssenceData(EssenceDataJsonConfig configJson)
     {
-        essenceData.clear();
         Set<String> essenceIds = configJson.getAllEssenceIds();
         for( String id : essenceIds ) {
             EssenceDataJsonConfig.EssenceConfig entry = configJson.getConfig( id );
@@ -114,6 +111,18 @@ public class ModConfig {
         if(essenceSet != null) return essenceSet.contains(loc);
         return false;
     }
+
+
+    //** Events
+    private static void onServerStopped(ServerStoppedEvent event) {
+        getInstance().onServerStopped();
+    }
+
+    private static void onBeforeServerStarted(ServerStartingEvent event) {
+        getInstance().onBeforeServerStarted();
+    }
+
+
 
 
 }

@@ -58,6 +58,8 @@ public class CommandList {
         CommandRegistry.register(NearestBiomesOfType::withTypeAndLimit);
         CommandRegistry.register(NearestDistinctBiomes::withLimit);
         CommandRegistry.register(AllBiomes::list);
+        CommandRegistry.register(GetBiomesNearPoint::withCoordinates);
+        CommandRegistry.register(GetBiomesNearPoint::withCoordinatesAndRadius);
     }
 
     //**** SUGGETTIONS ****//
@@ -523,6 +525,79 @@ public class CommandList {
             source.sendSuccess(() -> Component.literal("Available biome types (" + sortedBiomes.size() + "):"), false);
             for (String biome : sortedBiomes) {
                 source.sendSuccess(() -> Component.literal("  " + biome), false);
+            }
+
+            return 1;
+        }
+    }
+
+    //5. Get Biomes Near Point
+    private static class GetBiomesNearPoint {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withCoordinates() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("getBiomesNearPoint")
+                    .then(Commands.argument("x", IntegerArgumentType.integer())
+                        .then(Commands.argument("y", IntegerArgumentType.integer())
+                            .then(Commands.argument("z", IntegerArgumentType.integer())
+                                .executes(context -> {
+                                    int x = IntegerArgumentType.getInteger(context, "x");
+                                    int y = IntegerArgumentType.getInteger(context, "y");
+                                    int z = IntegerArgumentType.getInteger(context, "z");
+                                    return execute(context.getSource(), x, y, z, 5); // Default chunk radius of 5
+                                })
+                            )
+                        )
+                    )
+                );
+        }
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withCoordinatesAndRadius() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("getBiomesNearPoint")
+                    .then(Commands.argument("x", IntegerArgumentType.integer())
+                        .then(Commands.argument("y", IntegerArgumentType.integer())
+                            .then(Commands.argument("z", IntegerArgumentType.integer())
+                                .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                    .executes(context -> {
+                                        int x = IntegerArgumentType.getInteger(context, "x");
+                                        int y = IntegerArgumentType.getInteger(context, "y");
+                                        int z = IntegerArgumentType.getInteger(context, "z");
+                                        int chunkRadius = IntegerArgumentType.getInteger(context, "chunkRadius");
+                                        return execute(context.getSource(), x, y, z, chunkRadius);
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int x, int y, int z, int chunkRadius) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            Level level = player.level();
+            BlockPos targetPos = new BlockPos(x, y, z);
+
+            try {
+                BiomeAPI api = new BiomeAPI(level);
+                List<BiomeInfo> biomes = api.getBiomesInChunkRange(targetPos, chunkRadius);
+
+                if (biomes.isEmpty()) {
+                    source.sendSuccess(() -> Component.literal("No biomes found near position " + posString(targetPos) + " within " + chunkRadius + " chunk radius. This command can only locate biomes in chunks that have been loaded."), false);
+                } else {
+                    source.sendSuccess(() -> Component.literal("Found " + biomes.size() + " biomes near position " + posString(targetPos) + " within " + chunkRadius + " chunk radius:"), false);
+                    for (BiomeInfo biome : biomes) {
+                        String message = biome.getId().toString() + " at " + posString(biome.getSamplePos());
+                        source.sendSuccess(() -> Component.literal(message), false);
+                    }
+                }
+            } catch (Exception e) {
+                source.sendFailure(Component.literal("Error accessing biome data: " + e.getMessage()));
+                return 0;
             }
 
             return 1;

@@ -1,6 +1,5 @@
 package com.holybuckets.foundation.biome;
 
-import com.google.common.collect.Maps;
 import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
@@ -21,7 +20,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -239,7 +237,7 @@ public class BiomeManager {
         return pos.getBlockAt(0, sectionIndex*16, 0);
     }
 
-    private static BiomeManager init(Level level) {
+    private static BiomeManager initLevel(Level level) {
         if (!managers.containsKey(level)) {
             managers.put(level, new BiomeManager(level));
         }
@@ -251,7 +249,7 @@ public class BiomeManager {
             level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, level.dimension());
         }
         if (!managers.containsKey(level))
-            init(level);
+            initLevel(level);
         return managers.get(level);
     }
 
@@ -268,7 +266,7 @@ public class BiomeManager {
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
-        BiomeManager manager = BiomeManager.init((Level) event.getLevel());
+        BiomeManager manager = BiomeManager.initLevel((Level) event.getLevel());
         if (manager != null && !event.getLevel().isClientSide())
             manager.load(GeneralConfig.getInstance().getDataStore());
     }

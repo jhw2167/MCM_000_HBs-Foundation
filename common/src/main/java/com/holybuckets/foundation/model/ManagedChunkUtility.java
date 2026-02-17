@@ -151,6 +151,27 @@ public class ManagedChunkUtility {
         return util.isLoaded(pos);
     }
 
+    //Get ManagedChunk Arrays
+    public static Set<String> getInitializedChunksDebug() {
+        return INITIALIZED_CHUNKS.get(GeneralConfig.OVERWORLD);
+    }
+
+    public static Set<Long> getInitializedLongChunksDebug() {
+        return INITIALIZED_LONG_CHUNKS.get(GeneralConfig.OVERWORLD);
+    }
+
+    public static Set<String> getLoadedChunksDebug() {
+        return LOADED_CHUNKS.get(GeneralConfig.OVERWORLD).keySet();
+    }
+
+    public static Set<ChunkPos> getLoadedChunkPosDebug() {
+        return LOADED_CHUNKPOS.get(GeneralConfig.OVERWORLD).keySet();
+    }
+
+
+
+
+
 
 
 

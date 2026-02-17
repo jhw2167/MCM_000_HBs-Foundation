@@ -8,6 +8,7 @@ import com.holybuckets.foundation.exception.NoDefaultConfig;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
+import com.mojang.datafixers.util.Either;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -24,9 +25,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.TicketType;
+import net.minecraft.server.level.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
@@ -43,6 +42,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -1032,64 +1033,6 @@ public class HBUtil {
         }
 
 
-        private static final int MAX_AXIS = 30_000_000;
-        private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
-        private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
-         Comparator.comparingInt( s -> s.hashCode() ) );
-        private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
-        private static LongObjectMap<String> forceLoadedChunkTicketIds = new LongObjectHashMap<>();
-        public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
-            // Validate chunk coordinates against maximum allowed values
-            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
-                return;
-            }
-
-            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet() );
-            Long chunkId = getChunkPos1DMap(chunkPos);
-            if( forceLoadedChunkTicketIds.get(chunkId) == null ) {}                      //First time loading chunk
-            else if( forceLoadedChunkTicketIds.get(chunkId).equals( ticketId ) ) return; //Dont add a new ticket on same ticketId
-
-            level.getChunkSource().addRegionTicket(
-                MOD_TICKET,
-                chunkPos,
-                1,
-                ticketId
-            );
-
-            loadedChunkIds.add( chunkId );
-            forceLoadedChunkTicketIds.put(chunkId, ticketId);              //always updates with new ticketId, low quality fix
-        }
-
-        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
-            ChunkPos chunkPos = getChunkPos(chunkId);
-            forceLoadChunk(level, chunkPos, ticketId);
-        }
-
-        public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
-            // Validate chunk coordinates against maximum allowed values  
-            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
-                return;
-            }
-
-            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet() );
-            Long chunkId = getChunkPos1DMap(chunkPos);
-            if( !loadedChunkIds.contains( chunkId ) ) return;          //Chunk not force loaded
-
-            level.getChunkSource().removeRegionTicket(
-                MOD_TICKET,
-                chunkPos,
-                1,
-                ticketId
-            );
-
-            if( forceLoadedChunkTicketIds.containsKey(chunkId) && !forceLoadedChunkTicketIds.get(chunkId).equals( ticketId ) ) {
-                return; //Dont remove if ticketId doesnt match
-
-            }
-            loadedChunkIds.remove( chunkId );
-            forceLoadedChunkTicketIds.remove(chunkId);
-        }
-
         public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
             ChunkPos chunkPos = getChunkPos(chunkId);
             unforceLoadChunk(level, chunkPos, ticketId);
@@ -1105,6 +1048,95 @@ public class HBUtil {
             return loadedChunkIds.contains( getChunkPos1DMap( chunkPos ) );
         }
 
+
+
+        private static final int MAX_AXIS = 30_000_000;
+        private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
+        private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
+         Comparator.comparingInt( s -> s.hashCode() ) );
+        private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
+        private static LongObjectMap<String> forceLoadedChunkTicketIds = new LongObjectHashMap<>();
+
+        public static final int TICKET_RADIUS_FULL     = 0;
+        public static final int TICKET_RADIUS_FEATURES = 2;
+
+        public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
+          forceLoadChunk(level, chunkPos, ticketId, TICKET_RADIUS_FULL);
+        }
+
+        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId) {
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            forceLoadChunk(level, chunkPos, ticketId);
+        }
+
+        public static void forceLoadChunk(ServerLevel level, String chunkId, String ticketId, int chunkMinStatus) {
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            forceLoadChunk(level, chunkPos, ticketId, chunkMinStatus);
+        }
+
+        public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId, int chunkMinStatus)
+        {
+            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+                return;
+            }
+
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
+            Long chunkId = getChunkPos1DMap(chunkPos);
+            if (forceLoadedChunkTicketIds.get(chunkId) == null) {}
+            else if (forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) return;
+            else {
+                // Remove orphaned ticket before overwriting
+                String existingId = forceLoadedChunkTicketIds.get(chunkId);
+                level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, existingId);
+            }
+
+            level.getChunkSource().addRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
+            loadedChunkIds.add(chunkId);
+            forceLoadedChunkTicketIds.put(chunkId, ticketId);
+
+            //Log total loaded chunks in chunkSource
+            int totalChunks = level.getChunkSource().getLoadedChunksCount();
+            int totalForceChunks = level.getForcedChunks().size();
+            LoggerBase.logDebug(null, "004003", "LOAD: Total chunkSource loaded: " + totalChunks + ", total force loaded: " + totalForceChunks);
+        }
+
+
+        public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId) {
+            unforceLoadChunk(level, chunkPos, ticketId, TICKET_RADIUS_FULL);
+        }
+
+
+        public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId, int chunkMinStatus)
+        {
+            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+                return;
+            }
+
+            LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
+            Long chunkId = getChunkPos1DMap(chunkPos);
+            if (!loadedChunkIds.contains(chunkId)) return;
+
+            level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
+
+            if (forceLoadedChunkTicketIds.containsKey(chunkId) && !forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) {
+                return;
+            }
+            loadedChunkIds.remove(chunkId);
+            forceLoadedChunkTicketIds.remove(chunkId);
+
+            int totalChunks = level.getChunkSource().getLoadedChunksCount();
+            int totalForceChunks = level.getForcedChunks().size();
+            LoggerBase.logDebug(null, "004004", "UNLOAD: Total chunkSource loaded: " + totalChunks + ", total force loaded: " + totalForceChunks);
+        }
+
+        public static void unforceLoadChunk(ServerLevel level, String chunkId, String ticketId, int chunkMinStatus) {
+            ChunkPos chunkPos = getChunkPos(chunkId);
+            unforceLoadChunk(level, chunkPos, ticketId, chunkMinStatus);
+        }
+
+        public static CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>> softLoadChunk(ServerLevel level, ChunkPos chunkPos) {
+            return level.getChunkSource().getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+        }
 
     }
 

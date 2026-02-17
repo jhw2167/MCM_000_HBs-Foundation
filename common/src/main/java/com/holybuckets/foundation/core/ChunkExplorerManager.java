@@ -6,17 +6,19 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
+import com.mojang.datafixers.util.Either;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkAccess;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * ChunkExplorerManager
@@ -33,10 +35,11 @@ public class ChunkExplorerManager {
     public static final String CLASS_ID = "037";
 
 
-    public static final int SCAN_RADIUS_CHUNKS = 100;//625;   // 10,000 blocks / 16, RANGE
+    public static final int SCAN_RADIUS_CHUNKS = 64;//625;   // 10,000 blocks / 16, RANGE
+    public static final int MIN_HOLD_TICKS = 2;     // ticks a probe stays loaded
+    public static final int MAX_HOLD_TICKS = 40;     // ticks a probe stays loaded
+    public static final int CHUNK_EXPLORER_MAX = 50;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
     public static final int SCAN_RADIUS_SQUARED = SCAN_RADIUS_CHUNKS*SCAN_RADIUS_CHUNKS;//625;   // 10,000 blocks / 16, RANGE
-    public static final int HOLD_TICKS         = 4;     // ticks a probe stays loaded
-    public static final int CHUNK_EXPLORER_MAX = 100;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
 
 
     private static final String TICKET_PREFIX = "chunk_explorer_";
@@ -48,12 +51,14 @@ public class ChunkExplorerManager {
 
     // Ordered queue of positions still needing exploration this pass
     //Unique queue that maps the chunk distance between some player to its chunk position
-    private final IntObjectMap<ChunkPos> chunkExploreDistanceQueue = new IntObjectHashMap<>();
+    private final Deque<ChunkPos> chunkExploreQueue = new LinkedList<>();
+    private final Map<Player, ChunkGenerationOrderHandler> chunkGenerators = new HashMap<>();
+    private final Set<ChunkPos> requestedChunks = new HashSet<>();
 
     // Single probe currently held open, and the tick it was loaded
     private ChunkPos heldChunk = null;
     private long     heldSince = Long.MIN_VALUE;
-    private int nextChunkDist = 1;
+    CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>>     heldChunkFuture = null;
 
     private ChunkExplorerManager(Level level) {
         this.level = level;
@@ -72,7 +77,7 @@ public class ChunkExplorerManager {
     //** GETTERS
 
     public int queueSize() {
-        return chunkExploreDistanceQueue.size();
+        return chunkExploreQueue.size();
     }
 
     //** PER-TICK LOGIC
@@ -81,77 +86,76 @@ public class ChunkExplorerManager {
     {
         long now = GENERAL_CONFIG.getTotalTickCount();
 
-        if (heldChunk != null && (now - heldSince) > HOLD_TICKS) {
-            HBUtil.ChunkUtil.unforceLoadChunk((ServerLevel) level, heldChunk, ticketId(heldChunk));
-            heldChunk = null;
+        /*
+        if (heldChunk != null && (now - heldSince) > MIN_HOLD_TICKS) {
+            if(util.isChunkInitialized(heldChunk) || now - heldSince > MAX_HOLD_TICKS) {
+                HBUtil.ChunkUtil.unforceLoadChunk((ServerLevel) level, heldChunk, ticketId(heldChunk), 0);
+                heldChunk = null;
+            }
         }
+         */
 
+        //aaa
         if (heldChunk == null) {
             ChunkPos next = pollNextUninitialized();
             if (next != null) {
-                HBUtil.ChunkUtil.forceLoadChunk((ServerLevel) level, next, ticketId(next));
                 heldChunk = next;
                 heldSince = now;
+                HBUtil.ChunkUtil.softLoadChunk((ServerLevel) level, next ).thenAccept( o -> heldChunk = null);
+                requestedChunks.add(next);
+                //HBUtil.ChunkUtil.forceLoadChunk((ServerLevel) level, next, ticketId(next), 0);
             }
         }
     }
 
     private ChunkPos pollNextUninitialized()
     {
-        while (!chunkExploreDistanceQueue.isEmpty())
+        while (!chunkExploreQueue.isEmpty())
         {
-            while(!chunkExploreDistanceQueue.containsKey(++nextChunkDist) &&
-            nextChunkDist < SCAN_RADIUS_SQUARED ) {
-                //count
-            }
+            ChunkPos candidate = chunkExploreQueue.poll();
+            if (candidate == null) return  null;
+            if (util.isChunkInitialized(candidate)) continue;
+            if (util.isLoaded(candidate)) continue;
 
-            if(nextChunkDist > SCAN_RADIUS_SQUARED) {
-                nextChunkDist = 1;
-                return null;
-            }
-
-            ChunkPos candidate = chunkExploreDistanceQueue.remove(nextChunkDist);
-            if(candidate == null) {}
-            else if (util.isChunkInitialized(candidate)) {}
-            else if(util.isLoaded(candidate)) {}
-            else return candidate;
-
+            return candidate;
         }
+
         return null;
     }
 
     private static int SKIP_CHUNKS = 8;
     //** QUEUE REBUILD (every 1200 ticks)
-    private void rebuildQueue(List<BlockPos> playerPositions)
+    private void rebuildQueue()
     {
-        if (playerPositions.isEmpty()) return;
+        if (chunkGenerators.isEmpty()) return;
 
-        chunkExploreDistanceQueue.clear();
-        int count = 0;
-        for (BlockPos origin : playerPositions)
+        List<Player> players = new ArrayList<>(chunkGenerators.keySet());
+        for (Player player : players)
         {
-            ChunkPos playerChunk = new ChunkPos(origin);
-            ChunkGenerationOrderHandler handler = new ChunkGenerationOrderHandler(playerChunk);
-            while (!handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS))
+            ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
+            //ChunkPos playerChunk = new ChunkPos(player.blockPosition());
+            final int maxPerPlayer = CHUNK_EXPLORER_MAX / chunkGenerators.size();
+            int count = 0;
+            while(true)
             {
-                ChunkPos next = handler.getNextUnInitSpiralChunk(util);
-                if(next == null) continue;
-                if(count++ % SKIP_CHUNKS != 0) continue;
+                if(chunkExploreQueue.size() > CHUNK_EXPLORER_MAX) break;
 
-                int chunkDist = HBUtil.ChunkUtil.chunkDistSquared(playerChunk, next);
-                if (chunkDist > SCAN_RADIUS_SQUARED) break;
-                if(chunkExploreDistanceQueue.size() > CHUNK_EXPLORER_MAX) break;
+                ChunkPos next = handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
+                if(next == null) break;
+                if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) break;
 
-                chunkExploreDistanceQueue.put(chunkDist, next);
+                chunkExploreQueue.addLast(next);
+                if(count++ > maxPerPlayer) break;
             }
         }
-         nextChunkDist = 1;
+
     }
 
     //** HELPERS
 
     private static String ticketId(ChunkPos pos) {
-        return TICKET_PREFIX + pos.x + "_" + pos.z;
+        //return TICKET_PREFIX + pos.x + "_" + pos.z;
+        return TICKET_PREFIX;
     }
 
     private record ScoredChunk(ChunkPos pos, long distSq) {}
@@ -193,7 +197,8 @@ public class ChunkExplorerManager {
             HBUtil.ChunkUtil.unforceLoadChunk(
                 (ServerLevel) event.getLevel(),
                 manager.heldChunk,
-                ticketId(manager.heldChunk)
+                ticketId(manager.heldChunk),
+                2
             );
         }
     }
@@ -208,21 +213,44 @@ public class ChunkExplorerManager {
      * Find new chunks nearby players to explore
      * @param event
      */
-    private static void on1200Ticks(ServerTickEvent event) {
+    private static void on1200Ticks(ServerTickEvent event)
+    {
         if (GENERAL_CONFIG.getServer() == null) return;
 
-        Map<Level, List<BlockPos>> playersByLevel = new HashMap<>();
+        Map<Level, List<Player>> playersByLevel = new HashMap<>();
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
             playersByLevel
                 .computeIfAbsent(player.serverLevel(), k -> new ArrayList<>())
-                .add(player.blockPosition());
+                .add(player);
         }
 
         for (Map.Entry<Level, ChunkExplorerManager> entry : managers.entrySet()) {
-            if(!playersByLevel.keySet().contains(entry.getKey())) continue;
-
-            entry.getValue().rebuildQueue(playersByLevel.get(entry.getKey()));
+            Level level = entry.getKey();
+            if(!playersByLevel.containsKey(level)) continue;
+            ChunkExplorerManager manager = entry.getValue();
+            manager.generateDistantChunks(playersByLevel.get(level));
         }
+    }
+
+    private static final int PLAYER_RENDER_DIST_SQ = 16*16;
+    private static final double SKIP_RATIO = SCAN_RADIUS_SQUARED/PLAYER_RENDER_DIST_SQ;
+    private void generateDistantChunks(List<Player> players) {
+
+        for(Player player : players) {
+            if(!chunkGenerators.containsKey(player)) {
+                ChunkPos p = new ChunkPos(player.blockPosition());
+                chunkGenerators.put(player, new ChunkGenerationOrderHandler(p, 0, SCAN_RADIUS_CHUNKS) );
+            }
+            ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
+            if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) {
+                ChunkPos p = new ChunkPos(player.blockPosition());
+                double skipRatio = (double) PLAYER_RENDER_DIST_SQ / handler.getSkippedChunks()*SKIP_CHUNKS;
+                int radialOffset = Math.max(0, (int) skipRatio );
+                chunkGenerators.put(player, new ChunkGenerationOrderHandler(p, radialOffset, SCAN_RADIUS_CHUNKS) );
+            }
+        }
+
+        this.rebuildQueue();
     }
 
     //** INNER CLASS
@@ -240,19 +268,38 @@ public class ChunkExplorerManager {
         private static final int[] DOWN  = {0, -1};
         private static final int[] LEFT  = {-1, 0};
         private static final int[][] DIRECTIONS = {UP, RIGHT, DOWN, LEFT};
+        private static final Random RANDOM = new Random();
 
         private ChunkPos currentPos;
+        private final ChunkPos startPos;
         private int total;
         private int count;
         private int dirCount;
+        private int radialOffset;
+        private int skippedChunks;
+        private int radius;
         private int[] dir;
 
         public ChunkGenerationOrderHandler(ChunkPos start) {
             this.currentPos = (start == null) ? new ChunkPos(0, 0) : start;
+            this.startPos   = this.currentPos;
             this.total    = 0;
             this.count    = 1;
             this.dirCount = 0;
+            this.skippedChunks = 0;
             this.dir      = UP;
+        }
+
+        public ChunkGenerationOrderHandler(ChunkPos start, int radialOffset, int radius) {
+            this(start);
+            //offset currentPos to right, left, up or down, randomly
+            int[] offsetDir = DIRECTIONS[RANDOM.nextInt(DIRECTIONS.length)];
+            this.currentPos = HBUtil.ChunkUtil.posAdd(
+                this.currentPos,
+                new ChunkPos(offsetDir[0]*radialOffset, offsetDir[1]*radialOffset)
+            );
+             this.radialOffset = radialOffset;
+            this.radius = radius;
         }
 
         public ChunkPos getNextSpiralChunk() {
@@ -277,16 +324,31 @@ public class ChunkExplorerManager {
             return currentPos;
         }
 
-        public ChunkPos getNextUnInitSpiralChunk(ManagedChunkUtility util)
+        public ChunkPos getNextUnInitSpiralChunk(ManagedChunkUtility util, int skipChunks)
         {
             if (total == 0) {
                 total++; return currentPos;
             }
 
-            int nextPosX = currentPos.x + dir[0];
-            int nextPosZ = currentPos.z + dir[1];
+            int totalStart = total;
+            int nextPosX = currentPos.x + dir[0]*skipChunks;
+            int nextPosZ = currentPos.z + dir[1]*skipChunks;
             while(util.isChunkInitialized(nextPosX, nextPosZ))
             {
+                //check if nextPosX is outside of radius from startPos
+                if(nextPosX > startPos.x) {
+                    if(nextPosX - startPos.x > radius) break;
+                } else {
+                    if(startPos.x - nextPosX > radius) break;
+                }
+
+                if(nextPosZ > startPos.z) {
+                    if(nextPosZ - startPos.z > radius) break;
+                } else {
+                    if(startPos.z - nextPosZ > radius) break;
+                }
+
+
                 if (dirCount == count) {
                     dir      = getNextDirection();
                     dirCount = 0;
@@ -296,12 +358,13 @@ public class ChunkExplorerManager {
                     }
                 }
 
-                nextPosX += dir[0];
-                nextPosZ += dir[1];
+                nextPosX += (dir[0]*skipChunks);
+                nextPosZ += (dir[1]*skipChunks);
                 total++;
                 dirCount++;
             }
 
+            skippedChunks += (total - totalStart);
             currentPos = new ChunkPos(nextPosX, nextPosZ);
             return currentPos;
         }
@@ -316,8 +379,15 @@ public class ChunkExplorerManager {
          * (measured in chunk-steps from the origin in either axis).
          */
         public boolean testScanRadiusExceeded(int radiusChunks) {
-            return Math.abs(currentPos.x) > radiusChunks ||
-                Math.abs(currentPos.z) > radiusChunks;
+            return HBUtil.ChunkUtil.chunkDistSquared(startPos, currentPos) > radiusChunks*radiusChunks;
+        }
+
+        public int getRadialOffset() {
+            return radialOffset;
+        }
+
+        public int getSkippedChunks() {
+            return skippedChunks;
         }
     }
 }

@@ -16,6 +16,10 @@ public class BiomeAPI {
         manager = BiomeManager.get(level);
     }
 
+    public static BiomeAPI get(Level level) throws NoSuchElementException {
+        return new BiomeAPI(level);
+    }
+
     public List<BiomeInfo> nearestBiomes(BlockPos pos, int limit) {
         return manager.getNearestBiomes(pos, limit);
     }

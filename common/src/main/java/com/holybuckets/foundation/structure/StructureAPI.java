@@ -16,6 +16,10 @@ public class StructureAPI {
         manager = StructureManager.get(level);
     }
 
+    public static StructureAPI get(Level level) throws NoSuchElementException {
+        return new StructureAPI(level);
+    }
+
     public List<StructureInfo> nearestStructures(BlockPos pos, int limit) {
         return manager.getNearestStructures(pos, limit);
     }

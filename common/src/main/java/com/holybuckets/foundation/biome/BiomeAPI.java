@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class BiomeAPI {
@@ -16,8 +17,12 @@ public class BiomeAPI {
         manager = BiomeManager.get(level);
     }
 
-    public static BiomeAPI get(Level level) throws NoSuchElementException {
-        return new BiomeAPI(level);
+    public static @Nullable BiomeAPI get(Level level) {
+        try {
+            return new BiomeAPI(level);
+        } catch (NoSuchElementException e) {
+            return null;
+        }
     }
 
     public List<BiomeInfo> nearestBiomes(BlockPos pos, int limit) {

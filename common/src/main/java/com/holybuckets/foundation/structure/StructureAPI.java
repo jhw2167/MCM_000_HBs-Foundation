@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class StructureAPI {
@@ -16,8 +17,12 @@ public class StructureAPI {
         manager = StructureManager.get(level);
     }
 
-    public static StructureAPI get(Level level) throws NoSuchElementException {
-        return new StructureAPI(level);
+    public static @Nullable StructureAPI get(Level level) {
+        try {
+            return new StructureAPI(level);
+        } catch (NoSuchElementException e) {
+            return null;
+        }
     }
 
     public List<StructureInfo> nearestStructures(BlockPos pos, int limit) {

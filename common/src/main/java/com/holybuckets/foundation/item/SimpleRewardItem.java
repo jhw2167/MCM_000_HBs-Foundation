@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.item;
 
+import com.holybuckets.foundation.Constants;
 import net.blay09.mods.balm.api.Balm;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -22,13 +23,13 @@ public class SimpleRewardItem extends Item {
     protected final String modDescKey;
 
     public SimpleRewardItem(String itemId) {
-        this(itemId, "item.hbs_foundation." + itemId + ".desc");
+        this(itemId, Constants.MOD_ID);
     }
 
-    public SimpleRewardItem(String itemId, String modDescKey) {
+    public SimpleRewardItem(String itemId, String modId) {
         super(Balm.getItems().itemProperties());
         this.itemId = itemId;
-        this.modDescKey = modDescKey;
+        this.modDescKey = "item." + modId + "." + itemId + ".desc";
     }
 
     @Override

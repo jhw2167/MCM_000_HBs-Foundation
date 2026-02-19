@@ -60,6 +60,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 /**
 * Class: HolyBucketsUtility
@@ -829,21 +830,26 @@ public class HBUtil {
             return names;
         }
 
+        public static String getBiomeSimpleName(Holder<Biome> h) {
+            if( h == null ) return null;
+            if( !h.unwrapKey().isPresent() ) return null;
+
+            String name = h.unwrapKey().get().location().getPath();
+            String[] parts = name.split("_");
+            StringBuilder simpleName = new StringBuilder();
+            for(String part : parts) {
+                simpleName.append(part.substring(0, 1).toUpperCase()).append(part.substring(1)).append(" ");
+            }
+            return simpleName.toString().trim();
+        }
+
         public static String getBiomeSimpleNames(Collection<Holder<Biome>> biomes) {
             StringBuilder sb = new StringBuilder();
-            Runnable empty = new Runnable() {
-                @Override
-                public void run() {}
-            };
-            List<String> names = new ArrayList<>(biomes.size());
-            biomes.forEach(h -> h.unwrapKey().ifPresentOrElse( key -> names.add(key.location().getPath()), empty ));
+
+            List<String> names = biomes.stream().map(LevelUtil::getBiomeSimpleName).collect(Collectors.toList());
             for(String name : names ) {
-                String[] parts = name.split("_");
-                StringBuilder simpleName = new StringBuilder();
-                for(String part : parts) {
-                    simpleName.append(part.substring(0, 1).toUpperCase()).append(part.substring(1)).append(" ");
-                }
-                sb.append(simpleName.toString().trim()).append(", ");
+                if(name == null || name == "") continue;
+                sb.append(name.toString().trim()).append(", ");
             }
                 if( sb.length() > 2 )
                     sb.delete(sb.length() - 2, sb.length());

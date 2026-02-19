@@ -155,6 +155,13 @@ public class EssenceType {
         return dimensions;
     }
 
+    public Set<Holder<Biome>> getBiomes() {
+       if(this.essenceName == null) return Set.of();
+         return getBiomes(this.essenceName);
+    }
+
+
+
     public boolean matchesBiome(Holder<Biome> biome) {
         if (biomeRegistry == null) {
             LoggerBase.logError( null, "05100", "EssenceType.matchesBiome() called before init()");

@@ -14,11 +14,13 @@ public class ModBlocks {
 
     public static Block empty;
     public static Block stoneBrickBlockEntity;
+    public static Block essenceCauldron;
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
         blocks.register(() -> empty = new EmptyBlock(defaultProperties()), () -> itemBlock(empty), id("empty_block"));
         blocks.register(() -> stoneBrickBlockEntity = new SimpleBlockEntityBlock(SimpleBlockEntityBlock.stoneBrickProperties()), () -> itemBlock(stoneBrickBlockEntity), id("stone_brick_block_entity"));
+        blocks.register(() -> essenceCauldron = new EssenceCauldronBlock(), () -> itemBlock(essenceCauldron), id("essence_cauldron"));
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {

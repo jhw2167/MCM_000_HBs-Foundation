@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "level=1": { "model": "hbs_foundation:block/essence_cauldron_full" },
+    "level=2": { "model": "hbs_foundation:block/essence_cauldron_full" },
+    "level=3": { "model": "hbs_foundation:block/essence_cauldron_full" }
+  }
+}

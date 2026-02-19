@@ -216,7 +216,7 @@ public class StructureManager {
 
     }
 
-    static final double nearDistance = 32.0; // Define what "near" means (100 blocks)
+    public static final double NEAR_STRUCTURE_THRESHOLD = 100.0; // Define what "near" means (100 blocks)
     private void checkPlayersNearStructures() {
         if (level.isClientSide()) return;
         
@@ -225,8 +225,7 @@ public class StructureManager {
             BlockPos playerPos = player.blockPosition();
             
             for(BlockPos pos : loadedStructures) {
-                if( !structures.containsKey(pos) ) continue;
-                if (playerPos.distSqr(pos) <= nearDistance * nearDistance) {
+                if (playerPos.distSqr(pos) <= NEAR_STRUCTURE_THRESHOLD * NEAR_STRUCTURE_THRESHOLD) {
                     PlayerNearStructureEvent event = new PlayerNearStructureEvent(player,
                         structures.get(pos));
                     EventRegistrar.getInstance().onPlayerNearStructure(event);

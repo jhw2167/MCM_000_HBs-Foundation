@@ -90,26 +90,11 @@ public class CustomRecipes {
             CompoundTag tag = entity.getItem().getTag();
             if(tag == null) { enchantedEssenceFailed(entity, null); return; }
 
-            Set<Holder<Biome>> holderBiomes = EssenceType.getBiomes(tag.getString(ESSENCE_DATA_TAG));
-            if(holderBiomes.isEmpty()) {
-                enchantedEssenceFailed(entity, EssenceType.getEssenceName(tag.getString(ESSENCE_DATA_TAG)));
-                return;
-            }
+            EssenceType type = new EssenceType(tag.getString(ESSENCE_DATA_TAG));
+            if(type == null) { enchantedEssenceFailed(entity, null); return; }
 
-            List<BlockPos> biomePos = new ArrayList<>(holderBiomes.size());
-            for(Holder<Biome> biome : holderBiomes) {
-                ResourceLocation loc = HBUtil.LevelUtil.toBiomeResourceLocation(biome);
-                BiomeInfo info = manager.getNearestBiomeOfType(loc, pos);
-                if(info != null) biomePos.add(info.getSamplePos());
-            }
+            EssenceCauldronManager.addEssenceCauldron(level, pos, type);
 
-            BlockPos tpPos = biomePos.stream().findAny().orElse(null);
-            if(tpPos != null) {
-                EssenceCauldronManager.addEssenceCauldron(level, pos, tpPos);
-                entity.setPickUpDelay(100);
-            } else {
-                enchantedEssenceFailed(entity, EssenceType.getEssenceName(tag.getString(ESSENCE_DATA_TAG)));
-            }
             entity.discard();
         }
 

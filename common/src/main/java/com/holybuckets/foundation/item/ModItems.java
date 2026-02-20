@@ -21,7 +21,8 @@ public class ModItems {
     public static void commonInitialize(BalmItems items)
     {
         creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
-        items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"));
+        items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
+        new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
 
     public static void initialize(BalmItems items) {
@@ -31,6 +32,7 @@ public class ModItems {
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
             ModBlocks.empty,
             ModBlocks.stoneBrickBlockEntity,
+            ModItems.enchantedEssence
         });
     }
 

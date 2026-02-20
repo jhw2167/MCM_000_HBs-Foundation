@@ -115,7 +115,7 @@ public class EssenceCauldronManager {
 
              Map.Entry<BlockPos, Holder<Biome>> tpData = data.getTeleportPos();
              for(ServerPlayer player : players) {
-                if( player.level().equals(level) && player.blockPosition().closerThan(pos, 3))
+                if( player.level().equals(level) && player.blockPosition().closerThan(pos, 2))
                 {
                     handlePlayerTeleport(player, tpData);
                 }
@@ -146,10 +146,13 @@ public class EssenceCauldronManager {
                 tpBiome).getString() );
 
         BlockPos playerEnd = player.blockPosition();
+        int blockDist = HBUtil.BlockUtil.distanceSqr(playerStart, playerEnd);
+        String dist = Math.sqrt(blockDist) + "";
         CommonClass.MESSAGER.sendChat(player,
             Component.translatable("item.hbs_foundation.enchanted_essence.teleport_success_chat",
                 HBUtil.BlockUtil.positionToString(playerStart),
-                HBUtil.BlockUtil.positionToString(playerEnd)).getString());
+                HBUtil.BlockUtil.positionToString(playerEnd),
+                dist).getString());
 
     }
 
@@ -314,14 +317,19 @@ public class EssenceCauldronManager {
 
 
         private int particleTick = 0;
-
         private void spawnParticles(List<Object[]> particles) {
+            ServerLevel serverLevel = (ServerLevel) level;
             for (Object[] p : particles) {
-                level.addParticle(
-                    ParticleTypes.BUBBLE_COLUMN_UP,
-                    true,
-                    (Double) p[1], (Double) p[2], (Double) p[3],
-                    (Double) p[4], (Double) p[5], (Double) p[6]
+                serverLevel.sendParticles(
+                    (ParticleOptions) p[0],
+                    ((Number) p[1]).doubleValue(),
+                    ((Number) p[2]).doubleValue(),
+                    ((Number) p[3]).doubleValue(),
+                    1,
+                    ((Number) p[4]).doubleValue(),
+                    ((Number) p[5]).doubleValue(),
+                    ((Number) p[6]).doubleValue(),
+                    0.0
                 );
             }
         }

@@ -13,9 +13,9 @@ import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -62,8 +62,9 @@ public class ManagedPlayer {
         if(player instanceof ServerPlayer sp) {
             this.serverPlayer = sp;
             PENDING_PLAYERS.add(sp);
-            if(GeneralConfig.getInstance().getServer() instanceof IntegratedServer)
-                CLIENT_PLAYER = this;
+            CLIENT_PLAYER = this;
+            if(GeneralConfig.getInstance().getServer() instanceof DedicatedServer)
+                CLIENT_PLAYER = null;
         }
         //player is not defined yet here, cannot collect id, but have ref to player
     }
@@ -89,8 +90,9 @@ public class ManagedPlayer {
         }
 
         PLAYERS.put(this.id, this);
-        if(GeneralConfig.getInstance().getServer() instanceof IntegratedServer)
-            CLIENT_PLAYER = this;
+        CLIENT_PLAYER = this;
+        if(GeneralConfig.getInstance().getServer() instanceof DedicatedServer)
+            CLIENT_PLAYER = null;
     }
 
     /**

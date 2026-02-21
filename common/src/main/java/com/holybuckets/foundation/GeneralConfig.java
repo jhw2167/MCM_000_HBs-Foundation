@@ -18,7 +18,6 @@ import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
@@ -317,7 +316,6 @@ public class GeneralConfig {
     public boolean isIntegrated() {
         if(this.getServer()==null) return false;
         if(this.getServer() instanceof DedicatedServer) return false;
-        if(this.getServer() instanceof IntegratedServer) return true;
         return isServerSide && isClientSide;
     }
 

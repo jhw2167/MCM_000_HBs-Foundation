@@ -38,6 +38,16 @@ public class LevelSaveData {
         this.properties = new ConcurrentHashMap<>();
     }
 
+    public LevelSaveData(String levelId)
+    {
+        super();
+        if(levelId == null || levelId.isEmpty())
+            throw new IllegalArgumentException("Level ID cannot be null or empty");
+        this.levelId = levelId;
+        this.level = null;
+        this.properties = new ConcurrentHashMap<>();
+    }
+
     public LevelSaveData(JsonObject json)
     {
         super();

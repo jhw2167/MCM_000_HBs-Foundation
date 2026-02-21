@@ -63,6 +63,7 @@ public class GeneralConfig {
     private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
+    private LevelSaveData playerSaveData;
 
 
     /**
@@ -80,6 +81,7 @@ public class GeneralConfig {
         this.running = true;
         this.isWorldConfigInit = false;
         this.worldSeed = 0L;
+        this.playerSaveData = null;
     }
 
     public static void init(EventRegistrar reg)
@@ -170,6 +172,13 @@ public class GeneralConfig {
         this.performanceImpactConfig = new PerformanceImpactConfig();
     }
 
+    private void initPlayerSaveData() {
+        if (this.playerSaveData == null) {
+            // Create a fake level save data for storing player NBT data
+            this.playerSaveData = new LevelSaveData("PLAYER_DATA");
+        }
+    }
+
 
     public static GeneralConfig getInstance() {
         return instance;
@@ -192,11 +201,19 @@ public class GeneralConfig {
         return null;
     }
 
+    public LevelSaveData getPlayerSaveData() {
+        if (this.playerSaveData == null) {
+            this.initPlayerSaveData();
+        }
+        return this.playerSaveData;
+    }
+
     /** Server Events **/
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;
         this.initPerformanceConfig();
+        this.initPlayerSaveData();
 
 
         if( this.server == null )

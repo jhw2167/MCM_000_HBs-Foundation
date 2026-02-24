@@ -1,16 +1,19 @@
 package com.holybuckets.foundation.player;
 
-import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonObject;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastore.ConcurrentLinkedSet;
-import com.holybuckets.foundation.datastore.LevelSaveData;
+import com.holybuckets.foundation.datastore.DataStore;
+import com.holybuckets.foundation.datastore.PlayerSaveData;
+import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
+import com.holybuckets.foundation.networking.ManagedPlayerSyncMessage;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -65,7 +68,7 @@ public class ManagedPlayer {
             this.serverPlayer = sp;
             PENDING_PLAYERS.add(sp);
             CLIENT_PLAYER = this;
-            if(GeneralConfig.getInstance().getServer() instanceof DedicatedServer)
+            if(GENERAL_CONFIG.getServer() instanceof DedicatedServer)
                 CLIENT_PLAYER = null;
         }
         //player is not defined yet here, cannot collect id, but have ref to player
@@ -93,7 +96,7 @@ public class ManagedPlayer {
 
         PLAYERS.put(this.id, this);
         CLIENT_PLAYER = this;
-        if(GeneralConfig.getInstance().getServer() instanceof DedicatedServer)
+        if(GENERAL_CONFIG.getServer() instanceof DedicatedServer)
             CLIENT_PLAYER = null;
     }
 
@@ -288,7 +291,7 @@ public class ManagedPlayer {
     //** Utility
     public static ManagedPlayer getManagedPlayer(Player player)
     {
-        if(!GeneralConfig.getInstance().isServerSide()) return CLIENT_PLAYER;
+        if(!GENERAL_CONFIG.isServerSide()) return CLIENT_PLAYER;
         if(player == null) return null;
         String id = HBUtil.PlayerUtil.getId(player);
         if(PLAYERS.containsKey(id)) {
@@ -413,18 +416,16 @@ public class ManagedPlayer {
         PLAYERS.put(this.getId(), this);
     }
 
-    private void saveToDataStore() {
+    private void saveToDataStore()
+    {
         if(this.player == null || this.player.isRemoved()) return;
-        if(!GeneralConfig.getInstance().isServerSide()) return;
+        if(!GENERAL_CONFIG.isServerSide()) return;
 
         try {
             CompoundTag tag = this.serializeNBT();
             if(tag.isEmpty()) return;
-            
-            // Save NBT data as string to the player save data
-            LevelSaveData playerSaveData = GeneralConfig.getInstance().getPlayerSaveData();
-            String nbtString = tag.toString();
-            playerSaveData.addProperty(this.getId(), new JsonPrimitive(nbtString));
+            PlayerSaveData playerSaveData = GENERAL_CONFIG.getPlayerSaveData();
+            playerSaveData.save(this.player, tag);
             
         } catch (Exception e) {
             LoggerBase.logError(null, "004004", "Error saving ManagedPlayer to DataStore: " + e.getMessage());
@@ -432,19 +433,16 @@ public class ManagedPlayer {
     }
 
     private void loadFromDataStore() {
-        if(!GeneralConfig.getInstance().isServerSide()) return;
+        if(!GENERAL_CONFIG.isServerSide()) return;
         if(this.getId() == null) return;
 
         try {
-            LevelSaveData playerSaveData = GeneralConfig.getInstance().getPlayerSaveData();
+            PlayerSaveData playerSaveData = GENERAL_CONFIG.getPlayerSaveData();
             if(playerSaveData.get(this.getId()) != null) {
-                String nbtString = playerSaveData.get(this.getId()).getAsString();
-                if(nbtString != null && !nbtString.isEmpty()) {
-                    // Parse the NBT string back to CompoundTag
-                    // Note: This is a simplified approach - in practice you might need a proper NBT parser
-                    CompoundTag tag = new CompoundTag();
-                    // For now, store the string and handle parsing in initSubclassesFromNbt if needed
-                    this.holdNbt = tag;
+                JsonObject nbtJson = playerSaveData.get(this.player);
+                if(nbtJson != null && nbtJson.isJsonObject())
+                {
+                   this.holdNbt = HBUtil.NetworkUtil.jsonToTag(nbtJson);
                 }
             }
         } catch (Exception e) {
@@ -454,6 +452,15 @@ public class ManagedPlayer {
 
     private void save() {
         this.saveToDataStore();
+        this.syncToClient();
+    }
+
+    public void syncToClient() {
+        if (serverPlayer == null) return;
+        CompoundTag tag = this.serializeNBT();
+        if (tag.isEmpty()) return;
+        ManagedPlayerSyncMessage msg = new ManagedPlayerSyncMessage(tag);
+        HBUtil.NetworkUtil.serverSendToPlayer(serverPlayer, msg);
     }
 
     public static void registerManagedPlayerData(Class<? extends IManagedPlayer> classObject, Supplier<IManagedPlayer> data) {
@@ -606,6 +613,12 @@ public class ManagedPlayer {
         PENDING_PLAYERS.clear();
     }
 
+    public static void onDataSave(DatastoreSaveEvent ds) {
+        for (ManagedPlayer player : PLAYERS.values()) {
+            player.save();
+        }
+    }
+
 
     public static void init(EventRegistrar reg) {
         reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
@@ -614,6 +627,8 @@ public class ManagedPlayer {
         reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
+
+        reg.registerOnDataSave(ManagedPlayer::onDataSave, EventPriority.Highest);
 
         reg.registerOnBeforeServerStarted(ManagedPlayer::onServerStarting, EventPriority.Highest);
         //reg.registerOnServerStarted(ManagedPlayer::onServerStarted, EventPriority.Highest);

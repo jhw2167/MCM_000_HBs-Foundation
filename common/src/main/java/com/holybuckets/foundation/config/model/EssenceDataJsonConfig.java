@@ -2,6 +2,8 @@ package com.holybuckets.foundation.config.model;
 
 import com.google.gson.*;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.*;
 
@@ -117,19 +119,26 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:rotten_flesh")));
 
-        // Earthen Essence
-        configs.add(new EssenceConfig("earthen",
-            Set.of("minecraft:plains", "minecraft:meadow", "minecraft:forest", "minecraft:birch_forest"),
+        configs.add(new EssenceConfig("plains",
+            Set.of("minecraft:plains", "minecraft:sunflower_plains", "minecraft:snowy_plains"),
             null,
             null, null,
-            Set.of("minecraft:dirt")));
+            Set.of("minecraft:dirt", "minecraft:grass_block", "minecraft:wheat_seeds")));
+
+
+        configs.add(new EssenceConfig("forest",
+            Set.of("minecraft:forest", "minecraft:birch_forest", "minecraft:windswept_forest", "minecraft:dark_forest"),
+            null,
+            null, null,
+            Set.of("minecraft:oak_sapling", "minecraft:oak_log")));
+
 
         // Sunflower Essence
-        configs.add(new EssenceConfig("sunflower",
-            Set.of("minecraft:sunflower_plains"),
+        configs.add(new EssenceConfig("flower",
+            Set.of("minecraft:sunflower_plains", "minecraft:meadow", "minecraft:flower_forest"),
             null,
             null, null,
-            Set.of("minecraft:sunflower")));
+            Set.of("minecraft:sunflower", "minecraft:dandelion", "minecraft:poppy")));
 
         // Savannah Essence
         configs.add(new EssenceConfig("savannah",
@@ -138,12 +147,6 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:acacia_log")));
 
-        // Pastoral Essence
-        configs.add(new EssenceConfig("pastoral",
-            Set.of("minecraft:plains", "minecraft:meadow"),
-            null,
-            null, null,
-            Set.of("minecraft:wheat")));
 
         // Birch Essence
         configs.add(new EssenceConfig("birch",
@@ -152,22 +155,8 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:birch_sapling")));
 
-        // Wildflower Essence
-        configs.add(new EssenceConfig("wildflower",
-            Set.of("minecraft:flower_forest"),
-            null,
-            null, null,
-            Set.of("minecraft:poppy")));
-
-        // Sylvan Essence
-        configs.add(new EssenceConfig("sylvan",
-            Set.of("minecraft:forest", "minecraft:windswept_forest"),
-            null,
-            null, null,
-            Set.of("minecraft:oak_sapling")));
-
         // Dark Essence
-        configs.add(new EssenceConfig("dark",
+        configs.add(new EssenceConfig("sylvan",
             Set.of("minecraft:dark_forest"),
             null,
             null, null,
@@ -178,21 +167,21 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:cherry_grove"),
             null,
             null, null,
-            Set.of("minecraft:pink_petals")));
+            Set.of("minecraft:pink_petals", "minecraft:cherry_log", "minecraft:cherry_sapling")));
 
         // Riverine Essence
-        configs.add(new EssenceConfig("riverine",
+        configs.add(new EssenceConfig("river",
             Set.of("minecraft:river", "minecraft:frozen_river"),
             null,
             null, null,
-            Set.of("minecraft:clay_ball")));
+            Set.of("minecraft:clay_ball", "minecraft:clay")));
 
         // Coastal Essence
         configs.add(new EssenceConfig("coastal",
             Set.of("minecraft:beach", "minecraft:stony_shore"),
             null,
             null, null,
-            Set.of("minecraft:turtle_egg")));
+            Set.of("minecraft:turtle_egg", "minecraft:seagrass")));
 
         // Aquatic Essence
         configs.add(new EssenceConfig("aquatic",
@@ -201,29 +190,28 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:water_bucket")));
 
-        // Kelp Essence
-        configs.add(new EssenceConfig("kelp",
-            Set.of("minecraft:ocean", "minecraft:cold_ocean", "minecraft:lukewarm_ocean"),
+        configs.add(new EssenceConfig("ocean",
+            Set.of("minecraft:ocean", "minecraft:cold_ocean", "minecraft:lukewarm_ocean", "minecraft:deep_lukewarm_ocean"),
             null,
             null, null,
-            Set.of("minecraft:kelp")));
+            Set.of("minecraft:kelp", "minecraft:kelp_block", "minecraft:prismarine")));
 
         // Abyssal Essence
         configs.add(new EssenceConfig("abyssal",
             Set.of("minecraft:deep_ocean", "minecraft:deep_cold_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:deep_frozen_ocean"),
             null,
             null, null,
-            Set.of("minecraft:heart_of_the_sea")));
+            Set.of("minecraft:heart_of_the_sea", "minecraft:trident", "minecraft:nautilus_shell")));
 
         // Tropical Sea Essence
-        configs.add(new EssenceConfig("tropical_sea",
+        configs.add(new EssenceConfig("tropical",
             Set.of("minecraft:warm_ocean", "minecraft:lukewarm_ocean"),
             null,
             null, null,
-            Set.of("minecraft:tropical_fish")));
+            Set.of("minecraft:tropical_fish",  "minecraft:tube_coral", "minecraft:brain_coral", "minecraft:bubble_coral", "minecraft:fire_coral", "minecraft:horn_coral")));
 
         // Frozen Sea Essence
-        configs.add(new EssenceConfig("frozen_sea",
+        configs.add(new EssenceConfig("arctic",
             Set.of("minecraft:frozen_ocean", "minecraft:deep_frozen_ocean"),
             null,
             null, null,
@@ -234,63 +222,56 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:jungle", "minecraft:sparse_jungle"),
             null,
             null, null,
-            Set.of("minecraft:cocoa_beans")));
+            Set.of("minecraft:cocoa_beans", "minecraft:jungle_log", "minecraft:jungle_sapling", "minecraft:vines")));
 
         // Bamboo Essence
         configs.add(new EssenceConfig("bamboo",
             Set.of("minecraft:bamboo_jungle"),
             null,
             null, null,
-            Set.of("minecraft:bamboo")));
+            Set.of("minecraft:bamboo", "minecraft:bamboo_block" )));
 
         // Swamp Essence
         configs.add(new EssenceConfig("swamp",
-            Set.of("minecraft:swamp"),
+            Set.of("minecraft:swamp", "minecraft:mangrove_swamp"),
             null,
             null, null,
-            Set.of("minecraft:lily_pad")));
+            Set.of("minecraft:lily_pad", "minecraft:slime_ball", "minecraft:mud")));
 
         // Mangrove Essence
         configs.add(new EssenceConfig("mangrove",
             Set.of("minecraft:mangrove_swamp"),
             null,
             null, null,
-            Set.of("minecraft:mangrove_propagule")));
+            Set.of("minecraft:mangrove_log", "minecraft:mangrove_propagule", "minecraft:mangrove_roots")));
 
         // Taiga Essence
         configs.add(new EssenceConfig("taiga",
-            Set.of("minecraft:taiga", "minecraft:old_growth_spruce_taiga"),
+            Set.of("minecraft:taiga", "minecraft:old_growth_spruce_taiga", "minecraft:old_growth_pine_taiga"),
             null,
             null, null,
-            Set.of("minecraft:spruce_sapling")));
-
-        // Old Growth Essence
-        configs.add(new EssenceConfig("old_growth",
-            Set.of("minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga"),
-            null,
-            null, null,
-            Set.of("minecraft:moss_block")));
+            Set.of("minecraft:spruce_sapling", "minecraft:spruce_log", "minecraft:spruce_leaves")));
 
         // Frostbitten Essence
-        configs.add(new EssenceConfig("frostbitten",
+        configs.add(new EssenceConfig("snowy",
             Set.of("minecraft:snowy_plains", "minecraft:snowy_beach", "minecraft:snowy_taiga", "minecraft:snowy_slopes"),
             null,
             null, null,
-            Set.of("minecraft:powder_snow_bucket")));
+            Set.of("minecraft:snowball", "minecraft:snow")));
 
         // Glacial Essence
         configs.add(new EssenceConfig("glacial",
-            Set.of("minecraft:ice_spikes", "minecraft:frozen_peaks"),
+            Set.of("minecraft:ice_spikes", "minecraft:frozen_peaks", "minecraft:frozen_river", "minecraft:frozen_ocean"),
             null,
             null, null,
-            Set.of("minecraft:packed_ice")));
+            Set.of("minecraft:packed_ice", "minecraft:ice")));
 
         // Alpine Essence
         configs.add(new EssenceConfig("alpine",
-            Set.of("minecraft:grove", "minecraft:snowy_slopes"),
+            Set.of("minecraft:grove", "minecraft:snowy_slopes", "minecraft:snowy_taiga"),
             null,
             null, null,
-            Set.of("minecraft:sweet_berries")));
+            Set.of("minecraft:snow_block", "minecraft:fern")));
 
         // Peaks Essence
         configs.add(new EssenceConfig("peaks",
@@ -307,11 +288,19 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:emerald")));
 
         // Arid Essence
-        configs.add(new EssenceConfig("arid",
+        configs.add(new EssenceConfig("desert",
             Set.of("minecraft:desert"),
             null,
             null, null,
-            Set.of("minecraft:cactus")));
+            Set.of("minecraft:cactus", "minecraft:dead_bush")));
+
+        configs.add(new EssenceConfig("sandy",
+            Set.of("minecraft:desert", "minecraft:beach", "minecraft:red_sand_desert"),
+            null,
+            null, null,
+            Set.of("minecraft:sand", "minecraft:sandstone", "minecraft:red_sand", "minecraft:red_sandstone")));
+
+
 
         // Terracotta Essence
         configs.add(new EssenceConfig("terracotta",
@@ -332,14 +321,14 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:lush_caves"),
             null,
             null, null,
-            Set.of("minecraft:glow_berries")));
+            Set.of("minecraft:glow_berries", "minecraft:moss_block" )));
 
         // Dripstone Essence
-        configs.add(new EssenceConfig("dripstone",
-            Set.of("minecraft:dripstone_caves"),
+        configs.add(new EssenceConfig("cave",
+            Set.of("minecraft:dripstone_caves", "minecraft:lush_caves"),
             null,
             null, null,
-            Set.of("minecraft:pointed_dripstone")));
+            Set.of("minecraft:pointed_dripstone", "minecraft:dripstone_block")));
 
         // Sculk Essence
         configs.add(new EssenceConfig("sculk",
@@ -401,9 +390,6 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:wither_skeleton_skull")));
 
-        // =============================================
-        // END
-        // =============================================
 
         // Ender Essence
         configs.add(new EssenceConfig("ender",
@@ -412,28 +398,18 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             null, null,
             Set.of("minecraft:ender_pearl")));
 
-        // Chorus Essence
         configs.add(new EssenceConfig("chorus",
-            Set.of("minecraft:end_highlands", "minecraft:end_midlands"),
-            null,
-            null, null,
-            Set.of("minecraft:chorus_fruit")));
-
-        // End Void Essence
-        configs.add(new EssenceConfig("end_void",
             Set.of("minecraft:end_barrens", "minecraft:end_midlands", "minecraft:end_highlands"),
             null,
             null, null,
-            Set.of("minecraft:shulker_shell")));
-
-        // Void Essence
-        configs.add(new EssenceConfig("void",
-            Set.of("minecraft:the_void"),
-            null,
-            null, null,
-            Set.of("minecraft:ender_eye")));
+            Set.of("minecraft:shulker_shell", "minecraft:chorus_fruit")));
 
         return new EssenceDataJsonConfig(configs);
+
+        //List all the eseences: Plains, Forest, Sunflower, Savannah, Birch, Sylvan, Cherry Blossom, River, Coastal, Aquatic, Ocean, Abyssal, Tropical Sea, Frozen Sea, Jungle, Bamboo, Swamp, Mangrove, Taiga, Snowy, Glacial, Alpine, Peaks, Windswept, Desert, Sandy, Terracotta, Gilded, Lush Caves, Dripstone Caves, Sculk/Deep Dark, Mycelial/Mushroom Fields
+
+        //Count the total essence configs: 29 overworld, 5 nether, 2 end = 36 total
+
     }
 
     private static String serializeConfigs(Map<String, EssenceConfig> configs)

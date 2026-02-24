@@ -21,6 +21,7 @@ import static com.holybuckets.foundation.HBUtil.LevelUtil;
 public class WorldSaveData {
 
     String worldId;
+    PlayerSaveData playerSaveData;
     final Map<String, JsonElement> properties;
     final Map<String, LevelSaveData> levelData;
 
@@ -66,6 +67,10 @@ public class WorldSaveData {
         return data;
     }
 
+    public PlayerSaveData getPlayerSaveData() {
+        return playerSaveData;
+    }
+
     public void removeLevelSaveData(LevelAccessor level) {
         levelData.remove(LevelUtil.toLevelId(level));
     }
@@ -97,6 +102,10 @@ public class WorldSaveData {
         });
         json.add("levelData", levelDataArray);
 
+        //write playerSaveData under GeneralConfig.PLAYER_DATA_KEY
+        if(playerSaveData == null) playerSaveData = new PlayerSaveData();
+        json.add(GeneralConfig.PLAYER_DATA_KEY, playerSaveData.toJson());
+
         return json;
     }
 
@@ -110,6 +119,11 @@ public class WorldSaveData {
         JsonArray levelData = json.getAsJsonArray("levelData");
         levelData.forEach(this::createLevelSaveData);
         json.remove("levelData");
+
+        JsonElement playerData = json.get(GeneralConfig.PLAYER_DATA_KEY);
+        if(playerData == null) playerData = new JsonObject();
+        this.playerSaveData = new PlayerSaveData(playerData.getAsJsonObject());
+        json.remove(GeneralConfig.PLAYER_DATA_KEY);
 
         this.properties.putAll(json.asMap());
     }
@@ -129,6 +143,5 @@ public class WorldSaveData {
             properties.put("worldSeed", new JsonPrimitive(GeneralConfig.getInstance().getWorldSeed()));
         }
     }
-
 
 }

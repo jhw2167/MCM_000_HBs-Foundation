@@ -9,6 +9,7 @@ import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Either;
+import com.mojang.serialization.JsonOps;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -20,6 +21,7 @@ import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
@@ -1498,6 +1500,23 @@ public class HBUtil {
 
         public static synchronized <T> void clientSendToServer(T message) {
             networking.sendToServer(message);
+        }
+
+        //** BASICS
+
+        // CompoundTag → JSON String
+        public static JsonElement tagToJson(CompoundTag tag) {
+            return CompoundTag.CODEC
+                .encodeStart(JsonOps.INSTANCE, tag)
+                .result().orElse(new JsonObject());
+        }
+
+        // String → CompoundTag
+        public static CompoundTag jsonToTag(JsonElement json) {
+            return CompoundTag.CODEC
+                .parse(JsonOps.INSTANCE, json)
+                .result()
+                .orElse(new CompoundTag());
         }
     }
 

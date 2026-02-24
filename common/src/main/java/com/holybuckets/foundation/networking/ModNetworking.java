@@ -18,5 +18,9 @@ public class ModNetworking {
         networking.registerServerboundPacket(id(SimpleStringMessage.LOCATION+"_server"), SimpleStringServerMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleServerString, Handlers::handleSimpleString);
 
         networking.registerClientboundPacket(id(StructureInfoMessage.LOCATION), StructureInfoMessage.class, Codecs::encodeStructureInfo, Codecs::decodeStructureInfo, Handlers::handleStructureInfo);
+
+        networking.registerClientboundPacket(
+            id(ManagedPlayerSyncMessage.LOCATION), ManagedPlayerSyncMessage.class, Codecs::encode, Codecs::decode, ManagedPlayerSyncHandler::handle
+        );
     }
 }

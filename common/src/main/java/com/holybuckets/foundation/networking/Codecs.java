@@ -125,4 +125,17 @@ public class Codecs {
         
         return new StructureInfoMessage(senderId, structures);
     }
+
+
+    //MANAGED PLAYER
+
+    public static FriendlyByteBuf encode(ManagedPlayerSyncMessage msg, FriendlyByteBuf buf) {
+        buf.writeNbt(msg.nbt);
+        return buf;
+    }
+
+    public static ManagedPlayerSyncMessage decode(FriendlyByteBuf buf) {
+        CompoundTag nbt = buf.readNbt();
+        return new ManagedPlayerSyncMessage(nbt);
+    }
 }

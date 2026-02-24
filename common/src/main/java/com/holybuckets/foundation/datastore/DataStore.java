@@ -88,6 +88,11 @@ public class DataStore implements IStringSerializable {
         return worldData.getOrCreateLevelSaveData(level);
     }
 
+    public PlayerSaveData getPlayerSaveData() {
+        WorldSaveData worldData = getOrCreateWorldSaveData(Constants.MOD_ID);
+        return worldData.getPlayerSaveData();
+    }
+
 
     /**
      * Initialize a worldSaveData object on HB's Utility when a level loads

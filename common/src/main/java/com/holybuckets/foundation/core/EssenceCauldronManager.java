@@ -147,7 +147,7 @@ public class EssenceCauldronManager {
 
         BlockPos playerEnd = player.blockPosition();
         int blockDist = HBUtil.BlockUtil.distanceSqr(playerStart, playerEnd);
-        String dist = Math.sqrt(blockDist) + "";
+        String dist = (int) Math.sqrt(blockDist) + "";
         CommonClass.MESSAGER.sendChat(player,
             Component.translatable("item.hbs_foundation.enchanted_essence.teleport_success_chat",
                 HBUtil.BlockUtil.positionToString(playerStart),

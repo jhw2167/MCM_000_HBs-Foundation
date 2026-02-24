@@ -5,10 +5,12 @@ package com.holybuckets.foundation;
 //Forge Imports
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
+import com.holybuckets.foundation.datastore.PlayerSaveData;
 import com.holybuckets.foundation.datastore.WorldSaveData;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
@@ -63,7 +65,7 @@ public class GeneralConfig {
     private boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
-    private LevelSaveData playerSaveData;
+    private PlayerSaveData playerSaveData;
 
 
     /**
@@ -172,12 +174,7 @@ public class GeneralConfig {
         this.performanceImpactConfig = new PerformanceImpactConfig();
     }
 
-    private void initPlayerSaveData() {
-        if (this.playerSaveData == null) {
-            // Create a fake level save data for storing player NBT data
-            this.playerSaveData = new LevelSaveData("PLAYER_DATA");
-        }
-    }
+    public static String PLAYER_DATA_KEY = "PLAYER_DATA";
 
 
     public static GeneralConfig getInstance() {
@@ -201,20 +198,12 @@ public class GeneralConfig {
         return null;
     }
 
-    public LevelSaveData getPlayerSaveData() {
-        if (this.playerSaveData == null) {
-            this.initPlayerSaveData();
-        }
-        return this.playerSaveData;
-    }
 
     /** Server Events **/
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;
         this.initPerformanceConfig();
-        this.initPlayerSaveData();
-
 
         if( this.server == null )
             this.server = event.getServer();
@@ -231,6 +220,7 @@ public class GeneralConfig {
         }
 
         this.dataStore.onBeforeServerStarted(event);
+        this.playerSaveData = dataStore.getPlayerSaveData();
     }
 
     public void onServerStopped(ServerStoppedEvent event) {
@@ -381,6 +371,10 @@ public class GeneralConfig {
         if(this.performanceImpactConfig == null)
             this.initPerformanceConfig();
         return performanceImpactConfig;
+    }
+
+    public PlayerSaveData getPlayerSaveData() {
+        return dataStore.getPlayerSaveData();
     }
 
     /**

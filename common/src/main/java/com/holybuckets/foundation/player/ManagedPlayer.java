@@ -167,10 +167,11 @@ public class ManagedPlayer {
 
         if (this.player != null)
         {
-            if(id==null) id = HBUtil.PlayerUtil.getId(player);
+            if(id==null)
+                id = HBUtil.PlayerUtil.getId(player);
             try {
                 this.loadFromDataStore();
-                this.initSubclassesFromNbt(this.holdNbt);
+                this.initSubclassesFromNbt(holdNbt);
                 this.holdNbt = null; // Clear the held NBT after processing
                 this.onPlayerJoinComplete();
             } catch (InvalidId e) {
@@ -440,8 +441,7 @@ public class ManagedPlayer {
             PlayerSaveData playerSaveData = GENERAL_CONFIG.getPlayerSaveData();
             if(playerSaveData.get(this.getId()) != null) {
                 JsonObject nbtJson = playerSaveData.get(this.player);
-                if(nbtJson != null && nbtJson.isJsonObject())
-                {
+                if(nbtJson != null && nbtJson.isJsonObject()) {
                    this.holdNbt = HBUtil.NetworkUtil.jsonToTag(nbtJson);
                 }
             }
@@ -450,17 +450,30 @@ public class ManagedPlayer {
         }
     }
 
-    private void save() {
+    /**
+     * Saves data to dataStore and syncs it with the client
+     */
+    public void save() {
         this.saveToDataStore();
         this.syncToClient();
     }
 
-    public void syncToClient() {
+    private void syncToClient() {
         if (serverPlayer == null) return;
         CompoundTag tag = this.serializeNBT();
         if (tag.isEmpty()) return;
         ManagedPlayerSyncMessage msg = new ManagedPlayerSyncMessage(tag);
         HBUtil.NetworkUtil.serverSendToPlayer(serverPlayer, msg);
+    }
+
+    public void syncClient(CompoundTag tag) {
+        if(tag == null || tag.isEmpty()) return;
+        try {
+            this.deserializeNBT(tag);
+            this.initSubclassesFromNbt(tag);
+        } catch (Exception e) {
+            LoggerBase.logError(null, "004016", "Error syncing ManagedPlayer from server: " + e.getMessage());
+        }
     }
 
     public static void registerManagedPlayerData(Class<? extends IManagedPlayer> classObject, Supplier<IManagedPlayer> data) {

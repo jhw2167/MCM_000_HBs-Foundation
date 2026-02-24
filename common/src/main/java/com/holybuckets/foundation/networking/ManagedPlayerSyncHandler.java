@@ -10,24 +10,15 @@ import net.minecraft.world.entity.player.Player;
  * Applies incoming NBT to ManagedPlayer.CLIENT_PLAYER.
  */
 public class ManagedPlayerSyncHandler {
+    public static String CLASS_ID = "040";
 
     public static void handle(Player player, ManagedPlayerSyncMessage message)
     {
         ManagedPlayer mp = ManagedPlayer.CLIENT_PLAYER;
         if (mp == null) {
-            LoggerBase.logError(null, "004020",
-                "ManagedPlayerSyncHandler: CLIENT_PLAYER is null, cannot apply sync");
+            LoggerBase.logError(null, "040020", "ManagedPlayerSyncHandler: CLIENT_PLAYER is null, cannot apply sync");
             return;
         }
-
-        CompoundTag nbt = message.nbt;
-        if (nbt == null || nbt.isEmpty()) return;
-
-        try {
-            mp.deserializeNBT(nbt);
-        } catch (Exception e) {
-            LoggerBase.logError(null, "004021",
-                "ManagedPlayerSyncHandler: error applying NBT sync: " + e.getMessage());
-        }
+        mp.syncClient(message.nbt);
     }
 }

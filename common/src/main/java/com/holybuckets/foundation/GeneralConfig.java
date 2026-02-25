@@ -62,7 +62,7 @@ public class GeneralConfig {
     private final Map<String, Level> LEVELS;
     private Map<Level, Vec3i> WORLD_SPAWNS;
     private Long worldSeed;
-    private boolean isWorldConfigInit;
+    private volatile boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
     private PlayerSaveData playerSaveData;
@@ -200,6 +200,9 @@ public class GeneralConfig {
 
 
     /** Server Events **/
+    public void onPlayerConnectedToServer() {
+        this.isWorldConfigInit = true;
+    }
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;

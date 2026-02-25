@@ -142,6 +142,8 @@ public class WorldSaveData {
         if(!properties.containsKey("worldSeed")) {
             properties.put("worldSeed", new JsonPrimitive(GeneralConfig.getInstance().getWorldSeed()));
         }
+
+        playerSaveData = new PlayerSaveData();
     }
 
 }

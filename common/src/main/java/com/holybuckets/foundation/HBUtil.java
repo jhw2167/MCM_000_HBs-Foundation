@@ -127,11 +127,19 @@ public class HBUtil {
         }
 
 
-        public static String getId(Player p) {
+        /**
+         * Returns empty string if the gameProfile is not ready
+         * @param p
+         * @return
+         */
+        public static String getId(Player p)
+        {
+            if(p==null) return "";
+
             GameProfile gp = p.getGameProfile();
             if( gp == null ) {
                 LoggerBase.logError( null, "004000", "Error getting player id, game profile is null");
-                return null;
+                return p.getStringUUID();
             }
             String prefix = "CLIENT:";
             if( p instanceof ServerPlayer || GeneralConfig.getInstance().isIntegrated() ) {

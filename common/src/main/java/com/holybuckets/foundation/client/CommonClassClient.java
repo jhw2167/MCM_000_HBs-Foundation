@@ -1,8 +1,10 @@
 package com.holybuckets.foundation.client;
 import com.holybuckets.foundation.CommonClass;
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.core.MovingWaypoint;
 import com.holybuckets.foundation.core.WoolColorHelper;
+import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.player.ManagedPlayer;
@@ -33,7 +35,6 @@ public class CommonClassClient {
         //reg.registerOnBlockHighlightDraw(CommonClassClient::onBlockHighlightDraw, EventPriority.Normal);
         ClientInput.init(reg);
         messager.init(reg);
-        initManagedPlayer(reg);
         initStructureManager(reg);
         MovingWaypoint.registerEvents(reg);
 
@@ -41,19 +42,10 @@ public class CommonClassClient {
         ClientBalmEventRegister.registerEvents();
     }
 
-    public static void initManagedPlayer(ClientEventRegistrar reg) {
-    reg.registerOnConnectedToServer( e -> ManagedPlayer.onClientConnectedToServer(
-        Minecraft.getInstance().player), EventPriority.Highest);
-    }
 
     public static void initStructureManager(ClientEventRegistrar reg) {
         reg.registerOnClientTick(TickType.ON_120_TICKS ,
              e -> StructureManager.fireSyncClientStructureCountsToServer(Minecraft.getInstance().player));
-             /*
-        reg.registerOnConnectedToServer(
-             e -> StructureManager.onConnectedToServer(Minecraft.getInstance().player));
-        StructureManager.clientInit();
-              */
     }
 
     private static void initRenderers() {
@@ -61,9 +53,26 @@ public class CommonClassClient {
     }
 
     //** Events
-    private static void onPlayerConnectToServer(ConnectedToServerEvent event) {
+    private static void onPlayerConnectToServer(ConnectedToServerEvent event)
+    {
+        GeneralConfig.getInstance().onPlayerConnectedToServer();
         CommonClass.MESSAGER = MessagerClient.getInstance();
+        DataStore.onPlayerConnectToServer(getServerName(event.getClient()));
         WoolColorHelper.initWoolColors();
+
+        ManagedPlayer.onClientConnectedToServer(Minecraft.getInstance().player);
+    }
+
+    private static String getServerName(Minecraft mc)
+    {
+        if (mc.getCurrentServer() == null || mc.getCurrentServer().name == null) {
+            return "Unknown Server";
+        }
+        String serverName = mc.getCurrentServer().name;
+        String serverIp = mc.getCurrentServer().ip;
+        //Combine serverName and last 4 digits of serverIp for a unique identifier
+        String serverIdentifier = serverName + "_" + (serverIp.length() > 4 ? serverIp.substring(serverIp.length() - 4) : serverIp);
+        return serverIdentifier;
     }
 
 

@@ -96,10 +96,9 @@ public class DataStore implements IStringSerializable {
 
     /**
      * Initialize a worldSaveData object on HB's Utility when a level loads
-     * @param event - server started
      * @return true if the worldSaveData object was initialized, false if it already exists
      */
-    public boolean initWorldDataOnServerStart(ServerStartingEvent event)
+    public boolean initWorldDataOnServerStart()
     {
         ModSaveData modData = getOrCreateModSavedData(Constants.MOD_ID);
         if (modData.worldSaveData.containsKey(currentWorldId)) {
@@ -204,18 +203,22 @@ public class DataStore implements IStringSerializable {
     }
 
     //** EVENTS
+    public static void onPlayerConnectToServer(String worldId) {
+        INSTANCE.currentWorldId = worldId;
+        INSTANCE.initWorldDataOnServerStart();
+    }
 
 
-    public void onBeforeServerStarted(ServerStartingEvent event) {
+    public static void onBeforeServerStarted(ServerStartingEvent event) {
         MinecraftServer s = event.getServer();
         Path path = s.getWorldPath( LevelResource.ROOT );
 
-        this.loadData( path );
-        this.initWorldDataOnServerStart(event);
+        INSTANCE.loadData( path );
+        INSTANCE.initWorldDataOnServerStart();
     }
 
-    public void onServerStopped( ServerStoppedEvent s ) {
-        this.shutdown(s);
+    public static void onServerStopped( ServerStoppedEvent s ) {
+        INSTANCE.shutdown(s);
     }
 
     public void shutdown(ServerStoppedEvent s)

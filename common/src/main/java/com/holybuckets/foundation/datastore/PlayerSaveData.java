@@ -15,6 +15,7 @@ import static com.holybuckets.foundation.GeneralConfig.GSON;
  * Stores a levelID and any data associated with a level that we want to persist
  */
 public class PlayerSaveData {
+    final Map<String,String> uuids;
     final Map<String, JsonElement> playerNbt;
 
     /** STATICS **/
@@ -28,6 +29,7 @@ public class PlayerSaveData {
     public PlayerSaveData() {
         super();
         this.playerNbt = new ConcurrentHashMap<>();
+        this.uuids = new ConcurrentHashMap<>();
     }
 
     public PlayerSaveData(JsonObject json) {
@@ -58,6 +60,14 @@ public class PlayerSaveData {
         return playerNbt.get(playerId).getAsJsonObject();
     }
 
+    public String getGameProfileId(String uuid) {
+        return uuids.getOrDefault(uuid, "");
+    }
+
+    public String putUuid(String uuid, String profileId) {
+        return uuids.put(uuid, profileId);
+    }
+
     /** Serializers */
 
     JsonObject toJson()
@@ -67,11 +77,29 @@ public class PlayerSaveData {
             json.add(key, value);
         });
 
+        JsonObject uuidsJson = new JsonObject();
+        this.uuids.forEach( (uuid, profileId) -> {
+            uuidsJson.addProperty(uuid, profileId);
+        });
+        json.add("uuids", uuidsJson);
+
         return json;
+    }
+
+    public boolean containsUuid(String uuid) {
+        return uuids.containsKey(uuid);
     }
 
     public void fromJson(JsonObject json)
     {
+        this.uuids.clear();
+        if(json.has("uuids")) {
+            JsonObject uuidsJson = json.getAsJsonObject("uuids");
+            uuidsJson.entrySet().forEach( entry -> {
+                this.uuids.put(entry.getKey(), entry.getValue().getAsString());
+            });
+        }
+
         this.playerNbt.clear();
         this.playerNbt.putAll(json.asMap());
     }

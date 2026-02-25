@@ -38,7 +38,7 @@ public class ManagedPlayer {
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
-    static final LinkedHashSet<ServerPlayer> PENDING_PLAYERS = new LinkedHashSet<>();
+    static final Map<ServerPlayer, String> PENDING_PLAYERS = new HashMap();
 
     public static ManagedPlayer CLIENT_PLAYER;
 
@@ -54,33 +54,16 @@ public class ManagedPlayer {
     public final ConcurrentLinkedSet<Entity> nearbyLivingEntities;
 
 
-    public ManagedPlayer() {
+    private ManagedPlayer() {
         super();
         this.nearbyLivingEntities = new ConcurrentLinkedSet<>();
     }
 
-    public ManagedPlayer(Player player)
+    public ManagedPlayer(String id)
     {
         this();
-        this.player = player;
-        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-        if(player instanceof ServerPlayer sp) {
-            this.serverPlayer = sp;
-            PENDING_PLAYERS.add(sp);
-            CLIENT_PLAYER = this;
-            if(GENERAL_CONFIG.getServer() instanceof DedicatedServer)
-                CLIENT_PLAYER = null;
-        }
-        //player is not defined yet here, cannot collect id, but have ref to player
-    }
-
-    public ManagedPlayer(Player player, String id)
-    {
-        this(player);
         this.id = id;
-        if(player instanceof ServerPlayer sp) {
-            PLAYERS.put(this.id, this);
-        }
+        this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
     }
 
     public ManagedPlayer(CompoundTag tag) {
@@ -165,28 +148,24 @@ public class ManagedPlayer {
             this.player = p;
         }
 
-        if (this.player != null)
-        {
-            if(id==null)
-                id = HBUtil.PlayerUtil.getId(player);
-            try {
-                this.loadFromDataStore();
-                this.initSubclassesFromNbt(holdNbt);
-                this.holdNbt = null; // Clear the held NBT after processing
-                this.onPlayerJoinComplete();
-            } catch (InvalidId e) {
-                String msg = String.format("Invalid id: initializing ManagedPlayer from NBT for player %s: %s",
-                        player.getName().getString(), e.getMessage());
-                LoggerBase.logError(null, "004005", msg);
-                return false;
-            }
-            return true;
+        id = HBUtil.PlayerUtil.getId(player);
+        try {
+            //this.loadFromDataStore();
+            this.initSubclassesFromNbt(holdNbt);
+            this.holdNbt = null; // Clear the held NBT after processing
+            this.onPlayerJoinComplete();
+        } catch (InvalidId e) {
+            String msg = String.format("Invalid id: initializing ManagedPlayer from NBT for player %s: %s",
+                    player.getName().getString(), e.getMessage());
+            LoggerBase.logError(null, "004005", msg);
+            return false;
         }
-        return false;
+        return true;
+
     }
 
     //** CORE **//
-    private static int MOB_DETECTION_RADIUS = 48;
+    private static int MOB_DETECTION_RADIUS = 64;
     private void updateNearbyMobs()
     {
         if (!(serverPlayer instanceof ServerPlayer)) return;
@@ -290,15 +269,30 @@ public class ManagedPlayer {
     }
 
     //** Utility
-    public static ManagedPlayer getManagedPlayer(Player player)
+    public static ManagedPlayer getManagedPlayer(CompoundTag tag)
     {
+        if(tag == null || tag.isEmpty() || !tag.contains("id")) return null;
+        return getManagedPlayer(tag.getString("id"));
+    }
+
+    public static ManagedPlayer getManagedPlayer(Player player) {
         if(!GENERAL_CONFIG.isServerSide()) return CLIENT_PLAYER;
         if(player == null) return null;
-        String id = HBUtil.PlayerUtil.getId(player);
-        if(PLAYERS.containsKey(id)) {
-            return PLAYERS.get(id);
+        if(player.getGameProfile()==null) {
+            String uuid = player.getStringUUID();
+            PENDING_PLAYERS.put((ServerPlayer)  player, uuid);
+            return getManagedPlayer(uuid);
         }
-        return PLAYERS.getOrDefault(id, new ManagedPlayer(player));
+        String id = HBUtil.PlayerUtil.getId(player);
+        return getManagedPlayer(id);
+    }
+
+
+    public static ManagedPlayer getManagedPlayer(String id) {
+        if(!GENERAL_CONFIG.isServerSide()) return CLIENT_PLAYER;
+        if(PLAYERS.containsKey(id)) return PLAYERS.get(id);
+        PLAYERS.put(id, new ManagedPlayer(id));
+        return PLAYERS.get(id);
     }
 
     @Nullable
@@ -450,6 +444,22 @@ public class ManagedPlayer {
         }
     }
 
+    private void initPendingPlayer() {
+        if(this.holdNbt!=null) {
+            try {
+                initSubclassesFromNbt(this.holdNbt);
+                this.syncToClient();
+            }
+            catch (Exception ex) {
+                LoggerBase.logError(null, "004017", "Error initializing pending player from NBT: " + ex.getMessage());
+            }
+            finally {
+                holdNbt = null;
+                PENDING_PLAYERS.remove(this.serverPlayer);
+            }
+        }
+    }
+
     /**
      * Saves data to dataStore and syncs it with the client
      */
@@ -484,7 +494,7 @@ public class ManagedPlayer {
     //** EVENT
     public static void onClientConnectedToServer(Player player) {
         if(CLIENT_PLAYER == null)
-            CLIENT_PLAYER = new ManagedPlayer(player, HBUtil.PlayerUtil.getId(player));
+            CLIENT_PLAYER = new ManagedPlayer(HBUtil.PlayerUtil.getId(player));
         CLIENT_PLAYER.initJoinedPlayer(player);
     }
 
@@ -493,14 +503,22 @@ public class ManagedPlayer {
     {
 
         Player player = event.getPlayer();
-        if(player instanceof  ServerPlayer sp)
-        {
-            String id = HBUtil.PlayerUtil.getId(player);
-            ManagedPlayer mp = PLAYERS.get(id);
-            if(mp == null) mp = new ManagedPlayer(player, id);
+        String id = HBUtil.PlayerUtil.getId(player);
+        String uuid = player.getGameProfile().getId().toString();
+        GENERAL_CONFIG.getPlayerSaveData().putUuid(uuid, id);
 
-            PLAYERS.put(id , mp);
-            PENDING_PLAYERS.add(sp);
+        if(player instanceof ServerPlayer sp)
+        {
+            String oldUuid = PENDING_PLAYERS.get(sp);
+            ManagedPlayer mp = PLAYERS.get(id);
+            if(PLAYERS.containsKey(oldUuid)) {
+                if(mp==null)
+                    mp = PLAYERS.remove(oldUuid);
+                else
+                    PLAYERS.remove(sp);
+            }
+
+            PLAYERS.put(id, mp);
             mp.initJoinedPlayer(player);
         }
     }
@@ -583,9 +601,10 @@ public class ManagedPlayer {
 
     public static void onServerTick(ServerTickEvent e)
     {
-        if(PENDING_PLAYERS.isEmpty()) return;
-
-        Iterator<ServerPlayer> mp = PENDING_PLAYERS.iterator();
+        //if(PENDING_PLAYERS.isEmpty()) return;
+        if(true) return;
+        /*
+        Iterator<ServerPlayer> mp = PENDING_PLAYERS.keySet().iterator();
         while(mp.hasNext())
         {
             Player p = mp.next();
@@ -596,12 +615,17 @@ public class ManagedPlayer {
             if( pending == null) continue;
             if( pending.initJoinedPlayer(p) ) mp.remove(); // Remove after processing
         }
+        */
 
     }
 
+    //20Ticks, on20Ticks, onTick, serverTick
     public static void on20ServerTicks(ServerTickEvent e) {
         for(ManagedPlayer mp : PLAYERS.values()) {
+            if(mp.getServerPlayer() == null) continue;
             mp.updateNearbyMobs();
+            if(PENDING_PLAYERS.containsKey(mp.getServerPlayer()))
+                mp.initPendingPlayer();
         }
     }
 
@@ -615,7 +639,7 @@ public class ManagedPlayer {
     public static void onServerStarted(ServerStartedEvent event) {
         PLAYERS.clear();
         PENDING_PLAYERS.clear();
-        HBUtil.PlayerUtil.getAllPlayers().forEach(PENDING_PLAYERS::add);
+        //HBUtil.PlayerUtil.getAllPlayers().forEach(PENDING_PLAYERS::add);
     }
 
     public static void onServerStopped(ServerStoppedEvent event) {
@@ -646,7 +670,7 @@ public class ManagedPlayer {
         reg.registerOnBeforeServerStarted(ManagedPlayer::onServerStarting, EventPriority.Highest);
         //reg.registerOnServerStarted(ManagedPlayer::onServerStarted, EventPriority.Highest);
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
-        reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
+        //reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_20_TICKS, ManagedPlayer::on20ServerTicks, EventPriority.Highest);
     }
 

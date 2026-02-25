@@ -23,7 +23,7 @@ public class ManagedPlayerCapabilityProvider implements ICapabilityProvider, INB
 
     public ManagedPlayerCapabilityProvider(Player player) {
         super();
-        this.managedPlayer = new ManagedPlayer(player);
+        this.managedPlayer = ManagedPlayer.getManagedPlayer(player);
     }
 
     public ManagedPlayer getManagedPlayer() {
@@ -42,10 +42,9 @@ public class ManagedPlayerCapabilityProvider implements ICapabilityProvider, INB
     @Override
     public void deserializeNBT(CompoundTag nbt) {
         CompoundTag tag = nbt.getCompound("managedPlayer");
-        if(this.managedPlayer == null)
-            this.managedPlayer = new ManagedPlayer(tag);
-        else
-            this.managedPlayer.deserializeNBT(tag);
+        ManagedPlayer temp = ManagedPlayer.getManagedPlayer(tag);
+        if(this.managedPlayer == null) return;
+        this.managedPlayer.deserializeNBT(tag);
     }
 
     @Override

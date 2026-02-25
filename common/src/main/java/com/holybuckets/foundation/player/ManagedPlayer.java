@@ -479,8 +479,21 @@ public class ManagedPlayer {
     public void syncClient(CompoundTag tag) {
         if(tag == null || tag.isEmpty()) return;
         try {
-            this.deserializeNBT(tag);
-            this.initSubclassesFromNbt(tag);
+            this.tickWritten = tag.getLong("tickWritten");
+            this.id = tag.getString("id");
+
+            //deserialize subclasses
+            for(IManagedPlayer data : managedPlayerData.values()) {
+                try {
+                    CompoundTag nbt = tag.getCompound(data.getClass().getName());
+                    data.deserializeNBT(nbt);
+                } catch (Exception e) {
+                    String msg = String.format("Error deserializing subclass %s for player %s: %s",
+                            data.getClass(), player.getDisplayName(), e.getMessage());
+                    LoggerBase.logError(null, "004018", msg);
+                }
+            }
+
         } catch (Exception e) {
             LoggerBase.logError(null, "004016", "Error syncing ManagedPlayer from server: " + e.getMessage());
         }

@@ -56,7 +56,7 @@ public class EventRegistrar {
      * World Data
      **/
     private static EventRegistrar instance;
-    final Map<Integer, EventPriority> PRIORITIES = new HashMap<>();
+    final Map<Consumer<?>, EventPriority> PRIORITIES = new ConcurrentHashMap<>();
 
     final Set<Consumer<PlayerLoginEvent>> ON_PLAYER_LOGIN = new ConcurrentSet<>();
     final Set<Consumer<PlayerLogoutEvent>> ON_PLAYER_LOGOUT = new ConcurrentSet<>();
@@ -136,7 +136,7 @@ public class EventRegistrar {
 
         // Sort consumers by priority
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
 
         GeneralConfig.fireEvent(ServerStartingEvent.class, event);
@@ -169,7 +169,7 @@ public class EventRegistrar {
     {
         // Sort consumers by priority
         List<Consumer<ServerStoppedEvent>> sortedConsumers = ON_SERVER_STOP.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
             
         // Execute in priority order
@@ -183,7 +183,7 @@ public class EventRegistrar {
     void onServerStarted(ServerStartedEvent event) {
         // Sort consumers by priority
         List<Consumer<ServerStartedEvent>> sortedConsumers = ON_SERVER_START.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
             
         // Execute in priority order
@@ -195,7 +195,7 @@ public class EventRegistrar {
     void onLevelLoad(LevelLoadingEvent.Load event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
 
         GeneralConfig.fireEvent(LevelLoadingEvent.Load.class, event);
@@ -208,7 +208,7 @@ public class EventRegistrar {
     void onLevelUnload(LevelLoadingEvent.Unload event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
 
         GeneralConfig.fireEvent(LevelLoadingEvent.Unload.class, event);
@@ -222,13 +222,13 @@ public class EventRegistrar {
     //Create public methods for pushing functions onto each function event
     private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {
         set.add(function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
         TickScheme scheme = new TickScheme(function, type);
         map.put(scheme, function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     public void registerOnPlayerLogin(Consumer<PlayerLoginEvent> function) {
@@ -383,7 +383,7 @@ public class EventRegistrar {
     public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
         ResourceLocation dimLoc = dimension != null ? dimension :EMPTY_LOC;
         DAILY_TICK_EVENTS.put(dimLoc, function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
 
@@ -485,7 +485,7 @@ public class EventRegistrar {
 
     public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function, EventPriority priority) {
         ON_SIMPLE_MESSAGE.put(messageId, function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     public void registerOnStructureLoaded(Consumer<StructureLoadedEvent> function) {
@@ -503,7 +503,7 @@ public class EventRegistrar {
     public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
         ResourceLocation key = structureType != null ? structureType : EMPTY_LOC;
         ON_PLAYER_NEAR_STRUCTURE.computeIfAbsent(key, k -> new ConcurrentSet<>()).add(function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function) {
@@ -513,7 +513,7 @@ public class EventRegistrar {
     public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
         ANVIL_UPDATE_EVENTS.add(eventKey);
         ANVIL_UPDATE_CONSUMERS.add(function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function) {
@@ -523,7 +523,7 @@ public class EventRegistrar {
     public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function, EventPriority priority) {
         ITEM_ENTITY_SUPPLIERS.add(itemType);
         ITEM_ENTITY_CONSUMERS.add(function);
-        PRIORITIES.put(function.hashCode(), priority);
+        PRIORITIES.put(function, priority);
     }
 
     /**
@@ -586,7 +586,7 @@ public class EventRegistrar {
         
         // Sort consumers by priority
         List<Consumer<Level>> sortedConsumers = ON_SERVER_LEVEL_TICK.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
             
         // Execute in priority order
@@ -633,7 +633,7 @@ public class EventRegistrar {
         
         // Sort consumers by priority
         List<Consumer<SimpleMessageEvent>> sortedConsumers = consumers.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
             
         // Execute in priority order
@@ -645,7 +645,7 @@ public class EventRegistrar {
     public void onStructureLoaded(StructureLoadedEvent event) {
         // Sort consumers by priority
         List<Consumer<StructureLoadedEvent>> sortedConsumers = ON_STRUCTURE_LOADED.stream()
-            .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
             
         // Execute in priority order
@@ -670,7 +670,7 @@ public class EventRegistrar {
         }
     }
 
-    public void onAnvilUpdate(AnvilUpdateEvent event)
+    public void onAnvilUpdate(Anvil UpdateEvent event)
     {
         // Iterate through the events list to find matching registered event handlers
         synchronized (ANVIL_UPDATE_EVENTS) {

@@ -35,10 +35,11 @@ import java.util.function.Supplier;
 
 public class ManagedPlayer {
     public static final String CLASS_ID = "004";
+    public static final ManagedPlayer DEFAULT_PLAYER = new ManagedPlayer();
     static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
-    static final Map<ServerPlayer, String> PENDING_PLAYERS = new HashMap();
+    static final Map<ServerPlayer, CompoundTag> PENDING_PLAYERS = new HashMap();
 
     public static ManagedPlayer CLIENT_PLAYER;
 
@@ -53,6 +54,11 @@ public class ManagedPlayer {
     //utility
     public final ConcurrentLinkedSet<Entity> nearbyLivingEntities;
 
+    public static void addPending(Player player, @Nullable CompoundTag nbtData) {
+        if(player instanceof ServerPlayer sp) {
+            PENDING_PLAYERS.put(sp, nbtData);
+        }
+    }
 
     private ManagedPlayer() {
         super();
@@ -66,9 +72,21 @@ public class ManagedPlayer {
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
     }
 
-    public ManagedPlayer(CompoundTag tag) {
+    public ManagedPlayer(Player player) {
+        this(HBUtil.PlayerUtil.getId(player));
+    }
+
+
+    public ManagedPlayer(CompoundTag tag)
+    {
         this();
-        this.deserializeNBT(tag);
+        this.holdNbt = tag;
+        try {
+            this.initSubclassesFromNbt(holdNbt);
+        } catch (InvalidId ex) {
+            LoggerBase.logError(null, "004005", "Error initializing ManagedPlayer from NBT: " + ex.getMessage());
+        }
+
         if(tag == null || tag.isEmpty() ) {
             LoggerBase.logDebug(null, "004000", "Not NBT data found in ManagedPlayer( CompoundTag )" + tag.toString());
             return;
@@ -76,12 +94,9 @@ public class ManagedPlayer {
         if( this.id == null ) {
             LoggerBase.logDebug(null, "004001", "Failed to read playerId from NBT data " + tag);
         }
-
-        PLAYERS.put(this.id, this);
-        CLIENT_PLAYER = this;
-        if(GENERAL_CONFIG.getServer() instanceof DedicatedServer)
-            CLIENT_PLAYER = null;
+        PLAYERS.put(id, this);
     }
+
 
     /**
      * Sets the current player instance associated with the player and Managed Players, this is called
@@ -148,20 +163,17 @@ public class ManagedPlayer {
             this.player = p;
         }
 
-        id = HBUtil.PlayerUtil.getId(player);
-        try {
-            //this.loadFromDataStore();
-            this.initSubclassesFromNbt(holdNbt);
-            this.holdNbt = null; // Clear the held NBT after processing
-            this.onPlayerJoinComplete();
-        } catch (InvalidId e) {
-            String msg = String.format("Invalid id: initializing ManagedPlayer from NBT for player %s: %s",
-                    player.getName().getString(), e.getMessage());
-            LoggerBase.logError(null, "004005", msg);
-            return false;
+        if(PENDING_PLAYERS.containsKey(p)) {
+            this.holdNbt = PENDING_PLAYERS.remove(p);
         }
-        return true;
 
+        id = HBUtil.PlayerUtil.getId(player);
+
+        this.initSubclassesFromMemory();
+        ManagedPlayer.deserialize(this, holdNbt);
+        this.onPlayerJoinComplete();
+
+        return true;
     }
 
     //** CORE **//
@@ -208,7 +220,6 @@ public class ManagedPlayer {
 
     private void onPlayerJoinComplete()
     {
-        this.initSubclassesFromMemory();
         for(IManagedPlayer data : managedPlayerData.values())
         {
             try {
@@ -219,6 +230,7 @@ public class ManagedPlayer {
             }
 
         }
+        this.syncToClient();
     }
 
     private void onPlayerLeave() {
@@ -268,21 +280,36 @@ public class ManagedPlayer {
         }
     }
 
+    private void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed) {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerDigSpeed(player, originalSpeed, newSpeed);
+            } catch (Exception e) {
+                //String msg = String.format("Error handling player dig speed for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                //LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
+            }
+        }
+    }
+
     //** Utility
+    public static String getIdFromTag(CompoundTag tag) {
+        if(tag == null || tag.isEmpty()) return null;
+        if(tag.contains(PARENT_TAG)) {
+            tag = tag.getCompound(PARENT_TAG);
+        }
+        if(tag == null || tag.isEmpty() || !tag.contains("id")) return null;
+        return tag.getString("id");
+    }
+
     public static ManagedPlayer getManagedPlayer(CompoundTag tag)
     {
-        if(tag == null || tag.isEmpty() || !tag.contains("id")) return null;
-        return getManagedPlayer(tag.getString("id"));
+        if(tag == null || tag.isEmpty()) return null;
+        return getManagedPlayer(getIdFromTag(tag));
     }
 
     public static ManagedPlayer getManagedPlayer(Player player) {
         if(!GENERAL_CONFIG.isServerSide()) return CLIENT_PLAYER;
         if(player == null) return null;
-        if(player.getGameProfile()==null) {
-            String uuid = player.getStringUUID();
-            PENDING_PLAYERS.put((ServerPlayer)  player, uuid);
-            return getManagedPlayer(uuid);
-        }
         String id = HBUtil.PlayerUtil.getId(player);
         return getManagedPlayer(id);
     }
@@ -290,8 +317,6 @@ public class ManagedPlayer {
 
     public static ManagedPlayer getManagedPlayer(String id) {
         if(!GENERAL_CONFIG.isServerSide()) return CLIENT_PLAYER;
-        if(PLAYERS.containsKey(id)) return PLAYERS.get(id);
-        PLAYERS.put(id, new ManagedPlayer(id));
         return PLAYERS.get(id);
     }
 
@@ -308,11 +333,11 @@ public class ManagedPlayer {
         String playerId = this.getId();
         for(Map.Entry<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> data : MANAGED_SUBCLASSES.entrySet())
         {
-            IManagedPlayer sub = data.getValue().get();
+            Class<? extends IManagedPlayer> key = data.getKey();
+            IManagedPlayer sub;
+            sub = managedPlayerData.computeIfAbsent(key, k -> data.getValue().get() );
             if( sub == null ) continue;
-            if( managedPlayerData.containsKey(sub.getClass()) ) {
-                sub = managedPlayerData.get(sub.getClass());
-            }
+
             if( sub.isServerOnly() && !(player instanceof ServerPlayer) ) {
                 continue;
             }
@@ -358,6 +383,8 @@ public class ManagedPlayer {
             }
         }
 
+        this.syncToClient();
+
         if(!errors.isEmpty()) {
             StringBuilder error = new StringBuilder();
             for (String key : errors.keySet()) {
@@ -367,49 +394,6 @@ public class ManagedPlayer {
         }
     }
 
-    //** SERIALIZERS **//
-
-    public CompoundTag serializeNBT() {
-        CompoundTag tag = new CompoundTag();
-        
-        if(this.player == null) {
-            //LoggerBase.logError(null, "004001", "ManagedPlayer not initialized properly");
-            return tag;
-        }
-
-        try {
-            if(this.getId() != null)
-                tag.putString("id", this.getId());
-            this.tickWritten = GENERAL_CONFIG.getTotalTickCount();
-            tag.putLong("tickWritten", this.tickWritten);
-
-            for(IManagedPlayer data : managedPlayerData.values()) {
-                if(data == null) continue;
-                tag.put(data.getClass().getName(), data.serializeNBT());
-            }
-        } catch (Exception e) {
-            LoggerBase.logError(null, "004002", "Error serializing ManagedPlayer: " + e.getMessage());
-        }
-
-        return tag;
-    }
-
-    public void deserializeNBT(CompoundTag tag)
-    {
-        if(tag == null || tag.isEmpty()) {
-            this.holdNbt = new CompoundTag();
-            return;
-        }
-
-        try {
-            this.tickWritten = tag.getLong("tickWritten");
-            this.id = tag.getString("id");
-            this.holdNbt = tag; // Store the NBT for later use
-        } catch (Exception e) {
-            LoggerBase.logError(null, "004003", "Error deserializing ManagedPlayer: " + e.getMessage());
-        }
-        PLAYERS.put(this.getId(), this);
-    }
 
     private void saveToDataStore()
     {
@@ -427,39 +411,6 @@ public class ManagedPlayer {
         }
     }
 
-    private void loadFromDataStore() {
-        if(!GENERAL_CONFIG.isServerSide()) return;
-        if(this.getId() == null) return;
-
-        try {
-            PlayerSaveData playerSaveData = GENERAL_CONFIG.getPlayerSaveData();
-            if(playerSaveData.get(this.getId()) != null) {
-                JsonObject nbtJson = playerSaveData.get(this.player);
-                if(nbtJson != null && nbtJson.isJsonObject()) {
-                   this.holdNbt = HBUtil.NetworkUtil.jsonToTag(nbtJson);
-                }
-            }
-        } catch (Exception e) {
-            LoggerBase.logError(null, "004015", "Error loading ManagedPlayer from DataStore: " + e.getMessage());
-        }
-    }
-
-    private void initPendingPlayer() {
-        if(this.holdNbt!=null) {
-            try {
-                initSubclassesFromNbt(this.holdNbt);
-                this.syncToClient();
-            }
-            catch (Exception ex) {
-                LoggerBase.logError(null, "004017", "Error initializing pending player from NBT: " + ex.getMessage());
-            }
-            finally {
-                holdNbt = null;
-                PENDING_PLAYERS.remove(this.serverPlayer);
-            }
-        }
-    }
-
     /**
      * Saves data to dataStore and syncs it with the client
      */
@@ -470,6 +421,7 @@ public class ManagedPlayer {
 
     private void syncToClient() {
         if (serverPlayer == null) return;
+        if(GENERAL_CONFIG.isClientSide()) return;
         CompoundTag tag = this.serializeNBT();
         if (tag.isEmpty()) return;
         ManagedPlayerSyncMessage msg = new ManagedPlayerSyncMessage(tag);
@@ -479,21 +431,7 @@ public class ManagedPlayer {
     public void syncClient(CompoundTag tag) {
         if(tag == null || tag.isEmpty()) return;
         try {
-            this.tickWritten = tag.getLong("tickWritten");
-            this.id = tag.getString("id");
-
-            //deserialize subclasses
-            for(IManagedPlayer data : managedPlayerData.values()) {
-                try {
-                    CompoundTag nbt = tag.getCompound(data.getClass().getName());
-                    data.deserializeNBT(nbt);
-                } catch (Exception e) {
-                    String msg = String.format("Error deserializing subclass %s for player %s: %s",
-                            data.getClass(), player.getDisplayName(), e.getMessage());
-                    LoggerBase.logError(null, "004018", msg);
-                }
-            }
-
+           ManagedPlayer.deserialize(CLIENT_PLAYER, tag);
         } catch (Exception e) {
             LoggerBase.logError(null, "004016", "Error syncing ManagedPlayer from server: " + e.getMessage());
         }
@@ -506,31 +444,25 @@ public class ManagedPlayer {
 
     //** EVENT
     public static void onClientConnectedToServer(Player player) {
-        if(CLIENT_PLAYER == null)
-            CLIENT_PLAYER = new ManagedPlayer(HBUtil.PlayerUtil.getId(player));
+        String id = HBUtil.PlayerUtil.getId(player);    //SERVER:Dev if integrated
+        if(PLAYERS.containsKey(id)) {
+            CLIENT_PLAYER = PLAYERS.get(id);
+            return;
+        }
+        CLIENT_PLAYER = new ManagedPlayer(HBUtil.PlayerUtil.getId(player));
         CLIENT_PLAYER.initJoinedPlayer(player);
     }
 
     //HERE
     public static void onPlayerLogin(PlayerLoginEvent event)
     {
-
         Player player = event.getPlayer();
+        if(player.getGameProfile() == null) return;
         String id = HBUtil.PlayerUtil.getId(player);
-        String uuid = player.getGameProfile().getId().toString();
-        GENERAL_CONFIG.getPlayerSaveData().putUuid(uuid, id);
 
         if(player instanceof ServerPlayer sp)
         {
-            String oldUuid = PENDING_PLAYERS.get(sp);
-            ManagedPlayer mp = PLAYERS.get(id);
-            if(PLAYERS.containsKey(oldUuid)) {
-                if(mp==null)
-                    mp = PLAYERS.remove(oldUuid);
-                else
-                    PLAYERS.remove(sp);
-            }
-
+            ManagedPlayer mp = PLAYERS.computeIfAbsent(id, k -> new ManagedPlayer(player));
             PLAYERS.put(id, mp);
             mp.initJoinedPlayer(player);
         }
@@ -548,20 +480,19 @@ public class ManagedPlayer {
 
     private static void onPlayerRespawn(PlayerRespawnEvent event)
     {
-        PENDING_PLAYERS.remove(event.getOldPlayer());
-        ManagedPlayer mp = PLAYERS.get( HBUtil.PlayerUtil.getId(event.getOldPlayer()) );
-        if(mp == null) {
-            LoggerBase.logError(null, "004008", "ManagedPlayer not found for respawn event");
-            return;
-        }
-        Player p = event.getNewPlayer();
-        mp.setPlayer(p);
+        if(!(event.getOldPlayer() instanceof ServerPlayer)) return;
+
+        Player player = event.getNewPlayer();
+        String id = HBUtil.PlayerUtil.getId(event.getOldPlayer()); //old and new player are the same NEW player, distinct from killed entity
+        ManagedPlayer mp = PLAYERS.get( id );
+
+        mp.setPlayer(player);
         mp.onPlayerRespawn();
     }
 
     private static void onPlayerDeath(LivingDeathEvent event)
     {
-        if(!(event.getEntity() instanceof Player)) return;
+        if(!(event.getEntity() instanceof ServerPlayer)) return;
 
         Player player = (Player) event.getEntity();
         String id = HBUtil.PlayerUtil.getId(player);
@@ -573,20 +504,11 @@ public class ManagedPlayer {
         }
     }
 
-    private void handlePlayerDigSpeed(Player player, float originalSpeed, Float newSpeed) {
-        for(IManagedPlayer data : managedPlayerData.values()) {
-            try {
-                data.handlePlayerDigSpeed(player, originalSpeed, newSpeed);
-            } catch (Exception e) {
-                //String msg = String.format("Error handling player dig speed for player %s, class: %s", player.getDisplayName(), data.getClass() );
-                //LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
-            }
-        }
-    }
-
-    private static void onDigSpeed(DigSpeedEvent event) {
+    private static void onDigSpeed(DigSpeedEvent event)
+    {
         Player player = event.getPlayer();
         if(player == null) return;
+        if(!(player instanceof ServerPlayer)) return;
 
         String id = HBUtil.PlayerUtil.getId(player);
         ManagedPlayer mp = PLAYERS.get(id);
@@ -597,8 +519,11 @@ public class ManagedPlayer {
         }
     }
 
-    private static void onPlayerAttack(PlayerAttackEvent playerAttackEvent) {
+    private static void onPlayerAttack(PlayerAttackEvent playerAttackEvent)
+    {
         Player player = playerAttackEvent.getPlayer();
+        if(!(player instanceof ServerPlayer)) return;
+
         Entity target = playerAttackEvent.getTarget();
         if(player == null || target == null) return;
 
@@ -611,34 +536,11 @@ public class ManagedPlayer {
         }
     }
 
-
-    public static void onServerTick(ServerTickEvent e)
-    {
-        //if(PENDING_PLAYERS.isEmpty()) return;
-        if(true) return;
-        /*
-        Iterator<ServerPlayer> mp = PENDING_PLAYERS.keySet().iterator();
-        while(mp.hasNext())
-        {
-            Player p = mp.next();
-            if(p == null) {
-                mp.remove(); continue;
-            }
-            ManagedPlayer pending = PLAYERS.get(HBUtil.PlayerUtil.getId(p));
-            if( pending == null) continue;
-            if( pending.initJoinedPlayer(p) ) mp.remove(); // Remove after processing
-        }
-        */
-
-    }
-
     //20Ticks, on20Ticks, onTick, serverTick
     public static void on20ServerTicks(ServerTickEvent e) {
         for(ManagedPlayer mp : PLAYERS.values()) {
             if(mp.getServerPlayer() == null) continue;
             mp.updateNearbyMobs();
-            if(PENDING_PLAYERS.containsKey(mp.getServerPlayer()))
-                mp.initPendingPlayer();
         }
     }
 
@@ -648,12 +550,6 @@ public class ManagedPlayer {
         CLIENT_PLAYER = null;
     }
 
-
-    public static void onServerStarted(ServerStartedEvent event) {
-        PLAYERS.clear();
-        PENDING_PLAYERS.clear();
-        //HBUtil.PlayerUtil.getAllPlayers().forEach(PENDING_PLAYERS::add);
-    }
 
     public static void onServerStopped(ServerStoppedEvent event) {
         for (ManagedPlayer player : PLAYERS.values()) {
@@ -687,6 +583,76 @@ public class ManagedPlayer {
         reg.registerOnServerTick(TickType.ON_20_TICKS, ManagedPlayer::on20ServerTicks, EventPriority.Highest);
     }
 
+
+    //** SERIALIZERS **//
+
+    public static final String PARENT_TAG = "managed_player";
+    public static CompoundTag serialize(ManagedPlayer mp) {
+        if(mp == null) return new CompoundTag();
+        CompoundTag tag = new CompoundTag();
+        tag.put(PARENT_TAG, mp.serializeNBT());
+        return tag;
+    }
+
+    //deserialize
+    public static ManagedPlayer deserialize(ManagedPlayer mp, CompoundTag tag) {
+        if(tag == null || tag.isEmpty()) return mp;
+        if(tag.contains(PARENT_TAG))
+            tag = tag.getCompound(PARENT_TAG);
+        mp.deserializeNBT(tag);
+        return mp;
+    }
+
+
+    public CompoundTag serializeNBT()
+    {
+        CompoundTag tag = new CompoundTag();
+
+        try {
+            if(this.getId() != null)
+                tag.putString("id", this.getId());
+            this.tickWritten = GENERAL_CONFIG.getTotalTickCount();
+            tag.putLong("tickWritten", this.tickWritten);
+
+            for(IManagedPlayer data : managedPlayerData.values()) {
+                if(data == null) continue;
+                tag.put(data.getClass().getName(), data.serializeNBT());
+            }
+        } catch (Exception e) {
+            LoggerBase.logError(null, "004002", "Error serializing ManagedPlayer: " + e.getMessage());
+        }
+
+        return tag;
+    }
+
+    public void deserializeNBT(CompoundTag tag)
+    {
+        if(tag == null || tag.isEmpty()) return;
+        if(this.player == null) {
+            this.holdNbt = tag;
+            return;
+        }
+
+        try {
+            this.tickWritten = tag.getLong("tickWritten");
+            this.id = tag.getString("id");
+
+            //deserialize subclasses
+            for(IManagedPlayer data : managedPlayerData.values())
+            {
+                try {
+                    CompoundTag nbt = tag.getCompound(data.getClass().getName());
+                    data.deserializeNBT(nbt);
+                } catch (Exception e) {
+                    String msg = String.format("Error deserializing subclass %s for player %s: %s",
+                        data.getClass(), player.getDisplayName(), e.getMessage());
+                    LoggerBase.logError(null, "004018", msg);
+                }
+            }
+        } catch (Exception e) {
+            LoggerBase.logError(null, "004003", "Error deserializing ManagedPlayer: " + e.getMessage());
+        }
+    }
 
 
 }

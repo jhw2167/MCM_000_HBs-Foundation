@@ -36,7 +36,7 @@ public class CommandRegistry {
 
     public static void register( Supplier<LiteralArgumentBuilder<CommandSourceStack>> command)
     {
-        LoggerBase.logDebug(null, "011000", "Adding command" + COMMANDS.size());
+        //LoggerBase.logDebug(null, "011000", "Adding command" + COMMANDS.size());
         COMMANDS.add(command);
     }
 

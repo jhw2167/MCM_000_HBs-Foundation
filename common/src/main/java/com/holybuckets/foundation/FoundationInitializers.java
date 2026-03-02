@@ -15,6 +15,7 @@ import com.holybuckets.foundation.item.ModItems;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.networking.*;
 import com.holybuckets.foundation.player.ManagedPlayer;
+import com.holybuckets.foundation.sample.SamplePlayerData;
 import com.holybuckets.foundation.structure.StructureManager;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.network.BalmNetworking;
@@ -72,7 +73,7 @@ public class FoundationInitializers {
     {
         EventRegistrar reg = EventRegistrar.getInstance();
         CommandList.init(reg);
-        //SamplePlayerData.init(reg);
+        SamplePlayerData.init(reg);
         ManagedChunk.init(reg);
         ManagedPlayer.init(reg);
 
@@ -83,8 +84,6 @@ public class FoundationInitializers {
 
         //Core Operations
         EssenceCauldronManager.init(reg);
-
-        BalmEventRegister.registerEvents();
     }
 
     private static void initCommands()

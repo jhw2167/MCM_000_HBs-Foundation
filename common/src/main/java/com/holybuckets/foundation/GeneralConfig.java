@@ -200,7 +200,9 @@ public class GeneralConfig {
 
 
     /** Server Events **/
-    public void onPlayerConnectedToServer() {
+    public void onPlayerConnectedToServer(Player player) {
+        this.localPlayer = player;
+        this.isPlayerLoaded = true;
         this.isWorldConfigInit = true;
     }
 

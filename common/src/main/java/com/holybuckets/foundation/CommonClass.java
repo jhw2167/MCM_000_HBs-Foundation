@@ -58,7 +58,7 @@ public class CommonClass {
         EventRegistrar reg = EventRegistrar.getInstance();
         reg.registerOnBeforeServerStarted(CommonClass::onServerStarting);
         //test(EventRegistrar.getInstance());
-        testMessager(EventRegistrar.getInstance());
+        //testMessager(EventRegistrar.getInstance());
 
         BalmEventRegister.registerEvents();
         isInitialized = true;

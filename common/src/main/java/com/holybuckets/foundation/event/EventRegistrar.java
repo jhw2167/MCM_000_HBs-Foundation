@@ -670,7 +670,7 @@ public class EventRegistrar {
         }
     }
 
-    public void onAnvilUpdate(Anvil UpdateEvent event)
+    public void onAnvilUpdate(AnvilUpdateEvent event)
     {
         // Iterate through the events list to find matching registered event handlers
         synchronized (ANVIL_UPDATE_EVENTS) {

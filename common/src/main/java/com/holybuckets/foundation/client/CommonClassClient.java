@@ -15,6 +15,7 @@ import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 
 public class CommonClassClient {
 
@@ -55,12 +56,15 @@ public class CommonClassClient {
     //** Events
     private static void onPlayerConnectToServer(ConnectedToServerEvent event)
     {
-        GeneralConfig.getInstance().onPlayerConnectedToServer();
         CommonClass.MESSAGER = MessagerClient.getInstance();
+        boolean isServerSide = GeneralConfig.getInstance().isServerSide();
+        Player player = Minecraft.getInstance().player;
+        ManagedPlayer.onClientConnectedToServer(player);
+
+        if(isServerSide) return;
+        GeneralConfig.getInstance().onPlayerConnectedToServer(player);
         DataStore.onPlayerConnectToServer(getServerName(event.getClient()));
         WoolColorHelper.initWoolColors();
-
-        ManagedPlayer.onClientConnectedToServer(Minecraft.getInstance().player);
     }
 
     private static String getServerName(Minecraft mc)

@@ -9,8 +9,11 @@ import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -18,9 +21,8 @@ import java.util.function.Consumer;
  */
 public class BalmEventRegister {
 
-    private static final Set<Integer> registeredEvents = new ConcurrentSet<>();
+    private static final Map<String, Consumer<?>> registeredEvents = new ConcurrentHashMap<>();
     private static EventRegistrar registrar;
-    private static boolean  notRegistered(Consumer<?> c) { return !registeredEvents.contains(c.hashCode()); }
     public static EventPriority p(Consumer<?> func) { return registrar.PRIORITIES.getOrDefault(func, EventPriority.Normal); }
 
     // Register all events in the Registrar with Balm Events
@@ -31,82 +33,70 @@ public class BalmEventRegister {
 
         //** SERVER EVENTS **/
 
-        registrar.ON_CHUNK_LOAD.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( ChunkLoadingEvent.Load.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_CHUNK_LOAD, "ON_CHUNK_LOAD", c ->
+            registry.onEvent(ChunkLoadingEvent.Load.class, c, p(c)));
 
-        registrar.ON_CHUNK_UNLOAD.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( ChunkLoadingEvent.Unload.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
-
+        drainAndRegister(registrar.ON_CHUNK_UNLOAD, "ON_CHUNK_UNLOAD", c ->
+            registry.onEvent(ChunkLoadingEvent.Unload.class, c, p(c)));
 
         /** PLAYER EVENTS **/
 
-        //Player login/logout events
-        registrar.ON_PLAYER_LOGIN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerLoginEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_LOGIN, "ON_PLAYER_LOGIN", c ->
+            registry.onEvent(PlayerLoginEvent.class, c, p(c)));
 
-        registrar.ON_PLAYER_LOGOUT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerLogoutEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_LOGOUT, "ON_PLAYER_LOGOUT", c ->
+            registry.onEvent(PlayerLogoutEvent.class, c, p(c)));
 
-        registrar.ON_PLAYER_ATTACK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( PlayerAttackEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_ATTACK, "ON_PLAYER_ATTACK", c ->
+            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
 
-        registrar.ON_BLOCK_BROKEN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent( BreakBlockEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_BLOCK_BROKEN, "ON_BLOCK_BROKEN", c ->
+            registry.onEvent(BreakBlockEvent.class, c, p(c)));
 
-        //support ON_PLAYER_CHANGE_DIMENSION
-        registrar.ON_PLAYER_CHANGED_DIMENSION.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerChangedDimensionEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_CHANGED_DIMENSION, "ON_PLAYER_CHANGED_DIMENSION", c ->
+            registry.onEvent(PlayerChangedDimensionEvent.class, c, p(c)));
 
-        registrar.ON_PLAYER_RESPAWN.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerRespawnEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_RESPAWN, "ON_PLAYER_RESPAWN", c ->
+            registry.onEvent(PlayerRespawnEvent.class, c, p(c)));
 
-        registrar.ON_PLAYER_DEATH.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(LivingDeathEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_DEATH, "ON_PLAYER_DEATH", c ->
+            registry.onEvent(LivingDeathEvent.class, c, p(c)));
 
-        registrar.ON_USE_BLOCK.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(UseBlockEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_USE_BLOCK, "ON_USE_BLOCK", c ->
+            registry.onEvent(UseBlockEvent.class, c, p(c)));
 
-        registrar.ON_PLAYER_ATTACK_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(PlayerAttackEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_PLAYER_ATTACK_EVENT, "ON_PLAYER_ATTACK_EVENT", c ->
+            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
 
-        registrar.ON_DIG_SPEED_EVENT.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(DigSpeedEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_DIG_SPEED_EVENT, "ON_DIG_SPEED_EVENT", c ->
+            registry.onEvent(DigSpeedEvent.class, c, p(c)));
 
         // Track wake up event registrations even though it's not a Balm event
-        registrar.ON_WAKE_UP_ALL_PLAYERS.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_WAKE_UP_ALL_PLAYERS, "ON_WAKE_UP_ALL_PLAYERS", c -> {});
 
-        registrar.ON_TOSS_ITEM.stream().filter(BalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(TossItemEvent.class, c, p(c));
-            registeredEvents.add(c.hashCode());
-        });
+        drainAndRegister(registrar.ON_TOSS_ITEM, "ON_TOSS_ITEM", c ->
+            registry.onEvent(TossItemEvent.class, c, p(c)));
+    }
 
+    private static <T> void drainAndRegister(Set<Consumer<T>> set, String eventName, Consumer<Consumer<T>> balmRegistration)
+    {
+        Iterator<Consumer<T>> it = set.iterator();
+        while (it.hasNext())
+        {
+            Consumer<T> c = it.next();
+            String key = c.getClass().getName() + "::" + eventName;
 
+            if(registeredEvents.containsKey(key)) {
+                String i = "why do you happen";
+            }
+
+            if (!registeredEvents.containsKey(key))
+            {
+                balmRegistration.accept(c);
+                registeredEvents.put(key, c);
+            }
+            it.remove();
+        }
     }
 
 

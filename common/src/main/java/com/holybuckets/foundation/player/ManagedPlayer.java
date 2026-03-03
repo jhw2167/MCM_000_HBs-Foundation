@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 public class ManagedPlayer {
     public static final String CLASS_ID = "004";
     public static final ManagedPlayer DEFAULT_PLAYER = new ManagedPlayer();
-    static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
+    static GeneralConfig GENERAL_CONFIG;
     static final Map<Class<? extends IManagedPlayer>, Supplier<IManagedPlayer>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     public static final Map<String, ManagedPlayer> PLAYERS = new ConcurrentHashMap<>();
     static final Map<ServerPlayer, CompoundTag> PENDING_PLAYERS = new HashMap();
@@ -480,9 +480,11 @@ public class ManagedPlayer {
 
     private static void onPlayerRespawn(PlayerRespawnEvent event)
     {
-        if(!(event.getOldPlayer() instanceof ServerPlayer)) return;
+        if(!(event.getOldPlayer() instanceof Player)) return;
 
         Player player = event.getNewPlayer();
+        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+
         String id = HBUtil.PlayerUtil.getId(event.getOldPlayer()); //old and new player are the same NEW player, distinct from killed entity
         ManagedPlayer mp = PLAYERS.get( id );
 
@@ -492,9 +494,10 @@ public class ManagedPlayer {
 
     private static void onPlayerDeath(LivingDeathEvent event)
     {
-        if(!(event.getEntity() instanceof ServerPlayer)) return;
-
+        if(!(event.getEntity() instanceof Player)) return;
         Player player = (Player) event.getEntity();
+        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+
         String id = HBUtil.PlayerUtil.getId(player);
         ManagedPlayer mp = PLAYERS.get(id);
         if(mp != null) {
@@ -566,7 +569,9 @@ public class ManagedPlayer {
     }
 
 
-    public static void init(EventRegistrar reg) {
+    public static void init(EventRegistrar reg)
+    {
+        GENERAL_CONFIG = GeneralConfig.getInstance();
         reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
         reg.registerOnDigSpeedEvent(ManagedPlayer::onDigSpeed, EventPriority.High);
         reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);

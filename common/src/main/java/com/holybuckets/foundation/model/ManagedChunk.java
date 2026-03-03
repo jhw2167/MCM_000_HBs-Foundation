@@ -34,7 +34,7 @@ public class ManagedChunk implements IMangedChunkData {
     public static final String CLASS_ID = "003";
     //public static final String NBT_KEY_HEADER = "managedChunk";
 
-    static final GeneralConfig GENERAL_CONFIG = GeneralConfig.getInstance();
+    static GeneralConfig GENERAL_CONFIG;
     static final Map<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> MANAGED_SUBCLASSES = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<ChunkPos, String>> LOADED_CHUNKPOS = new ConcurrentHashMap<>();
@@ -318,6 +318,7 @@ public class ManagedChunk implements IMangedChunkData {
         ManagedChunkUtility.init(reg);
         ManagedChunkEvents.init(reg);
         ManagedChunkBlockUpdates.init(reg);
+        GENERAL_CONFIG = GeneralConfig.getInstance();
     }
 
     /**

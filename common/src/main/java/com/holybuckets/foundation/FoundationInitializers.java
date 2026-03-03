@@ -60,8 +60,6 @@ public class FoundationInitializers {
         ModConfig.init(EventRegistrar.getInstance());
 
         ModItems.commonInitialize(Balm.getItems());
-
-        CustomRecipes.init(EventRegistrar.getInstance());
     }
 
     private static void initConfig()
@@ -84,6 +82,7 @@ public class FoundationInitializers {
 
         //Core Operations
         EssenceCauldronManager.init(reg);
+        CustomRecipes.init(EventRegistrar.getInstance());
     }
 
     private static void initCommands()

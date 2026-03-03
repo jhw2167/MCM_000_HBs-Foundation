@@ -1,10 +1,8 @@
 package com.holybuckets.foundation.player;
 
-import com.google.gson.JsonObject;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
-import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.PlayerSaveData;
 import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -15,12 +13,10 @@ import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.ManagedPlayerSyncMessage;
 import net.blay09.mods.balm.api.event.*;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -246,7 +242,7 @@ public class ManagedPlayer {
     }
 
 
-    private void onPlayerRespawn() {
+    private void handlePlayerRespawn() {
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
                 data.handlePlayerRespawn(player);
@@ -478,7 +474,7 @@ public class ManagedPlayer {
         }
     }
 
-    private static void onPlayerRespawn(PlayerRespawnEvent event)
+    private static void handlePlayerRespawn(PlayerRespawnEvent event)
     {
         if(!(event.getOldPlayer() instanceof Player)) return;
 
@@ -489,7 +485,7 @@ public class ManagedPlayer {
         ManagedPlayer mp = PLAYERS.get( id );
 
         mp.setPlayer(player);
-        mp.onPlayerRespawn();
+        mp.handlePlayerRespawn();
     }
 
     private static void onPlayerDeath(LivingDeathEvent event)
@@ -547,6 +543,20 @@ public class ManagedPlayer {
         }
     }
 
+    /**
+     * On the client we need to track when the player is changed
+     * @param p
+     */
+    public static void onClientTick(Player p) {
+        if(p == null || CLIENT_PLAYER == null) return;
+        if(CLIENT_PLAYER.player == p) return;
+
+        CLIENT_PLAYER.handlePlayerDeath(CLIENT_PLAYER.player);
+        CLIENT_PLAYER.setPlayer(p);
+        CLIENT_PLAYER.handlePlayerRespawn();
+
+    }
+
     public static void onServerStarting(ServerStartingEvent event) {
         PLAYERS.clear();
         PENDING_PLAYERS.clear();
@@ -575,7 +585,7 @@ public class ManagedPlayer {
         reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
         reg.registerOnDigSpeedEvent(ManagedPlayer::onDigSpeed, EventPriority.High);
         reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);
-        reg.registerOnPlayerRespawn(ManagedPlayer::onPlayerRespawn, EventPriority.Highest);
+        reg.registerOnPlayerRespawn(ManagedPlayer::handlePlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);
 

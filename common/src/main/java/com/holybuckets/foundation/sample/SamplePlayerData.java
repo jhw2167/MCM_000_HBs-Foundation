@@ -24,7 +24,7 @@ public class SamplePlayerData implements IManagedPlayer {
     Player p;
 
     static {
-        registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
+        //registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
     }
 
 

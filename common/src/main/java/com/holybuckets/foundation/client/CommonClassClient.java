@@ -5,6 +5,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.core.MovingWaypoint;
 import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.datastore.DataStore;
+import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.player.ManagedPlayer;
@@ -32,6 +33,7 @@ public class CommonClassClient {
         ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
         MessagerClient messager = MessagerClient.getInstance();
         reg.registerOnConnectedToServer(CommonClassClient::onPlayerConnectToServer, EventPriority.Highest);
+        reg.registerOnClientTick(TickType.ON_SINGLE_TICK, CommonClassClient::onClientTick, EventPriority.Lowest);
         //reg.registerOnServerStop(CommonClassClient::onServerStop, EventPriority.Lowest);
         //reg.registerOnBlockHighlightDraw(CommonClassClient::onBlockHighlightDraw, EventPriority.Normal);
         ClientInput.init(reg);
@@ -67,19 +69,22 @@ public class CommonClassClient {
         WoolColorHelper.initWoolColors();
     }
 
-    private static String getServerName(Minecraft mc)
-    {
-        if (mc.getCurrentServer() == null || mc.getCurrentServer().name == null) {
-            return "Unknown Server";
+        private static String getServerName(Minecraft mc)
+        {
+            if (mc.getCurrentServer() == null || mc.getCurrentServer().name == null) {
+                return "Unknown Server";
+            }
+            String serverName = mc.getCurrentServer().name;
+            String serverIp = mc.getCurrentServer().ip;
+            //Combine serverName and last 4 digits of serverIp for a unique identifier
+            String serverIdentifier = serverName + "_" + (serverIp.length() > 4 ? serverIp.substring(serverIp.length() - 4) : serverIp);
+            return serverIdentifier;
         }
-        String serverName = mc.getCurrentServer().name;
-        String serverIp = mc.getCurrentServer().ip;
-        //Combine serverName and last 4 digits of serverIp for a unique identifier
-        String serverIdentifier = serverName + "_" + (serverIp.length() > 4 ? serverIp.substring(serverIp.length() - 4) : serverIp);
-        return serverIdentifier;
+
+
+    private static void onClientTick(ClientTickEvent event) {
+        ManagedPlayer.onClientTick(Minecraft.getInstance().player);
     }
-
-
 
     //** Tests
 

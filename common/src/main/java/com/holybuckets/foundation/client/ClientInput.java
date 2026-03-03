@@ -39,7 +39,7 @@ public class ClientInput {
     static int collectKeys(Set<Integer> keys) {
         Minecraft client = Minecraft.getInstance();
         LocalPlayer player = client.player;
-        if (player == null) {
+        if (player == null || player.input==null) {
             return -1;
         }
 

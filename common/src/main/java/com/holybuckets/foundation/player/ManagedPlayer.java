@@ -44,6 +44,7 @@ public class ManagedPlayer {
     private ServerPlayer serverPlayer;
     private long tickWritten;
     private long tickLoaded;
+    private boolean saveNextTick = false;
     private CompoundTag holdNbt;
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
 
@@ -104,15 +105,23 @@ public class ManagedPlayer {
      */
     public void setPlayer(Player p)
     {
-        this.player = p;
-        if (p instanceof ServerPlayer) {
+
+        if (p instanceof ServerPlayer)
+        {
+            this.player = p;
             this.serverPlayer = (ServerPlayer) p;
             String id = HBUtil.PlayerUtil.getId(p);
             PLAYERS.put(id, this);
             for(IManagedPlayer data : managedPlayerData.values()) {
                 data.setPlayer(p);
             }
+        } else if(!GENERAL_CONFIG.isIntegrated()) {
+            this.player = p;
+            for(IManagedPlayer data : managedPlayerData.values()) {
+                data.setPlayer(p);
+            }
         }
+
     }
 
     public String getId() {
@@ -410,9 +419,15 @@ public class ManagedPlayer {
     /**
      * Saves data to dataStore and syncs it with the client
      */
-    public void save() {
+     public static void save(Player p) {
+        ManagedPlayer mp = getManagedPlayer(p);
+        if(mp != null) mp.saveNextTick=true;
+     }
+
+    private void save() {
         this.saveToDataStore();
         this.syncToClient();
+        this.saveNextTick = false;
     }
 
     private void syncToClient() {
@@ -476,15 +491,17 @@ public class ManagedPlayer {
 
     private static void handlePlayerRespawn(PlayerRespawnEvent event)
     {
-        if(!(event.getOldPlayer() instanceof Player)) return;
+        if(!(event.getNewPlayer() instanceof Player)) return;
 
-        Player player = event.getNewPlayer();
-        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+        Player newPlayer = event.getNewPlayer();
+        if(GENERAL_CONFIG.isIntegrated() && (newPlayer instanceof ServerPlayer)) return;
 
-        String id = HBUtil.PlayerUtil.getId(event.getOldPlayer()); //old and new player are the same NEW player, distinct from killed entity
+        String id = HBUtil.PlayerUtil.getId(newPlayer);
+        if(id == null)
+            id = HBUtil.PlayerUtil.getId(event.getOldPlayer());
         ManagedPlayer mp = PLAYERS.get( id );
 
-        mp.setPlayer(player);
+        mp.setPlayer(newPlayer);
         mp.handlePlayerRespawn();
     }
 
@@ -540,6 +557,8 @@ public class ManagedPlayer {
         for(ManagedPlayer mp : PLAYERS.values()) {
             if(mp.getServerPlayer() == null) continue;
             mp.updateNearbyMobs();
+            if(mp.saveNextTick)
+                mp.save();
         }
     }
 

@@ -20,7 +20,7 @@ public class ModItems {
 
     public static void commonInitialize(BalmItems items)
     {
-        creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
+        //creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
         items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
         new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
@@ -28,12 +28,14 @@ public class ModItems {
     public static void initialize(BalmItems items) {
         //items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
 
-
+    /*
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
             ModBlocks.empty,
             ModBlocks.stoneBrickBlockEntity,
             ModItems.enchantedEssence
         });
+
+     */
     }
 
     private static ResourceLocation id(String name) {

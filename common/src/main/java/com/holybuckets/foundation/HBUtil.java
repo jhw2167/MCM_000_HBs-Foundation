@@ -134,12 +134,12 @@ public class HBUtil {
          */
         public static String getId(Player p)
         {
-            if(p==null) return "";
+            if(p==null) return null;
 
             GameProfile gp = p.getGameProfile();
             if( gp == null ) {
                 LoggerBase.logError( null, "004000", "Error getting player id, game profile is null");
-                return p.getStringUUID();
+                return null;
             }
             String prefix = "CLIENT:";
             if( p instanceof ServerPlayer || GeneralConfig.getInstance().isIntegrated() ) {

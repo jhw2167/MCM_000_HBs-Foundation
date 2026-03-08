@@ -13,17 +13,22 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -91,14 +96,18 @@ public class EssenceCauldronManager {
              EssenceCauldronData data = cauldrons.get(pos);
              if(data == null) continue;
 
-
              if(data.getTeleportPos() == null) {
                  data.cauldronPreTeleportEffects();
                  data.onTickSetBiomeTargetPos();
              }
 
-
              if(data.startTick >= CONFIG.getTotalTickCount()) continue;
+
+            if(data.getTotalBiomes() == 0) {
+                data.cauldronFailedTeleportEffects();
+                cauldrons.remove(pos);
+                continue;
+            }
 
             if(data.getTeleportPos() == null)
                 data.setSafeTeleportPos();
@@ -148,11 +157,14 @@ public class EssenceCauldronManager {
         BlockPos playerEnd = player.blockPosition();
         int blockDist = HBUtil.BlockUtil.distanceSqr(playerStart, playerEnd);
         String dist = (int) Math.sqrt(blockDist) + "";
+        /*
         CommonClass.MESSAGER.sendChat(player,
             Component.translatable("item.hbs_foundation.enchanted_essence.teleport_success_chat",
                 HBUtil.BlockUtil.positionToString(playerStart),
                 HBUtil.BlockUtil.positionToString(playerEnd),
                 dist).getString());
+
+         */
 
     }
 
@@ -237,6 +249,7 @@ public class EssenceCauldronManager {
         Map<Holder<Biome>, BlockPos> targetBiomePos;
         BlockPos safeTeleportPos;
         BlockPos startPos;
+        private int particleTick;
         final long startTick;
         long endTick;
         final int totalBiomes;
@@ -248,12 +261,23 @@ public class EssenceCauldronManager {
         EssenceCauldronData(ServerLevel level, EssenceType type, long startTick, BlockPos startPos) {
             this.level = level;
             this.startPos = startPos;
+            this.particleTick = 0;
             this.startTick = startTick + ESSENCE_CAULDRON_START_DELAY;
             this.endTick = this.startTick + ESSENCE_CAULDRON_DURATION;
             this.essenceType = type;
             this.targetBiomePos = new HashMap<>();
             this.totalBiomes = type.getBiomes().size();
             this.searchOffset = 0;
+        }
+
+
+        public Map.Entry<BlockPos, Holder<Biome>> getTeleportPos() {
+            if(teleportBiome == null || safeTeleportPos == null) return null;
+            return new AbstractMap.SimpleEntry<>(safeTeleportPos, teleportBiome);
+        }
+
+        public int getTotalBiomes() {
+            return totalBiomes;
         }
 
         private static final Vec3i[] BIOME_SEARCH_OFFSETS = {
@@ -268,10 +292,13 @@ public class EssenceCauldronManager {
             new Vec3i(-6400,  0, -6400),  // Northwest
         };
 
+        final static int SEARCH_RATE_TICKS = 5;
         public void onTickSetBiomeTargetPos()
         {
             //check if we already have all the biomes
+            if( totalBiomes==0 ) return;
             if(targetBiomePos.size() >= totalBiomes) return;
+            if(particleTick % SEARCH_RATE_TICKS != 0) return;
             if(targetBiomePos.size() > 0 && searchOffset == 3) {
                 searchOffset = BIOME_SEARCH_OFFSETS.length; //find closest, disable search
                 //otherwise, we want to find all possible biomes in outer ring
@@ -310,13 +337,7 @@ public class EssenceCauldronManager {
             this.safeTeleportPos = safePos;
         }
 
-        public Map.Entry<BlockPos, Holder<Biome>> getTeleportPos() {
-            if(teleportBiome == null || safeTeleportPos == null) return null;
-            return new AbstractMap.SimpleEntry<>(safeTeleportPos, teleportBiome);
-        }
 
-
-        private int particleTick = 0;
         private void spawnParticles(List<Object[]> particles) {
             ServerLevel serverLevel = (ServerLevel) level;
             for (Object[] p : particles) {
@@ -409,5 +430,17 @@ public class EssenceCauldronManager {
             }
         }
 
+        /**
+         * Add some floating redstone particles to indicate the spell failed
+         */
+         private static ParticleOptions RED_FAIL_DUST = new DustParticleOptions(
+             new Vector3f(0.8f, 0.1f, 0.1f), 1.0f);
+        public void cauldronFailedTeleportEffects() {
+            List<Object[]> particles = new ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                particles.add(new Object[]{ RED_FAIL_DUST , rx(), sy() + Math.random() * 0.5, rz(), (Math.random()-0.5)*0.1, 0.02 + Math.random() * 0.02, (Math.random()-0.5)*0.1 });
+            }
+            spawnParticles(particles);
+        }
     }
 }

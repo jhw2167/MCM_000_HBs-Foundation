@@ -568,6 +568,7 @@ public class ManagedPlayer {
      */
     public static void onClientTick(Player p) {
         if(p == null || CLIENT_PLAYER == null) return;
+        if(GENERAL_CONFIG.isIntegrated()) return;
         if(CLIENT_PLAYER.player == p) return;
 
         CLIENT_PLAYER.handlePlayerDeath(CLIENT_PLAYER.player);

@@ -40,11 +40,13 @@ public class EnchantedEssence extends SimpleRewardItem {
         if (stack.getOrCreateTag().contains(ESSENCE_DATA_TAG)) {
             String id = stack.getTag().getString(ESSENCE_DATA_TAG);
             Set<Holder<Biome>> biomes = EssenceType.getBiomes(id);
-
+            String list = "Target Biomes: ";
             if (!biomes.isEmpty()) {
-                String list = "Target Biomes: " + HBUtil.LevelUtil.getBiomeSimpleNames(biomes);
-                tooltipComponents.add(Component.literal(list).withStyle(ChatFormatting.GRAY));
+                 list += HBUtil.LevelUtil.getBiomeSimpleNames(biomes);
+            } else {
+                list = "No Biomes Associated with this Essence";
             }
+            tooltipComponents.add(Component.literal(list).withStyle(ChatFormatting.GRAY));
         }
     }
     

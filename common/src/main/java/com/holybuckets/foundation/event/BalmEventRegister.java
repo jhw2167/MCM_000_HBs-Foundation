@@ -62,6 +62,15 @@ public class BalmEventRegister {
         drainAndRegister(registrar.ON_PLAYER_DEATH, "ON_PLAYER_DEATH", c ->
             registry.onEvent(LivingDeathEvent.class, c, p(c)));
 
+        drainAndRegister(registrar.ON_PLAYER_DAMAGE, "ON_PLAYER_DAMAGE", c ->
+            registry.onEvent(LivingDamageEvent.class, c, p(c)));
+
+        drainAndRegister(registrar.ON_PLAYER_FALL, "ON_PLAYER_FALL", c ->
+            registry.onEvent(LivingFallEvent.class, c, p(c)));
+
+        drainAndRegister(registrar.ON_PLAYER_HEAL, "ON_PLAYER_HEAL", c ->
+            registry.onEvent(LivingHealEvent.class, c, p(c)));
+
         drainAndRegister(registrar.ON_USE_BLOCK, "ON_USE_BLOCK", c ->
             registry.onEvent(UseBlockEvent.class, c, p(c)));
 

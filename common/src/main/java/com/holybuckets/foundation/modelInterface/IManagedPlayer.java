@@ -33,6 +33,21 @@ public interface IManagedPlayer {
     default void handlePlayerDeath(Player player) {}
 
     /**
+     * Called when player takes damage
+     */
+    default void handlePlayerDamage(Player player, float damageAmount) {}
+
+    /**
+     * Called when player falls
+     */
+    default void handlePlayerFall(Player player, float fallDistance, float damageMultiplier) {}
+
+    /**
+     * Called when player heals
+     */
+    default void handlePlayerHeal(Player player, float healAmount) {}
+
+    /**
      * Called when player attacks an entity
      */
      default void handlePlayerAttack(Player player, Entity target){}

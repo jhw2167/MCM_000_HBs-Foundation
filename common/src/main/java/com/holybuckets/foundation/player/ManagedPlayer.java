@@ -275,6 +275,42 @@ public class ManagedPlayer {
         }
     }
 
+    private void handlePlayerDamage(Player player, float damageAmount)
+    {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerDamage(player, damageAmount);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player damage for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004015", msg);
+            }
+        }
+    }
+
+    private void handlePlayerFall(Player player, float fallDistance, float damageMultiplier)
+    {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerFall(player, fallDistance, damageMultiplier);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player fall for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004016", msg);
+            }
+        }
+    }
+
+    private void handlePlayerHeal(Player player, float healAmount)
+    {
+        for(IManagedPlayer data : managedPlayerData.values()) {
+            try {
+                data.handlePlayerHeal(player, healAmount);
+            } catch (Exception e) {
+                String msg = String.format("Error handling player heal for player %s, class: %s", player.getDisplayName(), data.getClass() );
+                LoggerBase.logError(null, "004017", msg);
+            }
+        }
+    }
+
     public void handlePlayerAttack(Player player, Entity target) {
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
@@ -521,6 +557,51 @@ public class ManagedPlayer {
         }
     }
 
+    private static void onPlayerDamage(LivingDamageEvent event)
+    {
+        if(!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerDamage(player, event.getDamageAmount());
+        } else {
+            LoggerBase.logError(null, "004018", "ManagedPlayer not found for damage event");
+        }
+    }
+
+    private static void onPlayerFall(LivingFallEvent event)
+    {
+        if(!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerFall(player, event.getDistance(), event.getDamageMultiplier());
+        } else {
+            LoggerBase.logError(null, "004019", "ManagedPlayer not found for fall event");
+        }
+    }
+
+    private static void onPlayerHeal(LivingHealEvent event)
+    {
+        if(!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
+
+        String id = HBUtil.PlayerUtil.getId(player);
+        ManagedPlayer mp = PLAYERS.get(id);
+        if(mp != null) {
+            mp.handlePlayerHeal(player, event.getAmount());
+        } else {
+            LoggerBase.logError(null, "004020", "ManagedPlayer not found for heal event");
+        }
+    }
+
     private static void onDigSpeed(DigSpeedEvent event)
     {
         Player player = event.getPlayer();
@@ -606,6 +687,9 @@ public class ManagedPlayer {
         reg.registerOnPlayerAttack(ManagedPlayer::onPlayerAttack, EventPriority.High);
         reg.registerOnDigSpeedEvent(ManagedPlayer::onDigSpeed, EventPriority.High);
         reg.registerOnPlayerDeath(ManagedPlayer::onPlayerDeath, EventPriority.Highest);
+        reg.registerOnPlayerDamage(ManagedPlayer::onPlayerDamage, EventPriority.Highest);
+        reg.registerOnPlayerFall(ManagedPlayer::onPlayerFall, EventPriority.Highest);
+        reg.registerOnPlayerHeal(ManagedPlayer::onPlayerHeal, EventPriority.Highest);
         reg.registerOnPlayerRespawn(ManagedPlayer::handlePlayerRespawn, EventPriority.Highest);
         reg.registerOnPlayerLogin(ManagedPlayer::onPlayerLogin, EventPriority.High);
         reg.registerOnPlayerLogout(ManagedPlayer::onPlayerLogout, EventPriority.Lowest);

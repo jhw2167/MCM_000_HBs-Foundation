@@ -90,6 +90,9 @@ public class EventRegistrar {
     final Set<Consumer<PlayerChangedDimensionEvent>> ON_PLAYER_CHANGED_DIMENSION = new ConcurrentSet<>();
     final Set<Consumer<PlayerRespawnEvent>> ON_PLAYER_RESPAWN = new ConcurrentSet<>();
     final Set<Consumer<LivingDeathEvent>> ON_PLAYER_DEATH = new ConcurrentSet<>();
+    final Set<Consumer<LivingDamageEvent>> ON_PLAYER_DAMAGE = new ConcurrentSet<>();
+    final Set<Consumer<LivingFallEvent>> ON_PLAYER_FALL = new ConcurrentSet<>();
+    final Set<Consumer<LivingHealEvent>> ON_PLAYER_HEAL = new ConcurrentSet<>();
     final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
     final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
@@ -431,6 +434,30 @@ public class EventRegistrar {
         generalRegister(function, ON_PLAYER_DEATH, priority);
     }
 
+    public void registerOnPlayerDamage(Consumer<LivingDamageEvent> function) {
+        registerOnPlayerDamage(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerDamage(Consumer<LivingDamageEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_DAMAGE, priority);
+    }
+
+    public void registerOnPlayerFall(Consumer<LivingFallEvent> function) {
+        registerOnPlayerFall(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerFall(Consumer<LivingFallEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_FALL, priority);
+    }
+
+    public void registerOnPlayerHeal(Consumer<LivingHealEvent> function) {
+        registerOnPlayerHeal(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerHeal(Consumer<LivingHealEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_HEAL, priority);
+    }
+
     public void registerOnUseBlock(Consumer<UseBlockEvent> function) {
         registerOnUseBlock(function, EventPriority.Normal);
     }
@@ -468,7 +495,7 @@ public class EventRegistrar {
     }
 
     public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function, EventPriority priority) {
-        generalRegister(function, ON_WAKE_UP_ALL_PLAYERS, priority);
+        generalRegister(function, ON_WAKE_UP_ALL_PLAYERS,  priority);
     }
 
     public void registerOnTossItem(Consumer<TossItemEvent> function) {

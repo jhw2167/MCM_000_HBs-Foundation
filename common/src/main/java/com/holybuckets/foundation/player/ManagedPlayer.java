@@ -22,6 +22,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import org.apache.logging.log4j.core.jmx.Server;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -419,7 +420,7 @@ public class ManagedPlayer {
     /**
      * Saves data to dataStore and syncs it with the client
      */
-     public static void save(Player p) {
+     public static void save(ServerPlayer p) {
         ManagedPlayer mp = getManagedPlayer(p);
         if(mp != null) mp.saveNextTick=true;
      }
@@ -494,7 +495,7 @@ public class ManagedPlayer {
         if(!(event.getNewPlayer() instanceof Player)) return;
 
         Player newPlayer = event.getNewPlayer();
-        if(GENERAL_CONFIG.isIntegrated() && (newPlayer instanceof ServerPlayer)) return;
+        if(GENERAL_CONFIG.isIntegrated() && newPlayer.isLocalPlayer()) return;
 
         String id = HBUtil.PlayerUtil.getId(newPlayer);
         if(id == null)

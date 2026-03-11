@@ -130,17 +130,17 @@ public class EventRegistrar {
         BalmEventRegister.registerPriorityEvents(instance);
     }
 
-    void onBeforeServerStarted(ServerStartingEvent event) {
+    void onBeforeServerStarted(ServerStartingEvent event)
+    {
+
+        GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Process deferred item objects for ItemEntity tick events
         processItemEntityDeferredObjects();
 
-        // Sort consumers by priority
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
             .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
             .toList();
 
-        GeneralConfig.fireEvent(ServerStartingEvent.class, event);
-        // Execute in priority order
         for (Consumer<ServerStartingEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }

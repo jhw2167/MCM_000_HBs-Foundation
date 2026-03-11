@@ -209,9 +209,7 @@ public class GeneralConfig {
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;
         this.initPerformanceConfig();
-
-        if( this.server == null )
-            this.server = event.getServer();
+        this.server = event.getServer();
 
         if( !this.isWorldConfigInit)
         {
@@ -320,15 +318,12 @@ public class GeneralConfig {
         return this.isClientSide;
     }
     public boolean isServerSide() {
-        if(this.getServer()==null) return false;
-        if(this.getServer() instanceof DedicatedServer) return true;
-        return this.isServerSide;
+        return (getServer()!=null);
     }
 
     public boolean isIntegrated() {
         if(this.getServer()==null) return false;
-        if(this.getServer() instanceof DedicatedServer) return false;
-        return isServerSide && isClientSide;
+        return !(this.getServer() instanceof DedicatedServer);
     }
 
 

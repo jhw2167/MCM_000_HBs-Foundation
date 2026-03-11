@@ -40,7 +40,7 @@ public interface IManagedPlayer {
     /**
      * Called when player falls
      */
-    default void handlePlayerFall(Player player, float fallDistance, float damageMultiplier) {}
+    default void handlePlayerFall(Player player) {}
 
     /**
      * Called when player heals

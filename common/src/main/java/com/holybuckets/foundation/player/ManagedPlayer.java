@@ -291,7 +291,7 @@ public class ManagedPlayer {
     {
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
-                data.handlePlayerFall(player, fallDistance, damageMultiplier);
+                data.handlePlayerFall(player);
             } catch (Exception e) {
                 String msg = String.format("Error handling player fall for player %s, class: %s", player.getDisplayName(), data.getClass() );
                 LoggerBase.logError(null, "004016", msg);
@@ -581,7 +581,7 @@ public class ManagedPlayer {
         String id = HBUtil.PlayerUtil.getId(player);
         ManagedPlayer mp = PLAYERS.get(id);
         if(mp != null) {
-            mp.handlePlayerFall(player, event.getDistance(), event.getDamageMultiplier());
+            mp.handlePlayerFall(player, 0, 0);
         } else {
             LoggerBase.logError(null, "004019", "ManagedPlayer not found for fall event");
         }

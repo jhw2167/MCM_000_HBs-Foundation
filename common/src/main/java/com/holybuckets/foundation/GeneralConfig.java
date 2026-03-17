@@ -137,6 +137,7 @@ public class GeneralConfig {
             Level level = event.getLevel();
             LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
             long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            if(dayTickLength <= 0) dayTickLength = TICKS_PER_DAY;
             //long dayTickLength = 500;
             long nextDailyTick = event.getTickCount() + dayTickLength;
             int totalDays = this.getTotalDays(level)+1;
@@ -342,7 +343,9 @@ public class GeneralConfig {
     public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
         int totalDays = this.getTotalDays(level);
-        long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY)+1; //need that last tick to fire
+        long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+        if(dayTickLength <= 0) dayTickLength = TICKS_PER_DAY;
+        dayTickLength+=1; //need that last tick to fire
         return (dayTickLength * totalDays) + (level.getDayTime() % dayTickLength);
     }
 

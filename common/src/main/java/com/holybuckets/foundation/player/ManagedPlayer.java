@@ -548,12 +548,9 @@ public class ManagedPlayer {
         Player player = (Player) event.getEntity();
         if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerDeath(player);
-        } else {
-            LoggerBase.logError(null, "004010", "ManagedPlayer not found for death event");
         }
     }
 
@@ -563,12 +560,9 @@ public class ManagedPlayer {
         Player player = (Player) event.getEntity();
         if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerDamage(player, event.getDamageAmount());
-        } else {
-            LoggerBase.logError(null, "004018", "ManagedPlayer not found for damage event");
         }
     }
 
@@ -578,12 +572,9 @@ public class ManagedPlayer {
         Player player = (Player) event.getEntity();
         if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerFall(player, 0, 0);
-        } else {
-            LoggerBase.logError(null, "004019", "ManagedPlayer not found for fall event");
         }
     }
 
@@ -593,12 +584,9 @@ public class ManagedPlayer {
         Player player = (Player) event.getEntity();
         if(GENERAL_CONFIG.isIntegrated() && player.isLocalPlayer()) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerHeal(player, event.getAmount());
-        } else {
-            LoggerBase.logError(null, "004020", "ManagedPlayer not found for heal event");
         }
     }
 
@@ -608,12 +596,9 @@ public class ManagedPlayer {
         if(player == null) return;
         if(!(player instanceof ServerPlayer)) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerDigSpeed(player, event.getSpeed(), event.getSpeedOverride());
-        } else {
-            //LoggerBase.logError(null, "004014", "ManagedPlayer not found for dig speed event");
         }
     }
 
@@ -625,12 +610,9 @@ public class ManagedPlayer {
         Entity target = playerAttackEvent.getTarget();
         if(player == null || target == null) return;
 
-        String id = HBUtil.PlayerUtil.getId(player);
-        ManagedPlayer mp = PLAYERS.get(id);
+        ManagedPlayer mp = getManagedPlayer(player);
         if(mp != null) {
             mp.handlePlayerAttack(player, target);
-        } else {
-            //LoggerBase.logError(null, "004013", "ManagedPlayer not found for attack event");
         }
     }
 

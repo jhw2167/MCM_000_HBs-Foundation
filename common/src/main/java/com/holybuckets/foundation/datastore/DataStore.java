@@ -257,20 +257,6 @@ public class DataStore implements IStringSerializable {
     }
 
 
-    //Initialize default properties
-    private static void initLevelSaveData(LevelSaveData lsd, LevelAccessor l)
-    {
-        String id = HBUtil.LevelUtil.toLevelId(l);
-        lsd.addProperty("levelId", new JsonPrimitive(id));
-        lsd.addProperty("totalSleeps", new JsonPrimitive(0));
-        lsd.addProperty("totalTicksWithSleep", new JsonPrimitive(0));
-        lsd.addProperty("totalDays", new JsonPrimitive(0));
-        long nextDailyTick = l.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-        lsd.addProperty("nextDailyTick", new JsonPrimitive(nextDailyTick));
-    }
-
-
-
 
     /** SUBCLASSES **/
 

@@ -3,6 +3,7 @@ package com.holybuckets.foundation.datastore;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.holybuckets.foundation.LoggerBase;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 
@@ -128,14 +129,26 @@ public class LevelSaveData {
         }
         if( !props.containsKey("nextDailyTick")) {
             long nextDailyTick = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            if(nextDailyTick <= 0) nextDailyTick = TICKS_PER_DAY;
             long currentTick = worldData.get("totalTicks").getAsLong();
             props.put("nextDailyTick", new JsonPrimitive(nextDailyTick+currentTick));
         }
-        if( !props.containsKey("totalDays")) {
-            long dayLength = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
-            long totalDays = data.level.getGameTime() / dayLength;
-            props.put("totalDays", new JsonPrimitive(totalDays));
+        try {
+            if( !props.containsKey("totalDays")) {
+                long dayLength = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+                if(dayLength <= 0) dayLength = TICKS_PER_DAY;
+                long totalDays = data.level.getGameTime() / dayLength;
+                props.put("totalDays", new JsonPrimitive(totalDays));
+            }
+        } catch ( Exception e) {
+            LoggerBase.logError(null, "999001",
+            "Error calculating total days for level " + data.levelId + ": " + e.getMessage());
+            if( data.level.getGameTime() >= 0)
+                props.put("totalDays", new JsonPrimitive(data.level.getGameTime() / TICKS_PER_DAY));
+            else
+                props.put("totalDays", new JsonPrimitive(0));
         }
+
 
     }
 

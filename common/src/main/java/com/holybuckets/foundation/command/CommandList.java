@@ -243,7 +243,7 @@ public class CommandList {
             BlockPos playerPos = player.blockPosition();
 
             try {
-                ResourceLocation structureType = new ResourceLocation(type);
+                ResourceLocation structureType = ResourceLocation.fromNamespaceAndPath(type);
                 StructureAPI api = new StructureAPI(level);
                 List<StructureInfo> structures = api.nearestStructuresOfType(playerPos, structureType, limit);
 
@@ -433,7 +433,7 @@ public class CommandList {
             BlockPos playerPos = player.blockPosition();
 
             try {
-                ResourceLocation biomeType = new ResourceLocation(type);
+                ResourceLocation biomeType = ResourceLocation.fromNamespaceAndPath(type);
                 BiomeAPI api = new BiomeAPI(level);
                 List<BiomeInfo> biomes = api.nearestBiomesOfType(playerPos, biomeType, limit);
 

@@ -26,7 +26,7 @@ public class ManagedPlayerAttachment {
     static final Map<String, CompoundTag> PENDING_PLAYERS = new HashMap<>();
 
     static final AttachmentType<ManagedPlayer> MANAGED_PLAYER_ATTACHMENT = AttachmentRegistry.createPersistent(
-        new ResourceLocation(Constants.MOD_ID, "managed_player"),
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_player"),
         new Codec<>() {
             @Override
             public <T> DataResult<T> encode(ManagedPlayer input, DynamicOps<T> ops, T prefix) {

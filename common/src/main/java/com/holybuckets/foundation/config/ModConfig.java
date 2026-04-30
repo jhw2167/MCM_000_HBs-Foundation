@@ -82,7 +82,7 @@ public class ModConfig {
         }
 
         private ResourceLocation toResourceLocation(String name) {
-            return new ResourceLocation(addNameSpaceMap(name));
+            return ResourceLocation.fromNamespaceAndPath(addNameSpaceMap(name));
         }
 
     @Nullable

@@ -23,7 +23,7 @@ public class ManagedChunkAttachment {
     static void init() {}
 
     static final AttachmentType<ManagedChunk> MANAGED_CHUNK_ATTACHMENT =  AttachmentRegistry.createPersistent(
-        new ResourceLocation(Constants.MOD_ID, "managed_chunk"),
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_chunk"),
         new Codec<>() {
 
             @Override

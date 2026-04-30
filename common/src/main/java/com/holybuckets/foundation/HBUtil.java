@@ -8,7 +8,6 @@ import com.holybuckets.foundation.exception.NoDefaultConfig;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
-import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.JsonOps;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
@@ -22,6 +21,7 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
@@ -44,7 +44,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -195,7 +195,7 @@ public class HBUtil {
                 return null;
             }
 
-            ResourceLocation itemKey = new ResourceLocation(nameSpace.trim(), itemName.trim());
+            ResourceLocation itemKey = ResourceLocation.fromNamespaceAndPath(nameSpace.trim(), itemName.trim());
             Item item = BuiltInRegistries.ITEM.get(itemKey);
 
             if( item == null ) {
@@ -239,8 +239,9 @@ public class HBUtil {
 
         @Nullable
         public static Enchantment enchantNameToEnchant(String namespace, String enchantName) {
-         ResourceLocation key = new ResourceLocation(namespace.trim(), enchantName.trim());
-         return BuiltInRegistries.ENCHANTMENT.get(key);
+         ResourceLocation key = ResourceLocation.fromNamespaceAndPath(namespace.trim(), enchantName.trim());
+         if(GeneralConfig.LOCAL_LEVEL ==null) return null;
+         return GeneralConfig.LOCAL_LEVEL.registryAccess().registry(Registries.ENCHANTMENT).get().get(key);
         }
 
         public static int getEnchantLevel(String enchant) {
@@ -336,7 +337,7 @@ public class HBUtil {
                namespace = "minecraft";
 
             BalmRegistries registries = Balm.getRegistries();
-            ResourceLocation blockKey = new ResourceLocation(namespace.trim(), blockName.trim());
+            ResourceLocation blockKey = ResourceLocation.fromNamespaceAndPath(namespace.trim(), blockName.trim());
             Block b = registries.getBlock(blockKey);
 
             if( b == null )
@@ -360,7 +361,7 @@ public class HBUtil {
             String[] parts = blockId.split(":");
             String namespace = parts.length > 1 ? parts[0] : "minecraft";
             String path = parts.length > 1 ? parts[1] : parts[0];
-            return new ResourceLocation(namespace.trim(), path.trim());
+            return ResourceLocation.fromNamespaceAndPath(namespace.trim(), path.trim());
         }
 
         /**
@@ -708,7 +709,7 @@ public class HBUtil {
         }
 
         public static boolean testLevel(Level level, String levelNameSpace, String levelId) {
-            return testLevel(level, new ResourceLocation(levelNameSpace + ":" + levelId));
+            return testLevel(level, ResourceLocation.fromNamespaceAndPath(levelNameSpace, levelId));
         }
 
         public static boolean testLevel(Level level, ResourceLocation location) {
@@ -727,7 +728,7 @@ public class HBUtil {
             String[] parts = levelId.split(":");
             String namespace = parts.length > 1 ? parts[0] : "minecraft";
             String path = parts.length > 1 ? parts[1] : parts[0];
-            return new ResourceLocation(namespace.trim(), path.trim());
+            return ResourceLocation.fromNamespaceAndPath(namespace.trim(), path.trim());
         }
 
         /**
@@ -767,7 +768,7 @@ public class HBUtil {
                 biomeId = parts[1];
             }
 
-            return new ResourceLocation(nmspace, biomeId);
+            return ResourceLocation.fromNamespaceAndPath(nmspace, biomeId);
         }
 
         public static ResourceLocation toBiomeResourceLocation(Biome biome) {
@@ -1150,7 +1151,7 @@ public class HBUtil {
             unforceLoadChunk(level, chunkPos, ticketId, chunkMinStatus);
         }
 
-        public static CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>> softLoadChunk(ServerLevel level, ChunkPos chunkPos) {
+        public static CompletableFuture<ChunkResult<ChunkAccess>> softLoadChunk(ServerLevel level, ChunkPos chunkPos) {
             return level.getChunkSource().getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
         }
 
@@ -1176,7 +1177,7 @@ public class HBUtil {
         }
 
         public static EntityType<?> entityNameToEntityType(String namespace, String entityName) {
-            ResourceLocation key = new ResourceLocation(namespace.trim(), entityName.trim());
+            ResourceLocation key = ResourceLocation.fromNamespaceAndPath(namespace.trim(), entityName.trim());
             return BuiltInRegistries.ENTITY_TYPE.get(key);
         }
 
@@ -1209,10 +1210,10 @@ public class HBUtil {
          */
         public static <T extends Entity> T createEntityAtPosition(EntityType<T> entityType, ServerLevel world, BlockPos pos )
         {
+
             return entityType.create(
                 world,
-                null,               // Optional NBT data (e.g., from a spawn egg or saved entity)
-                null,                   // Optional function to customize the entity after creation
+                m -> {},              // empty consumer
                 pos,                 // The target block position for spawning the entity
                 MobSpawnType.COMMAND,            // The reason/type of spawn (e.g., NATURAL, SPAWNER, COMMAND)
             true,               // Whether to position the entity above the block center (usually true)
@@ -1462,7 +1463,7 @@ public class HBUtil {
 
         //** SERVER TO CLIENT
 
-        private static <T> void sendHandler(Runnable r)
+        private static <T extends CustomPacketPayload> void sendHandler(Runnable r)
         {
             if( CLIENT_STARTED ) {
                 POOL.submit(r);
@@ -1472,11 +1473,11 @@ public class HBUtil {
             }
         }
 
-        public static <T> void serverSendToAllPlayers(T message) {
+        public static <T extends CustomPacketPayload> void serverSendToAllPlayers(T message) {
             sendHandler(() -> networking.sendToAll(server, message));
         }
 
-        public static <T> void serverSendToPlayer(Player player, T message) {
+        public static <T extends CustomPacketPayload> void serverSendToPlayer(Player player, T message) {
             sendHandler(() -> networking.sendTo(player, message));
         }
 
@@ -1506,7 +1507,7 @@ public class HBUtil {
             }
         }
 
-        public static synchronized <T> void clientSendToServer(T message) {
+        public static synchronized <T extends CustomPacketPayload> void clientSendToServer(T message) {
             networking.sendToServer(message);
         }
 

@@ -108,7 +108,7 @@ public class FoundationInitializers {
     }
 
     public static ResourceLocation id(String location) {
-        return new ResourceLocation(Constants.MOD_ID, location);
+        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, location);
     }
 
 }

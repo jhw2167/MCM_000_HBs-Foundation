@@ -11,7 +11,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 public class Validator {
 
     public static boolean blockExists(String blockName) {
-        return ForgeRegistries.BLOCKS.containsKey( new ResourceLocation(blockName) );
+        return ForgeRegistries.BLOCKS.containsKey( ResourceLocation.fromNamespaceAndPath(blockName) );
     }
 
     public static boolean blockHasProperty(String blockName, String propertyname) {
@@ -19,6 +19,6 @@ public class Validator {
     }
 
     public static boolean itemExists(String itemname) {
-        return ForgeRegistries.ITEMS.containsKey( new ResourceLocation(itemname) );
+        return ForgeRegistries.ITEMS.containsKey( ResourceLocation.fromNamespaceAndPath(itemname) );
     }
 }

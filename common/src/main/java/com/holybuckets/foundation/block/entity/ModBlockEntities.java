@@ -20,7 +20,7 @@ public class ModBlockEntities {
     }
 
     private static ResourceLocation id(String name) {
-        return new ResourceLocation(Constants.MOD_ID, name);
+        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
     }
 
     private static BlockItem itemBlock(Block block) {

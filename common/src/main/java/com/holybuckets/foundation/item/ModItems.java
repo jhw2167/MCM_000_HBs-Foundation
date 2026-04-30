@@ -22,7 +22,7 @@ public class ModItems {
     {
         //creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
         items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
-        new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
+        ResourceLocation.fromNamespaceAndPath("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
 
     public static void initialize(BalmItems items) {
@@ -39,7 +39,7 @@ public class ModItems {
     }
 
     private static ResourceLocation id(String name) {
-        return new ResourceLocation(Constants.MOD_ID, name);
+        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
     }
 
 }

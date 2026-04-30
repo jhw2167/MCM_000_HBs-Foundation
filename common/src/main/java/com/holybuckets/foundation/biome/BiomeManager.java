@@ -47,7 +47,7 @@ public class BiomeManager {
     //** GETTERS
 
     public static ResourceLocation toLocation(String stringBiome) {
-        return new ResourceLocation(stringBiome);
+        return ResourceLocation.fromNamespaceAndPath(stringBiome);
     }
 
     public Set<ResourceLocation> getAllBiomes() {

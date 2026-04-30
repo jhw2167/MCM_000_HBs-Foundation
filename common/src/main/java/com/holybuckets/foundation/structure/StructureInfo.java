@@ -81,7 +81,7 @@ public class StructureInfo {
             origin = HBUtil.BlockUtil.stringToBlockPos (pos);
         }
         if(tag.contains("id")) {
-            id = new ResourceLocation(tag.getString("id"));
+            id = ResourceLocation.fromNamespaceAndPath(tag.getString("id"));
         }
 
         registryId = tag.getInt("registryId");
@@ -91,7 +91,7 @@ public class StructureInfo {
         }
         
         if(tag.contains("structureLocation")) {
-            structureLocation = new ResourceLocation(tag.getString("structureLocation"));
+            structureLocation = ResourceLocation.fromNamespaceAndPath(tag.getString("structureLocation"));
         }
     }
 

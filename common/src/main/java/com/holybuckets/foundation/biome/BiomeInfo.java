@@ -76,7 +76,7 @@ public class BiomeInfo {
             samplePos = HBUtil.BlockUtil.stringToBlockPos(tag.getString("samplePos"));
         }
         if (tag.contains("id")) {
-            id = new ResourceLocation(tag.getString("id"));
+            id = ResourceLocation.fromNamespaceAndPath(tag.getString("id"));
         }
         registryId = tag.getInt("registryId");
         if (tag.contains("commonName")) {

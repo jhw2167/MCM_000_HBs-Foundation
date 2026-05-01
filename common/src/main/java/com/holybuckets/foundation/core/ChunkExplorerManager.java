@@ -10,6 +10,7 @@ import com.mojang.datafixers.util.Either;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ChunkResult;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -58,7 +59,7 @@ public class ChunkExplorerManager {
     // Single probe currently held open, and the tick it was loaded
     private ChunkPos heldChunk = null;
     private long     heldSince = Long.MIN_VALUE;
-    CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>>     heldChunkFuture = null;
+    CompletableFuture<ChunkResult<ChunkAccess>>     heldChunkFuture = null;
 
     private ChunkExplorerManager(Level level) {
         this.level = level;

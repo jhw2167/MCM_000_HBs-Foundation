@@ -250,7 +250,7 @@ public class GeneralConfig {
         Level level = (Level) event.getLevel();
         this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
         LevelData data = level.getLevelData();
-        BlockPos spawn = new BlockPos(data.getXSpawn(), data.getYSpawn(), data.getZSpawn());
+        BlockPos spawn = data.getSpawnPos();
         this.WORLD_SPAWNS.put(level, spawn);
         //if( level.isClientSide() ) return;
 

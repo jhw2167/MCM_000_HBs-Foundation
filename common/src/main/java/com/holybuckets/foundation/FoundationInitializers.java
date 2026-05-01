@@ -8,6 +8,7 @@ import com.holybuckets.foundation.config.ModConfig;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.core.*;
+import com.holybuckets.foundation.datacomponent.ModDataComponents;
 import com.holybuckets.foundation.enchantment.ModEnchantments;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -42,6 +43,7 @@ public class FoundationInitializers {
         initBlocks();
         initItems();
         ModEnchantments.register();
+        ModDataComponents.register(Balm.getRuntime().registrar());
     }
 
 

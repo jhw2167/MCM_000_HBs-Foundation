@@ -12,7 +12,12 @@ public class ModNetworking {
         Handlers.init();
         networking.registerClientboundPacket(id(BlockStateUpdatesMessage.LOCATION), BlockStateUpdatesMessage.class, Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates, Handlers::handleBlockStateUpdates);
 
-        networking.registerServerboundPacket(id(ClientInputMessage.LOCATION), ClientInputMessage.class, Codecs::encodeClientInput, Codecs::decodeClientInput, Handlers::handleClientInput);
+        networking.registerServerboundPacket(
+            ClientInputMessage.TYPE,
+            ClientInputMessage.class,
+            ClientInputMessage.STREAM_CODEC,
+            (player, msg) -> Handlers.handleClientInput(player, msg)
+        );
 
         networking.registerClientboundPacket(id(SimpleStringMessage.LOCATION+"_client"), SimpleStringClientMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleClientString, Handlers::handleSimpleString);
         networking.registerServerboundPacket(id(SimpleStringMessage.LOCATION+"_server"), SimpleStringServerMessage.class, Codecs::encodeSimpleString, Codecs::decodeSimpleServerString, Handlers::handleSimpleString);

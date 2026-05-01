@@ -2,8 +2,8 @@ package com.holybuckets.foundation.core;
 
 import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.biome.BiomeManager;
+import com.holybuckets.foundation.datacomponent.EssenceDataComponent;
 import com.holybuckets.foundation.enchantment.EssenceEnchantment;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
@@ -11,23 +11,14 @@ import com.holybuckets.foundation.event.custom.ItemEntityTickEvent;
 import com.holybuckets.foundation.item.ModItems;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.CauldronBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static com.holybuckets.foundation.item.EnchantedEssence.ESSENCE_DATA_TAG;
 
@@ -85,12 +76,9 @@ public class CustomRecipes {
             Level level = entity.level();
             if(EssenceCauldronManager.hasEssenceCauldron(level, pos)) return;
             BiomeManager manager = BiomeManager.get(level);
-            if(manager == null) { enchantedEssenceFailed(entity, null); return; }
+            if(manager == null || !entity.getItem().isEnchanted() ) { enchantedEssenceFailed(entity, null); return; }
 
-            CompoundTag tag = entity.getItem().getTag();
-            if(tag == null) { enchantedEssenceFailed(entity, null); return; }
-
-            EssenceType type = new EssenceType(tag.getString(ESSENCE_DATA_TAG));
+            EssenceType type = EssenceDataComponent.getEssenceType(entity.getItem());
             if(type == null) { enchantedEssenceFailed(entity, null); return; }
 
             EssenceCauldronManager.addEssenceCauldron(level, pos, type);
@@ -127,15 +115,14 @@ public class CustomRecipes {
         if(essence.getItem() != ModItems.enchantedEssence) return;
 
         ItemStack enchantingItem = event.getRightItem();
-        Enchantment essenceEnchantment = EssenceEnchantment.of(enchantingItem.getItem());
-        if(essenceEnchantment == null) return;
+        if(!EssenceEnchantment.hasEssenceEnchantment(enchantingItem)) return;
 
         int total = Math.min(essence.getCount(), enchantingItem.getCount());
 
         ItemStack result = essence.copy();
         result.setCount(total);
-        result.enchant(essenceEnchantment, 1);
-        result.getOrCreateTag().putString(ESSENCE_DATA_TAG, essenceEnchantment.getDescriptionId());
+        result.enchant(EssenceEnchantment.GET(), 1);
+        EssenceDataComponent.createFromItem(result, enchantingItem.getItem());
 
         event.setResultItem(result);
         event.setRepairItemCost(total);

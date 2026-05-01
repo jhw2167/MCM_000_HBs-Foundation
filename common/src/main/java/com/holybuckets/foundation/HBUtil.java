@@ -214,7 +214,7 @@ public class HBUtil {
         );
 
         @Nullable
-        public static Enchantment enchantNameToEnchant(String qualifiedStringEnchant)
+        public static Holder<Enchantment> enchantNameToEnchant(String qualifiedStringEnchant)
         {
             String nmspc;
             String enchantName = qualifiedStringEnchant;
@@ -238,10 +238,16 @@ public class HBUtil {
 
 
         @Nullable
-        public static Enchantment enchantNameToEnchant(String namespace, String enchantName) {
+        public static Holder<Enchantment> enchantNameToEnchant(String namespace, String enchantName) {
          ResourceLocation key = ResourceLocation.fromNamespaceAndPath(namespace.trim(), enchantName.trim());
-         if(GeneralConfig.LOCAL_LEVEL ==null) return null;
-         return GeneralConfig.LOCAL_LEVEL.registryAccess().registry(Registries.ENCHANTMENT).get().get(key);
+            return enchantNameToEnchant(key);
+        }
+
+        @Nullable
+        public static Holder<Enchantment> enchantNameToEnchant(ResourceLocation key) {
+            if(GeneralConfig.LOCAL_LEVEL ==null) return null;
+            return GeneralConfig.LOCAL_LEVEL.registryAccess()
+                .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
         }
 
         public static int getEnchantLevel(String enchant) {

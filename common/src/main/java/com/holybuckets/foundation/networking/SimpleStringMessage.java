@@ -5,12 +5,18 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
+
+import static com.holybuckets.foundation.FoundationInitializers.id;
 
 /**
  * Description: SimpleStringMessage
@@ -29,8 +35,8 @@ public class SimpleStringMessage {
     public SimpleStringMessage(@Nullable UUID senderId, String messageId, String content) {
         this.senderId = senderId;
         this.messageId = messageId != null ? messageId : "default";
-        this.content = content != null && content.length() > MAX_SIZE 
-            ? content.substring(0, MAX_SIZE) 
+        this.content = content != null && content.length() > MAX_SIZE
+            ? content.substring(0, MAX_SIZE)
             : (content != null ? content : "");
     }
 
@@ -50,20 +56,74 @@ public class SimpleStringMessage {
         return new SimpleStringServerMessage(this.senderId, this.messageId, this.content);
     }
 
+    // Shared read logic
+    protected static SimpleStringMessage readFromBuf(FriendlyByteBuf buf) {
+        String strUUID = buf.readUtf();
+        UUID senderId = strUUID.isEmpty() ? null : UUID.fromString(strUUID);
+        String messageId = buf.readUtf(256);
+        String content = buf.readUtf(MAX_SIZE);
+        return new SimpleStringMessage(senderId, messageId, content);
+    }
+
+    // Shared write logic
+    protected void writeToBuf(FriendlyByteBuf buf) {
+        buf.writeUtf(this.senderId == null ? "" : this.senderId.toString());
+        buf.writeUtf(this.messageId, 256);
+        buf.writeUtf(this.content, MAX_SIZE);
+    }
+
     /** To Servers **/
-    public class SimpleStringServerMessage extends SimpleStringMessage {
-        /**  To Servers */
+    public static class SimpleStringServerMessage extends SimpleStringMessage implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<SimpleStringServerMessage> TYPE =
+            new CustomPacketPayload.Type<>(id(LOCATION + "_server"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, SimpleStringServerMessage> STREAM_CODEC =
+            CustomPacketPayload.codec(SimpleStringServerMessage::write, SimpleStringServerMessage::new);
+
         public SimpleStringServerMessage(UUID senderId, String messageId, String content) {
             super(senderId, messageId, content);
         }
+
+        // Decode constructor
+        public SimpleStringServerMessage(FriendlyByteBuf buf) {
+            super(readFromBuf(buf).senderId, readFromBuf(buf).messageId, readFromBuf(buf).content);
+        }
+
+        // Encode method
+        public void write(FriendlyByteBuf buf) {
+            writeToBuf(buf);
+        }
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     /** To Clients **/
-    public class SimpleStringClientMessage extends SimpleStringMessage {
-        /** To Clients */
+    public static class SimpleStringClientMessage extends SimpleStringMessage implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<SimpleStringClientMessage> TYPE =
+            new CustomPacketPayload.Type<>(id(LOCATION + "_client"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, SimpleStringClientMessage> STREAM_CODEC =
+            CustomPacketPayload.codec(SimpleStringClientMessage::write, SimpleStringClientMessage::new);
+
         public SimpleStringClientMessage(UUID senderId, String messageId, String content) {
             super(senderId, messageId, content);
         }
+
+        // Decode constructor
+        public SimpleStringClientMessage(FriendlyByteBuf buf) {
+            super(readFromBuf(buf).senderId, readFromBuf(buf).messageId, readFromBuf(buf).content);
+        }
+
+        // Encode method
+        public void write(FriendlyByteBuf buf) {
+            writeToBuf(buf);
+        }
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     /**
@@ -74,26 +134,26 @@ public class SimpleStringMessage {
      * @return
      */
     public static SimpleStringMessage createAndFire(Player p, String messageId, String content) {
-        SimpleStringMessage message = (p==null) ? new SimpleStringMessage(messageId, content)
+        SimpleStringMessage message = (p == null) ? new SimpleStringMessage(messageId, content)
             : new SimpleStringMessage(p.getUUID(), messageId, content);
 
-        if(GeneralConfig.getInstance().isIntegrated()) {
+        if (GeneralConfig.getInstance().isIntegrated()) {
             EventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
             ClientEventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
             return message;
-        }
-        else if (GeneralConfig.getInstance().isServerSide()) {
-            if(p==null) {
-                String error = "SimpleStringMessage.createAndFire: Attempt to send message from server to undefined player. MsgId "+ messageId;
+        } else if (GeneralConfig.getInstance().isServerSide()) {
+            if (p == null) {
+                String error = "SimpleStringMessage.createAndFire: Attempt to send message from server to undefined player. MsgId " + messageId;
                 LoggerBase.logError(null, "016001", error);
             }
-            message = message.toClientMessage();
-            HBUtil.NetworkUtil.serverSendToPlayer(p, message);
+            SimpleStringClientMessage clientMessage = message.toClientMessage();
+            HBUtil.NetworkUtil.serverSendToPlayer(p, clientMessage);
+            return clientMessage;
         } else {
-            message = message.toServerMessage();
-            HBUtil.NetworkUtil.clientSendToServer(message);
+            SimpleStringServerMessage serverMessage = message.toServerMessage();
+            HBUtil.NetworkUtil.clientSendToServer(serverMessage);
+            return serverMessage;
         }
-        return message;
     }
 
     public static SimpleStringMessage createAndFire(String messageId, String content) {
@@ -103,19 +163,17 @@ public class SimpleStringMessage {
     public static SimpleStringMessage createAndFireToAll(String messageId, String content) {
         List<Player> players = HBUtil.PlayerUtil.getAllSidedPlayers();
         SimpleStringMessage lastMessage = null;
-        for(Player p : players) {
+        for (Player p : players) {
             lastMessage = createAndFire(p, messageId, content);
         }
         return lastMessage;
     }
-
 
     public static class SimpleStringMessageHandler {
 
         public static String CLASS_ID = "016";
 
         public static void handle(Player player, SimpleStringMessage message) {
-            // Fire the simple message event with messageId routing
             if (GeneralConfig.getInstance().isServerSide()) {
                 EventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
             } else {

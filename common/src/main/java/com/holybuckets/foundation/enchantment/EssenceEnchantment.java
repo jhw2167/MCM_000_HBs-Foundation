@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 public class EssenceEnchantment {
 
 
-    public static final ResourceLocation LOC = ResourceLocation.fromNamespaceAndPath("hbs_foundation", "essence");
+    public static final ResourceLocation LOC = HBUtil.LOC("hbs_foundation", "essence");
     public static final ResourceKey<Enchantment> KEY = ResourceKey.create(
         Registries.ENCHANTMENT, LOC
     );

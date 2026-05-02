@@ -2,6 +2,7 @@ package com.holybuckets.foundation.block.entity;
 
 import net.blay09.mods.balm.common.BalmBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -30,8 +31,9 @@ public class SimpleBlockEntity extends BalmBlockEntity {
 
 
     @Override
-    public void load(CompoundTag nbt) {
-        super.load(nbt);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+        super.loadAdditional(nbt, registries);
+        data.clear();
         if (nbt.contains("data")) {
             CompoundTag dataTag = nbt.getCompound("data");
             for (String key : dataTag.getAllKeys()) {
@@ -41,13 +43,12 @@ public class SimpleBlockEntity extends BalmBlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag initialData) {
-        super.saveAdditional(initialData);
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+        super.saveAdditional(nbt, registries);
         CompoundTag dataTag = new CompoundTag();
         for (Map.Entry<String, String> entry : data.entrySet()) {
             dataTag.putString(entry.getKey(), entry.getValue());
         }
-        initialData.put("data", dataTag);
-        this.setChanged();
+        nbt.put("data", dataTag);
     }
 }

@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.block;
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.block.BalmBlocks;
 import net.minecraft.resources.ResourceLocation;
@@ -35,7 +36,7 @@ public class ModBlocks {
     }
 
     private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 
     private static BlockBehaviour.Properties defaultProperties() {
@@ -43,7 +44,7 @@ public class ModBlocks {
     }
 
     private static BlockBehaviour.Properties emptyBlockProps() {
-        BlockBehaviour.Properties props = BlockBehaviour.Properties.of().copy(Blocks.AIR).forceSolidOn();  //default properties
+        BlockBehaviour.Properties props = BlockBehaviour.Properties.ofFullCopy(Blocks.AIR).forceSolidOn();  //default properties
         return props;
     }
 

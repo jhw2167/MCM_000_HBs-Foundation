@@ -25,7 +25,7 @@ public class BlockStateUpdatesMessage implements CustomPacketPayload {
         new CustomPacketPayload.Type<>(id(LOCATION));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, BlockStateUpdatesMessage> STREAM_CODEC =
-        CustomPacketPayload.codec(BlockStateUpdatesMessage::write, BlockStateUpdatesMessage::new);
+        CustomPacketPayload.codec(Codecs::encodeBlockStateUpdates, Codecs::decodeBlockStateUpdates);
 
     LevelAccessor world;
     Map<BlockState, List<BlockPos>> blockStates;
@@ -33,18 +33,6 @@ public class BlockStateUpdatesMessage implements CustomPacketPayload {
     BlockStateUpdatesMessage(LevelAccessor level, Map<BlockState, List<BlockPos>> blocks) {
         this.world = level;
         this.blockStates = blocks;
-    }
-
-    // Decode constructor
-    public BlockStateUpdatesMessage(FriendlyByteBuf buf) {
-        this.world = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.CLIENT, buf.readUtf());
-        this.blockStates = HBUtil.BlockUtil.deserializeBlockStatePairs(buf.readUtf());
-    }
-
-    // Encode method
-    public void write(FriendlyByteBuf buf) {
-        buf.writeUtf(HBUtil.LevelUtil.toLevelId(this.world));
-        buf.writeUtf(HBUtil.BlockUtil.serializeBlockStatePairs(this.blockStates));
     }
 
     @Override

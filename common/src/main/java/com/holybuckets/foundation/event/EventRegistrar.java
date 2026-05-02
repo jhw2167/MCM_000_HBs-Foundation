@@ -5,6 +5,7 @@ package com.holybuckets.foundation.event;
 //Forge Imports
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.*;
@@ -374,7 +375,7 @@ public class EventRegistrar {
         registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
 
-    private static final ResourceLocation EMPTY_LOC = ResourceLocation.fromNamespaceAndPath("minecraft", "");
+    private static final ResourceLocation EMPTY_LOC = HBUtil.LOC("minecraft", "");
     /**
      * registers a consumer to a specific dimension for day changes.
      * This event is triggered when the number of ticks in a day have passed

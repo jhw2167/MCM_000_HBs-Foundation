@@ -2,6 +2,7 @@ package com.holybuckets.foundation.datacomponent;
 
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import net.blay09.mods.balm.core.BalmRegistrar;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
@@ -22,6 +23,6 @@ public class ModDataComponents {
     }
 
     private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 }

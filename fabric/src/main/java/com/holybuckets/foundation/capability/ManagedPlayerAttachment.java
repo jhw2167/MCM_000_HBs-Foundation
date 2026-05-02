@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.capability;
 
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -26,7 +27,7 @@ public class ManagedPlayerAttachment {
     static final Map<String, CompoundTag> PENDING_PLAYERS = new HashMap<>();
 
     static final AttachmentType<ManagedPlayer> MANAGED_PLAYER_ATTACHMENT = AttachmentRegistry.createPersistent(
-        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_player"),
+        HBUtil.LOC(Constants.MOD_ID, "managed_player"),
         new Codec<>() {
             @Override
             public <T> DataResult<T> encode(ManagedPlayer input, DynamicOps<T> ops, T prefix) {

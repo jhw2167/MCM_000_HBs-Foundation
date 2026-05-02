@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.capability;
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
@@ -23,7 +24,7 @@ public class ManagedChunkAttachment {
     static void init() {}
 
     static final AttachmentType<ManagedChunk> MANAGED_CHUNK_ATTACHMENT =  AttachmentRegistry.createPersistent(
-        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_chunk"),
+        HBUtil.LOC(Constants.MOD_ID, "managed_chunk"),
         new Codec<>() {
 
             @Override

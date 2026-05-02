@@ -33,7 +33,7 @@ public class ForgeCapabilityAttacher {
 
             //LoggerBase.logDebug("002001", "Attaching Capabilities to MOD EVENT:  ");
             if (!chunk.getCapability(ManagedChunkCapabilityProvider.MANAGED_CHUNK).isPresent()) {
-                event.addCapability(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_chunk"),
+                event.addCapability(HBUtil.LOC(Constants.MOD_ID, "managed_chunk"),
                     new ManagedChunkCapabilityProvider(chunk));
             }
         }
@@ -42,7 +42,7 @@ public class ForgeCapabilityAttacher {
         {
             Player player = (Player) event.getObject();
             if (!player.getCapability(ManagedPlayerCapabilityProvider.MANAGED_PLAYER).isPresent()) {
-                event.addCapability(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "managed_player"),
+                event.addCapability(HBUtil.LOC(Constants.MOD_ID, "managed_player"),
                     new ManagedPlayerCapabilityProvider(player));
             }
         }

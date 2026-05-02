@@ -56,22 +56,6 @@ public class SimpleStringMessage {
         return new SimpleStringServerMessage(this.senderId, this.messageId, this.content);
     }
 
-    // Shared read logic
-    protected static SimpleStringMessage readFromBuf(FriendlyByteBuf buf) {
-        String strUUID = buf.readUtf();
-        UUID senderId = strUUID.isEmpty() ? null : UUID.fromString(strUUID);
-        String messageId = buf.readUtf(256);
-        String content = buf.readUtf(MAX_SIZE);
-        return new SimpleStringMessage(senderId, messageId, content);
-    }
-
-    // Shared write logic
-    protected void writeToBuf(FriendlyByteBuf buf) {
-        buf.writeUtf(this.senderId == null ? "" : this.senderId.toString());
-        buf.writeUtf(this.messageId, 256);
-        buf.writeUtf(this.content, MAX_SIZE);
-    }
-
     /** To Servers **/
     public static class SimpleStringServerMessage extends SimpleStringMessage implements CustomPacketPayload {
 
@@ -79,20 +63,10 @@ public class SimpleStringMessage {
             new CustomPacketPayload.Type<>(id(LOCATION + "_server"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, SimpleStringServerMessage> STREAM_CODEC =
-            CustomPacketPayload.codec(SimpleStringServerMessage::write, SimpleStringServerMessage::new);
+            CustomPacketPayload.codec(Codecs::encodeSimpleString, Codecs::decodeSimpleServerString);
 
         public SimpleStringServerMessage(UUID senderId, String messageId, String content) {
             super(senderId, messageId, content);
-        }
-
-        // Decode constructor
-        public SimpleStringServerMessage(FriendlyByteBuf buf) {
-            super(readFromBuf(buf).senderId, readFromBuf(buf).messageId, readFromBuf(buf).content);
-        }
-
-        // Encode method
-        public void write(FriendlyByteBuf buf) {
-            writeToBuf(buf);
         }
 
         @Override
@@ -106,20 +80,10 @@ public class SimpleStringMessage {
             new CustomPacketPayload.Type<>(id(LOCATION + "_client"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, SimpleStringClientMessage> STREAM_CODEC =
-            CustomPacketPayload.codec(SimpleStringClientMessage::write, SimpleStringClientMessage::new);
+            CustomPacketPayload.codec(Codecs::encodeSimpleString, Codecs::decodeSimpleClientString);
 
         public SimpleStringClientMessage(UUID senderId, String messageId, String content) {
             super(senderId, messageId, content);
-        }
-
-        // Decode constructor
-        public SimpleStringClientMessage(FriendlyByteBuf buf) {
-            super(readFromBuf(buf).senderId, readFromBuf(buf).messageId, readFromBuf(buf).content);
-        }
-
-        // Encode method
-        public void write(FriendlyByteBuf buf) {
-            writeToBuf(buf);
         }
 
         @Override

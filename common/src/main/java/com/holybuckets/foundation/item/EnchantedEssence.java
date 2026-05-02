@@ -2,6 +2,7 @@ package com.holybuckets.foundation.item;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.core.EssenceType;
+import com.holybuckets.foundation.datacomponent.EssenceDataComponent;
 import com.holybuckets.foundation.enchantment.EssenceEnchantment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -32,13 +33,15 @@ public class EnchantedEssence extends SimpleRewardItem {
     public EssenceEnchantment getEssenceEnchantment() {
         return essenceEnchantment;
     }
-    
+
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
-        super.appendHoverText(stack, level, tooltipComponents, isAdvanced);
-        
-        if (stack.getOrCreateTag().contains(ESSENCE_DATA_TAG)) {
-            String id = stack.getTag().getString(ESSENCE_DATA_TAG);
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag isAdvanced)
+    {
+        super.appendHoverText(stack, context, tooltipComponents, isAdvanced);
+        EssenceType type = EssenceDataComponent.getEssenceType(stack);
+        if(type != null)
+        {
+            String id = type.getEssenceId();
             Set<Holder<Biome>> biomes = EssenceType.getBiomes(id);
             String list = "Target Biomes: ";
             if (!biomes.isEmpty()) {
@@ -51,11 +54,11 @@ public class EnchantedEssence extends SimpleRewardItem {
     }
     
     @Override
-    public Component getName(ItemStack stack) {
-        if (stack.getOrCreateTag().contains(ESSENCE_DATA_TAG)) {
-            String id = stack.getTag().getString(ESSENCE_DATA_TAG);
-            String fullName = EssenceType.getEssenceName(id) +" Essence";
-
+    public Component getName(ItemStack stack)
+    {
+        EssenceType type = EssenceDataComponent.getEssenceType(stack);
+        if(type != null) {
+            String fullName = type.getEssenceName() +" Essence";
             return Component.literal(fullName);
         }
 
@@ -65,7 +68,6 @@ public class EnchantedEssence extends SimpleRewardItem {
     @Override
     public ItemStack getDefaultInstance() {
         ItemStack stack = super.getDefaultInstance();
-        stack.getOrCreateTag();
         return stack;
     }
 }

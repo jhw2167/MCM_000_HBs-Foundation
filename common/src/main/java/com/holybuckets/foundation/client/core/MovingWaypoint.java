@@ -282,10 +282,6 @@ public class MovingWaypoint {
     private static void renderWaypointFlare(RenderLevelEvent event) {
         if (activeWaypoints.isEmpty()) return;
 
-        if (bufferBuilder == null) {
-            bufferBuilder = new BufferBuilder(MAX_BEACON_VERTICES);
-        }
-
         PoseStack poseStack = event.getPoseStack();
         Camera camera = event.getCamera();
         Vec3 cameraPos = camera.getPosition();
@@ -312,6 +308,7 @@ public class MovingWaypoint {
             );
 
             float[] colors = WoolColorHelper.getWoolColorRGB(wp.colorId);
+            int color = WoolColorHelper.getWoolColorRGBInt(wp.colorId);
 
             BeaconRenderer.renderBeaconBeam(
                 poseStack,
@@ -322,7 +319,7 @@ public class MovingWaypoint {
                 gameTime,
                 0,
                 Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
-                colors,
+                color,
                 0.2f,
                 0.25f
             );

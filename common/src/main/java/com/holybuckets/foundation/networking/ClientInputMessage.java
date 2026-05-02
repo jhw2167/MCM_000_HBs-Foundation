@@ -25,7 +25,7 @@ public class ClientInputMessage implements CustomPacketPayload {
         new CustomPacketPayload.Type<>(id(LOCATION));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ClientInputMessage> STREAM_CODEC =
-        CustomPacketPayload.codec(ClientInputMessage::write, ClientInputMessage::new);
+        CustomPacketPayload.codec(Codecs::encodeClientInput, Codecs::decodeClientInput);
 
     public final UUID playerId;
     public final InputType inputType;
@@ -34,31 +34,6 @@ public class ClientInputMessage implements CustomPacketPayload {
     public final LevelNameSpace side;
 
     public enum InputType { KEY, MOUSE }
-
-    // Decode constructor
-    public ClientInputMessage(FriendlyByteBuf buf) {
-        this.playerId = buf.readUUID();
-        this.inputType = InputType.valueOf(buf.readUtf());
-        Set<Integer> keys = new HashSet<>();
-        for (int i = 0; i < MAX_KEYS; i++) {
-            int code = buf.readInt();
-            if (code != -1) keys.add(code);
-        }
-        this.keyCodes = keys;
-        this.code = keys.isEmpty() ? -1 : keys.iterator().next();
-        this.side = LevelNameSpace.valueOf(buf.readUtf());
-    }
-
-    // Encode method
-    public void write(FriendlyByteBuf buf) {
-        buf.writeUUID(playerId);
-        buf.writeUtf(inputType.name());
-        java.util.List<Integer> arr = new java.util.ArrayList<>(keyCodes);
-        for (int i = 0; i < MAX_KEYS; i++) {
-            buf.writeInt(arr.size() <= i ? -1 : arr.get(i));
-        }
-        buf.writeUtf(side.name());
-    }
 
     ClientInputMessage(UUID playerId, InputType inputType, Set<Integer> keyCodes, LevelNameSpace side) {
         this.playerId = playerId;

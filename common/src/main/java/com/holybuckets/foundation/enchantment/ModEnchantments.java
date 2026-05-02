@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.enchantment;
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.DeferredObject;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,6 +18,6 @@ public class ModEnchantments {
     }
 
     private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 }

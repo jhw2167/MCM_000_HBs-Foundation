@@ -82,7 +82,7 @@ public class ModConfig {
         }
 
         private ResourceLocation toResourceLocation(String name) {
-            return ResourceLocation.fromNamespaceAndPath(addNameSpaceMap(name));
+            return HBUtil.LOC(addNameSpaceMap(name));
         }
 
     @Nullable

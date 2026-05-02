@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.block;
 
 import com.holybuckets.foundation.block.entity.SimpleBlockEntity;
+import com.mojang.serialization.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -13,10 +14,17 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.stream.Stream;
+
 public class SimpleBlockEntityBlock extends BaseEntityBlock {
 
     protected SimpleBlockEntityBlock(BlockBehaviour.Properties $$0) {
         super($$0);
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+       return null;
     }
 
     @Nullable
@@ -26,7 +34,7 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
     }
 
     static BlockBehaviour.Properties stoneBrickProperties() {
-        BlockBehaviour.Properties props = BlockBehaviour.Properties.copy(Blocks.STONE_BRICKS);  //default properties
+        BlockBehaviour.Properties props = BlockBehaviour.Properties.ofFullCopy(Blocks.STONE_BRICKS);  //default properties
         return props;
     }
 
@@ -49,9 +57,9 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
     }
 
     @Override
-    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+    public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
         this.spawnDestroyParticles(world, player, pos, state);
-        if (world.isClientSide) return;
+        if (world.isClientSide) return state;
 
         // Don't drop anything in creative mode
         if (!player.isCreative()) {
@@ -62,6 +70,7 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
         }
 
         super.playerWillDestroy(world, pos, state, player);
+        return state;
     }
 
 

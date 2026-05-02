@@ -237,9 +237,9 @@ public class GeneralConfig {
 
     /** Level Events **/
 
-    public  static final ResourceLocation OVERWORLD_LOC = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
-    public static final ResourceLocation NETHER_LOC = ResourceLocation.fromNamespaceAndPath("minecraft", "the_nether");
-    public static final ResourceLocation END_LOC = ResourceLocation.fromNamespaceAndPath("minecraft", "the_end");
+    public  static final ResourceLocation OVERWORLD_LOC = HBUtil.LOC("minecraft", "overworld");
+    public static final ResourceLocation NETHER_LOC = HBUtil.LOC("minecraft", "the_nether");
+    public static final ResourceLocation END_LOC = HBUtil.LOC("minecraft", "the_end");
     public static Level LOCAL_LEVEL;
     public static ServerLevel OVERWORLD;
     public static ServerLevel NETHER;

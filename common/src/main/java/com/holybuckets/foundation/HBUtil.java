@@ -78,6 +78,19 @@ public class HBUtil {
         LevelUtil.init(reg);
     }
 
+    public static ResourceLocation LOC(String nameSpace, String path) {
+        return ResourceLocation.fromNamespaceAndPath(nameSpace, path);
+    }
+
+    public static ResourceLocation LOC(String path) {
+        if (path == null || path.isEmpty()) return null;
+        String[] split = path.split(":");
+        if( split.length > 1 ) {
+            return HBUtil.LOC(split[0], split[1]);
+        }
+        return HBUtil.LOC("minecraft", path);
+    }
+
 
     public static class PlayerUtil {
 
@@ -195,7 +208,7 @@ public class HBUtil {
                 return null;
             }
 
-            ResourceLocation itemKey = ResourceLocation.fromNamespaceAndPath(nameSpace.trim(), itemName.trim());
+            ResourceLocation itemKey = HBUtil.LOC(nameSpace.trim(), itemName.trim());
             Item item = BuiltInRegistries.ITEM.get(itemKey);
 
             if( item == null ) {
@@ -239,7 +252,7 @@ public class HBUtil {
 
         @Nullable
         public static Holder<Enchantment> enchantNameToEnchant(String namespace, String enchantName) {
-         ResourceLocation key = ResourceLocation.fromNamespaceAndPath(namespace.trim(), enchantName.trim());
+         ResourceLocation key = HBUtil.LOC(namespace.trim(), enchantName.trim());
             return enchantNameToEnchant(key);
         }
 
@@ -350,7 +363,7 @@ public class HBUtil {
                namespace = "minecraft";
 
             BalmRegistries registries = Balm.getRegistries();
-            ResourceLocation blockKey = ResourceLocation.fromNamespaceAndPath(namespace.trim(), blockName.trim());
+            ResourceLocation blockKey = HBUtil.LOC(namespace.trim(), blockName.trim());
             Block b = registries.getBlock(blockKey);
 
             if( b == null )
@@ -374,7 +387,7 @@ public class HBUtil {
             String[] parts = blockId.split(":");
             String namespace = parts.length > 1 ? parts[0] : "minecraft";
             String path = parts.length > 1 ? parts[1] : parts[0];
-            return ResourceLocation.fromNamespaceAndPath(namespace.trim(), path.trim());
+            return HBUtil.LOC(namespace.trim(), path.trim());
         }
 
         /**
@@ -722,7 +735,7 @@ public class HBUtil {
         }
 
         public static boolean testLevel(Level level, String levelNameSpace, String levelId) {
-            return testLevel(level, ResourceLocation.fromNamespaceAndPath(levelNameSpace, levelId));
+            return testLevel(level, HBUtil.LOC(levelNameSpace, levelId));
         }
 
         public static boolean testLevel(Level level, ResourceLocation location) {
@@ -741,7 +754,7 @@ public class HBUtil {
             String[] parts = levelId.split(":");
             String namespace = parts.length > 1 ? parts[0] : "minecraft";
             String path = parts.length > 1 ? parts[1] : parts[0];
-            return ResourceLocation.fromNamespaceAndPath(namespace.trim(), path.trim());
+            return HBUtil.LOC(namespace.trim(), path.trim());
         }
 
         /**
@@ -781,7 +794,7 @@ public class HBUtil {
                 biomeId = parts[1];
             }
 
-            return ResourceLocation.fromNamespaceAndPath(nmspace, biomeId);
+            return HBUtil.LOC(nmspace, biomeId);
         }
 
         public static ResourceLocation toBiomeResourceLocation(Biome biome) {
@@ -1190,7 +1203,7 @@ public class HBUtil {
         }
 
         public static EntityType<?> entityNameToEntityType(String namespace, String entityName) {
-            ResourceLocation key = ResourceLocation.fromNamespaceAndPath(namespace.trim(), entityName.trim());
+            ResourceLocation key = HBUtil.LOC(namespace.trim(), entityName.trim());
             return BuiltInRegistries.ENTITY_TYPE.get(key);
         }
 

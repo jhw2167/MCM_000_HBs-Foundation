@@ -110,7 +110,7 @@ public class FoundationInitializers {
     }
 
     public static ResourceLocation id(String location) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, location);
+        return HBUtil.LOC(Constants.MOD_ID, location);
     }
 
 }

@@ -65,7 +65,7 @@ public class StructureManager {
     //** GETTERS
 
     public static ResourceLocation toLocation(String stringStruct) {
-        return ResourceLocation.fromNamespaceAndPath(stringStruct);
+        return HBUtil.LOC(stringStruct);
     }
 
     public Set<ResourceLocation> getAllStructures() {

@@ -2,6 +2,7 @@ package com.holybuckets.foundation.item;
 
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.item.BalmItems;
@@ -22,7 +23,7 @@ public class ModItems {
     {
         //creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
         items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
-        ResourceLocation.fromNamespaceAndPath("hbs_traveler_rewards:hbs_traveler_rewards"));
+        HBUtil.LOC("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
 
     public static void initialize(BalmItems items) {
@@ -39,7 +40,7 @@ public class ModItems {
     }
 
     private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 
 }

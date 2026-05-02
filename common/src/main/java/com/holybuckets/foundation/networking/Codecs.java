@@ -129,12 +129,12 @@ public class Codecs {
 
     //MANAGED PLAYER
 
-    public static FriendlyByteBuf encode(ManagedPlayerSyncMessage msg, FriendlyByteBuf buf) {
+    public static FriendlyByteBuf encodeManagedPlayerSync(ManagedPlayerSyncMessage msg, FriendlyByteBuf buf) {
         buf.writeNbt(msg.nbt);
         return buf;
     }
 
-    public static ManagedPlayerSyncMessage decode(FriendlyByteBuf buf) {
+    public static ManagedPlayerSyncMessage decodeManagedPlayerSync(FriendlyByteBuf buf) {
         CompoundTag nbt = buf.readNbt();
         return new ManagedPlayerSyncMessage(nbt);
     }

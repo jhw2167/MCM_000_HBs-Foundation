@@ -18,9 +18,16 @@ public class ManagedPlayerSyncMessage implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ManagedPlayerSyncMessage> TYPE =
         new CustomPacketPayload.Type<>(id(LOCATION));
 
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
     public static final StreamCodec<RegistryFriendlyByteBuf, ManagedPlayerSyncMessage> STREAM_CODEC =
-        CustomPacketPayload.codec(ManagedPlayerSyncMessage::write, ManagedPlayerSyncMessage::new);
+        CustomPacketPayload.codec(Codecs::encodeManagedPlayerSync, Codecs::decodeManagedPlayerSync);
 
     public final CompoundTag nbt;
 
-    public ManagedPlayerSyncMessage(Comp
+    public ManagedPlayerSyncMessage(CompoundTag nbt) {
+        this.nbt = nbt != null ? nbt : new CompoundTag();
+    }
+
+}

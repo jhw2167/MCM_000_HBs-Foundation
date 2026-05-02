@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.block.entity;
 
 import com.holybuckets.foundation.Constants;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.DeferredObject;
@@ -20,7 +21,7 @@ public class ModBlockEntities {
     }
 
     private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name);
+        return HBUtil.LOC(Constants.MOD_ID, name);
     }
 
     private static BlockItem itemBlock(Block block) {

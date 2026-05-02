@@ -250,6 +250,13 @@ public class HBUtil {
                 .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
         }
 
+        @Nullable
+        public static Holder<Enchantment> enchantNameToEnchant(ResourceKey<Enchantment> key) {
+            if(GeneralConfig.LOCAL_LEVEL ==null) return null;
+            return GeneralConfig.LOCAL_LEVEL.registryAccess()
+                .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
+        }
+
         public static int getEnchantLevel(String enchant) {
             if( enchant.contains("#") )
             {

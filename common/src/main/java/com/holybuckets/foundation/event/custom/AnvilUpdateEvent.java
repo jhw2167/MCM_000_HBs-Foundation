@@ -1,6 +1,8 @@
 package com.holybuckets.foundation.event.custom;
 
+import com.holybuckets.foundation.HBUtil;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -209,34 +211,34 @@ public class AnvilUpdateEvent {
      */
     public static class EnchantDriven extends AnvilUpdateEvent {
 
-        Set<Holder<Enchantment>> leftEnchantments;
-        Set<Holder<Enchantment>> rightEnchantments;
+        Set<ResourceKey<Enchantment>> leftEnchantments;
+        Set<ResourceKey<Enchantment>> rightEnchantments;
 
         public EnchantDriven(@Nullable Item leftItem, @Nullable Item rightItem,
-                             @Nullable Set<Holder<Enchantment>> leftEnchants,
-                              @Nullable Set<Holder<Enchantment>> rightEnchants) {
+                             @Nullable Set<ResourceKey<Enchantment>> leftEnchants,
+                              @Nullable Set<ResourceKey<Enchantment>> rightEnchants) {
             super(leftItem != null ? leftItem : Items.AIR, rightItem != null ? rightItem : Items.AIR);
             this.leftEnchantments = leftEnchants==null ? Set.of() : leftEnchants;
             this.rightEnchantments = rightEnchants==null ? Set.of() : rightEnchants;
         }
 
-        public EnchantDriven(@NotNull Set<Holder<Enchantment>> leftEnchants, @NotNull Item rightItem) {
+        public EnchantDriven(@NotNull Set<ResourceKey<Enchantment>> leftEnchants, @NotNull Item rightItem) {
             this(null, rightItem, leftEnchants, null);
         }
 
-        public EnchantDriven(@NotNull Item leftItem, @NotNull Set<Holder<Enchantment>> rightEnchants) {
+        public EnchantDriven(@NotNull Item leftItem, @NotNull Set<ResourceKey<Enchantment>> rightEnchants) {
             this(leftItem, null, null, rightEnchants);
         }
 
-        public EnchantDriven(Set<Holder<Enchantment>> leftEnchants, Set<Holder<Enchantment>> rightEnchants) {
+        public EnchantDriven(Set<ResourceKey<Enchantment>> leftEnchants, Set<ResourceKey<Enchantment>> rightEnchants) {
             this(null, null, leftEnchants, rightEnchants);
         }
 
-        public void setLeftEnchantments(Set<Holder<Enchantment>> leftEnchantments) {
+        public void setLeftEnchantments(Set<ResourceKey<Enchantment>> leftEnchantments) {
             this.leftEnchantments = leftEnchantments;
         }
 
-        public void setRightEnchantments(Set<Holder<Enchantment>> rightEnchantments) {
+        public void setRightEnchantments(Set<ResourceKey<Enchantment>> rightEnchantments) {
             this.rightEnchantments = rightEnchantments;
         }
 
@@ -251,13 +253,15 @@ public class AnvilUpdateEvent {
             //if that contains any items that have the enchantments, return true
             boolean leftHasEnchant = false;
             boolean rightHasEnchant = false;
-            for (Holder<Enchantment> enchantment : leftEnchantments) {
-                if (EnchantmentHelper.getItemEnchantmentLevel(enchantment, that.leftItem) > 0) {
+            for (ResourceKey<Enchantment> enchantment : leftEnchantments) {
+                    Holder<Enchantment> h = HBUtil.ItemUtil.enchantNameToEnchant(enchantment);
+                if (EnchantmentHelper.getItemEnchantmentLevel(h, that.leftItem) > 0) {
                     leftHasEnchant = true;
                 }
             }
-            for (Holder<Enchantment> enchantment : rightEnchantments) {
-                if (EnchantmentHelper.getItemEnchantmentLevel(enchantment, that.rightItem) > 0) {
+            for (ResourceKey<Enchantment> enchantment : rightEnchantments) {
+                Holder<Enchantment> h = HBUtil.ItemUtil.enchantNameToEnchant(enchantment);
+                if (EnchantmentHelper.getItemEnchantmentLevel(h, that.rightItem) > 0) {
                     rightHasEnchant = true;
                 }
             }

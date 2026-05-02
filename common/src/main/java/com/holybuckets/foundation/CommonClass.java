@@ -17,6 +17,8 @@ import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -125,12 +127,13 @@ public class CommonClass {
     private static void onAnvilUpdateSword(AnvilUpdateEvent event) {
         ItemStack sword = event.getLeftItem();
 
-        int currentSharpness = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SHARPNESS, sword);
+        Holder<Enchantment> sharpnessEnchant = HBUtil.ItemUtil.enchantNameToEnchant(Enchantments.SHARPNESS);
+        int currentSharpness = EnchantmentHelper.getItemEnchantmentLevel(sharpnessEnchant, sword);
         int newSharpness = currentSharpness + 1;
         newSharpness = Math.min(newSharpness, 5);
 
         ItemStack enchantedSword = sword.copy();
-        enchantedSword.enchant(Enchantments.SHARPNESS, newSharpness);
+        enchantedSword.enchant(sharpnessEnchant, newSharpness);
         event.setResultItem(enchantedSword);
         event.setCost(1);
         LoggerBase.logInfo(null, "ANVIL_UPDATE",
@@ -150,16 +153,18 @@ public class CommonClass {
       }
     }
 
-    private static Set<Enchantment> REPAIR_ENCHANTMENTS = Set.of(Enchantments.UNBREAKING, Enchantments.SHARPNESS);
-    private static AnvilUpdateEvent.EnchantDriven empowerEnchant = new AnvilUpdateEvent.EnchantDriven( REPAIR_ENCHANTMENTS, Items.ROTTEN_FLESH);
-    //onAnvilUpatte method to repair rool if it contains enchant
+    private static Set<ResourceKey<Enchantment>> REPAIR_ENCHANTMENTS = Set.of(Enchantments.UNBREAKING, Enchantments.SHARPNESS);
+    private static AnvilUpdateEvent.EnchantDriven empowerEnchant = new AnvilUpdateEvent.EnchantDriven(
+     REPAIR_ENCHANTMENTS, Items.ROTTEN_FLESH);
+    //onAnvilUpatte method to repair tool if it contains enchant
     private static void onAnvilUpdateRepair(AnvilUpdateEvent event) {
         ItemStack leftItem = event.getLeftItem();
 
-        Enchantment repEnchant = null;
-        for (Enchantment enchantment : REPAIR_ENCHANTMENTS) {
-            if (EnchantmentHelper.getItemEnchantmentLevel(enchantment, leftItem) > 0) {
-                repEnchant = enchantment;
+        Holder<Enchantment> repEnchant = null;
+        for (ResourceKey<Enchantment> enchantment : REPAIR_ENCHANTMENTS) {
+            Holder<Enchantment> h = HBUtil.ItemUtil.enchantNameToEnchant(enchantment);
+            if (EnchantmentHelper.getItemEnchantmentLevel(h, leftItem) > 0) {
+                repEnchant = h;
                 break;
             }
         }
@@ -167,9 +172,9 @@ public class CommonClass {
         if (repEnchant != null)
         {
             ItemStack empoweredTool = leftItem.copy();
-            Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(empoweredTool);
-            enchantments.put(repEnchant, enchantments.get(repEnchant) + 1);
-            EnchantmentHelper.setEnchantments(enchantments, empoweredTool);
+            //Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(empoweredTool);
+            //enchantments.put(repEnchant, enchantments.get(repEnchant) + 1);
+            //EnchantmentHelper.setEnchantments(enchantments, empoweredTool);
 
             event.setResultItem(empoweredTool);
             event.setCost(1);
@@ -305,7 +310,7 @@ public class CommonClass {
     public static void onLevelLoad(LevelLoadingEvent event)
     {
         if( event.getLevel().isClientSide() ) return;
-        Constants.LOG.info("Level loaded: " + ( (ServerLevel) event.getLevel() ).dimensionTypeId() );
+        Constants.LOG.info("Level loaded: " + ( (ServerLevel) event.getLevel() ).dimensionType().effectsLocation() );
     }
 
 }

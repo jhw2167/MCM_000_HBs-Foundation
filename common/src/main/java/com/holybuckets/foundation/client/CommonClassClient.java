@@ -143,7 +143,7 @@ public class CommonClassClient {
         // Test AFTER_PARTICLES stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, event -> {
             if (Math.random() < 0.1) {
-                LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_PARTICLES fired - finishNanoTime: " + event.getFinishNanoTime());
+                LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_PARTICLES fired - partialTick: " + event.getPartialTick());
             }
         });
         

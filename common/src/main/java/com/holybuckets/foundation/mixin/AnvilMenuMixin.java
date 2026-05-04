@@ -44,7 +44,9 @@ public abstract class AnvilMenuMixin {
             return;
         }
 
-        AnvilUpdateEvent event = new AnvilUpdateEvent(menu, left, right);
+        // Access player from ItemCombinerMenu via accessor mixin
+        Player player = ((ItemCombinerMenuAccessor) menu).getPlayer();
+        AnvilUpdateEvent event = new AnvilUpdateEvent(menu, player, left, right);
         AnvilUpdateEvent.ANVIL_EVENTS.put(menu, event);
         eventRegistrar.onAnvilUpdate(event);
 

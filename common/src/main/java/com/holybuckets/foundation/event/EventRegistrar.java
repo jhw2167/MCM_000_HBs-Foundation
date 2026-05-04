@@ -698,6 +698,10 @@ public class EventRegistrar {
         }
     }
 
+    /**
+     * AnvilEvent, AnvilUpdateEvent, AnvilRecipe
+     * @param event
+     */
     public void onAnvilUpdate(AnvilUpdateEvent event)
     {
         // Iterate through the events list to find matching registered event handlers

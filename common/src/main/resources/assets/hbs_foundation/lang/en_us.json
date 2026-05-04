@@ -2,6 +2,7 @@
   "block.hbs_foundation.stone_brick_block_entity": "Stone Bricks",
   "itemGroup.hbs_foundation.hbs_foundation": "HB's Foundation",
 
+  "enchantment.hbs_foundation.essence": "Enchants essence with a particular kind of wordly essence",
   "item.hbs_foundation.enchanted_essence": "Enchanted Essence",
   "item.hbs_foundation.enchanted_essence.desc": "Can be enchanted with a wide range of items in an anvil to target a particular essence. Wash in water to purify.",
   "item.hbs_foundation.enchanted_essence.teleport_success": "Teleported to %s!",

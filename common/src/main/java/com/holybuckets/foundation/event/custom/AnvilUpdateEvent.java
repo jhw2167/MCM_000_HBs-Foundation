@@ -3,6 +3,7 @@ package com.holybuckets.foundation.event.custom;
 import com.holybuckets.foundation.HBUtil;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -26,6 +27,7 @@ public class AnvilUpdateEvent {
     public static Map<AnvilMenu, AnvilUpdateEvent> ANVIL_EVENTS = new ConcurrentHashMap<>();
 
     private final AnvilMenu anvilMenu;
+    private final Player player;
     ItemStack leftItem;
     ItemStack rightItem;
     private ItemStack resultItem = null;
@@ -35,12 +37,14 @@ public class AnvilUpdateEvent {
 
     public AnvilUpdateEvent() {
         this.anvilMenu = null;
+        this.player = null;
         this.leftItem = null;
         this.rightItem = null;
     }
 
-    public AnvilUpdateEvent(AnvilMenu anvilMenu, ItemStack leftItem, ItemStack rightItem) {
+    public AnvilUpdateEvent(AnvilMenu anvilMenu, Player player, ItemStack leftItem, ItemStack rightItem) {
         this.anvilMenu = anvilMenu;
+        this.player = player;
         this.leftItem = leftItem;
         this.rightItem = rightItem;
     }
@@ -53,12 +57,17 @@ public class AnvilUpdateEvent {
      */
     public AnvilUpdateEvent(Item leftItem, Item rightItem) {
         this.anvilMenu = null;
+        this.player = null;
         this.leftItem = leftItem.getDefaultInstance();
         this.rightItem = rightItem.getDefaultInstance();
     }
 
     public AnvilMenu getAnvilMenu() {
         return anvilMenu;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 
     public ItemStack getLeftItem() {
@@ -153,6 +162,7 @@ public class AnvilUpdateEvent {
         public MaterialDriven(@Nullable Item leftItem, @Nullable Item rightItem, @Nullable Set<Item> leftMats, @Nullable Set<Item> rightMats)
         {
             super(leftItem != null ? leftItem : Items.AIR, rightItem != null ? rightItem : Items.AIR);
+
             this.leftMaterials = leftMats==null ? Set.of() : leftMats;
             this.rightMaterials = rightMats==null ? Set.of() : rightMats;
         }
@@ -218,6 +228,7 @@ public class AnvilUpdateEvent {
                              @Nullable Set<ResourceKey<Enchantment>> leftEnchants,
                               @Nullable Set<ResourceKey<Enchantment>> rightEnchants) {
             super(leftItem != null ? leftItem : Items.AIR, rightItem != null ? rightItem : Items.AIR);
+
             this.leftEnchantments = leftEnchants==null ? Set.of() : leftEnchants;
             this.rightEnchantments = rightEnchants==null ? Set.of() : rightEnchants;
         }

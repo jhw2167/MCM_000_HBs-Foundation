@@ -1,10 +1,12 @@
 package com.holybuckets.foundation.enchantment;
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.core.EssenceType;
 import com.holybuckets.foundation.datacomponent.EssenceDataComponent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -24,8 +26,10 @@ public class EssenceEnchantment {
         Registries.ENCHANTMENT, LOC
     );
 
-    public static final Holder<Enchantment> GET() {
-        return HBUtil.ItemUtil.enchantNameToEnchant(LOC);
+    public static final Holder<Enchantment> GET(RegistryAccess registryAccess) {
+        return registryAccess
+            .registryOrThrow(Registries.ENCHANTMENT).getHolder(KEY)
+            .orElse(null);
     }
 
 

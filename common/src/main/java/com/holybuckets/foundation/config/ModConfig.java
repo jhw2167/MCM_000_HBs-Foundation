@@ -9,6 +9,7 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -66,14 +67,16 @@ public class ModConfig {
     private void loadEssenceData(EssenceDataJsonConfig configJson)
     {
         Set<String> essenceIds = configJson.getAllEssenceIds();
-        for( String id : essenceIds ) {
+        for( String id : essenceIds )
+        {
             EssenceDataJsonConfig.EssenceConfig entry = configJson.getConfig( id );
             if(entry.all.isEmpty()) continue;
             essenceData.put( id, entry.all.stream().map(this::toResourceLocation).collect( Collectors.toSet() ) );
+
             if(entry.items==null || entry.items.isEmpty()) continue;
             for( String itemName : entry.items ) {
                 Item item = HBUtil.ItemUtil.itemNameToItem( addNameSpaceMap(itemName) );
-                if( item != null ) enchantedEssenceItemMap.put( item, id );
+                if( item != null && !item.equals(Items.AIR) ) enchantedEssenceItemMap.put( item, id );
             }
         }
     }

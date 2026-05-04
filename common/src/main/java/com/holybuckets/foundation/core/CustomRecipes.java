@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.core;
 
 import com.holybuckets.foundation.CommonClass;
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.biome.BiomeManager;
 import com.holybuckets.foundation.datacomponent.EssenceDataComponent;
@@ -11,17 +12,20 @@ import com.holybuckets.foundation.event.custom.ItemEntityTickEvent;
 import com.holybuckets.foundation.item.ModItems;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 import java.util.List;
 
 import static com.holybuckets.foundation.item.EnchantedEssence.ESSENCE_DATA_TAG;
-
+import net.minecraft.client.multiplayer.ClientPacketListener;
 public class CustomRecipes {
 
 
@@ -115,13 +119,17 @@ public class CustomRecipes {
         if(essence.getItem() != ModItems.enchantedEssence) return;
 
         ItemStack enchantingItem = event.getRightItem();
-        if(!EssenceEnchantment.hasEssenceEnchantment(enchantingItem)) return;
+        if(EssenceEnchantment.hasEssenceEnchantment(event.getLeftItem())) return;
+        if(EssenceType.of(enchantingItem.getItem())==null) return;
 
         int total = Math.min(essence.getCount(), enchantingItem.getCount());
 
         ItemStack result = essence.copy();
         result.setCount(total);
-        result.enchant(EssenceEnchantment.GET(), 1);
+        EnchantmentHelper.updateEnchantments(result, mutable -> {
+            var ench = EssenceEnchantment.GET(event.getPlayer().registryAccess());
+            mutable.set(ench, 1);
+        });
         EssenceDataComponent.createFromItem(result, enchantingItem.getItem());
 
         event.setResultItem(result);

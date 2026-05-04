@@ -2,8 +2,8 @@ package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -25,19 +25,19 @@ public class LevelRendererMixin {
         )
     )
     private void afterSky(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SKY,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 
@@ -50,19 +50,19 @@ public class LevelRendererMixin {
         )
     )
     private void afterSolidBlocks(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 
@@ -75,19 +75,19 @@ public class LevelRendererMixin {
         )
     )
     private void afterTranslucentBlocks(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 
@@ -100,45 +100,45 @@ public class LevelRendererMixin {
         )
     )
     private void afterParticles(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 
-    // After weather
+    // After weather — target changed from DebugRenderer.render() to LevelRenderer.renderDebug()
     @Inject(
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/debug/DebugRenderer;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDD)V",
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderDebug(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/Camera;)V",
             shift = At.Shift.BEFORE
         )
     )
     private void afterWeather(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_WEATHER,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 
@@ -148,19 +148,19 @@ public class LevelRendererMixin {
         at = @At("TAIL")
     )
     private void afterLevel(
-        PoseStack poseStack,
-        float partialTick,
-        long finishNanoTime,
+        DeltaTracker deltaTracker,
         boolean renderBlockOutline,
         Camera camera,
         GameRenderer gameRenderer,
         LightTexture lightTexture,
+        Matrix4f modelViewMatrix,
         Matrix4f projectionMatrix,
         CallbackInfo ci
     ) {
         ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_LEVEL,
-            poseStack, partialTick, finishNanoTime, renderBlockOutline,
-            camera, gameRenderer, lightTexture, projectionMatrix
+            deltaTracker, renderBlockOutline,
+            camera, gameRenderer, lightTexture,
+            modelViewMatrix, projectionMatrix
         );
     }
 }

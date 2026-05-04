@@ -282,7 +282,7 @@ public class MovingWaypoint {
     private static void renderWaypointFlare(RenderLevelEvent event) {
         if (activeWaypoints.isEmpty()) return;
 
-        PoseStack poseStack = event.getPoseStack();
+        PoseStack poseStack = new PoseStack();
         Camera camera = event.getCamera();
         Vec3 cameraPos = camera.getPosition();
         long gameTime = Minecraft.getInstance().level.getGameTime();

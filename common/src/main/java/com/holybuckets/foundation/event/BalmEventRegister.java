@@ -128,7 +128,7 @@ public class BalmEventRegister {
         registry.onEvent(LevelLoadingEvent.Unload.class, registrar::onLevelUnload, EventPriority.Low);
 
         // Tick events
-        registry.onTickEvent(TickType.Server, TickPhase.End, registrar::onServerTick);
+        registry.onTickEvent(TickType.Server , TickPhase.Start, registrar::onServerTick);
         registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, registrar::onServerLevelTick);
 
     }

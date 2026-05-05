@@ -49,4 +49,18 @@ public class EssenceDataComponent {
         return (component != null) ? component.getEssenceType() : null;
     }
 
+    //implement equals and hashcode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EssenceDataComponent that = (EssenceDataComponent) o;
+        return essenceType.equals(that.essenceType);
+    }
+
+    @Override
+    public int hashCode() {
+        return essenceType.hashCode();
+    }
+
 }

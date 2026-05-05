@@ -42,3 +42,10 @@ neoForge {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+dependencies {
+    implementation("net.blay09.mods:balm-neoforge:${balm_version}") {
+        changing = balm_version.contains("SNAPSHOT")
+    }
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+}

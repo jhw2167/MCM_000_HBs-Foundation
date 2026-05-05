@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
@@ -36,7 +37,7 @@ public class ManagedChunkAttachment {
 
             @Override
             public <T> DataResult<Pair<ManagedChunk, T>> decode(DynamicOps<T> ops, T input) {
-                if(ops instanceof NbtOps)
+                if(input instanceof  CompoundTag)
                 {
                     // If the ops are already NbtOps, we can safely cast the input
                     CompoundTag tag = (CompoundTag) input;

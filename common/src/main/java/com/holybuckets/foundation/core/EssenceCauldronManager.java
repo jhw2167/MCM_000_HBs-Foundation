@@ -109,8 +109,19 @@ public class EssenceCauldronManager {
                 continue;
             }
 
-            if(data.getTeleportPos() == null)
+            //check if the biome the cauldron is currently in matches the target biome
+
+
+            if(data.getTeleportPos() == null) {
                 data.setSafeTeleportPos();
+            }
+            else if(data.essenceType.matchesBiome(level.getBiome(pos))) {
+                data.cauldronFailedTeleportEffects();
+                cauldrons.remove(pos);
+                data.returnCauldronToNormal();
+                playerPortalCount.clear();
+                continue;
+            }
 
              if (data.endTick <= CONFIG.getTotalTickCount()) {
                  cauldrons.remove(pos);

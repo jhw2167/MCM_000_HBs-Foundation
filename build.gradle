@@ -5,6 +5,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.49-beta' apply(false)
 }
 
+version=mod_version
+
 allprojects {
     apply plugin: "idea"
 

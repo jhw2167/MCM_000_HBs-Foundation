@@ -105,7 +105,7 @@ public class ClientBalmEventRegister {
         if (registeredEvents.add(Objects.hash("onClientLevelTick"))) {
             registry.onTickEvent(
                 net.blay09.mods.balm.api.event.TickType.ClientLevel,
-                 TickPhase.Start, events::onClientLevelTick);
+                 TickPhase.End, events::onClientLevelTick);
         }
     }
 }

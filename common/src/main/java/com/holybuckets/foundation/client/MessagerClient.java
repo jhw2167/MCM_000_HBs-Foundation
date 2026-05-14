@@ -190,7 +190,7 @@ public class MessagerClient implements IMessager {
             // Calculate position (bottom center, with offset for multiple messages)
             int textWidth = font.width(message.text);
             int x = (screenWidth - textWidth) / 2;
-            int y = screenHeight - 60 - yOffset; // 60 pixels from bottom, stacked upward
+            int y = screenHeight - 72 - yOffset; // 60 pixels from bottom, stacked upward
             
             // Calculate alpha based on fade in/out
             float alpha = message.getAlpha();

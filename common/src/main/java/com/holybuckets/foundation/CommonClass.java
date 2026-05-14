@@ -58,10 +58,6 @@ public class CommonClass {
         FoundationInitializers.init();
         EventRegistrar reg = EventRegistrar.getInstance();
         reg.registerOnBeforeServerStarted(CommonClass::onServerStarting);
-        reg.registerOnPlayerHasItem(
-            () -> Items.OAK_LOG, CommonClass::onPlayerHasOakLog);
-        reg.registerOnPlayerHasItem(
-            () -> Items.DIAMOND_SWORD, CommonClass::onPlayerHasDiamondSword);
         //test(EventRegistrar.getInstance());
         //testMessager(EventRegistrar.getInstance());
 

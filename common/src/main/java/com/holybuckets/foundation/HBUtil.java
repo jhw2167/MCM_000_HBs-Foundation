@@ -644,6 +644,10 @@ public class HBUtil {
         public static Level toLevel(@Nullable LevelNameSpace nameSpace, String dimensionId)
         {
             String levelId = dimensionId.replace("CLIENT:", "").replace("SERVER:", "");
+
+            if(!dimensionId.contains(":"))
+                levelId = "minecraft:" + levelId;
+
             if( nameSpace == LevelNameSpace.CLIENT ) {
                 levelId = "CLIENT:" + levelId;
             } else if( nameSpace == LevelNameSpace.SERVER ) {

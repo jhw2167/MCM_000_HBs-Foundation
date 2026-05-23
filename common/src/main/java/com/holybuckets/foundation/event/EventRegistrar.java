@@ -582,6 +582,18 @@ public class EventRegistrar {
     }
 
     /**
+     * Adds a consumer to the "player has item" array at runtime, calls the consumer when
+     * the player has the item
+     * @param itemType
+     * @param function
+     * @param priority
+     */
+    public void runtimeOnPlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
+        PLAYER_HAS_ITEM_MAP.computeIfAbsent(itemType, k -> new ArrayList<>()).add(function);
+    }
+
+
+    /**
      * Custom Events
      **/
 
@@ -765,8 +777,8 @@ public class EventRegistrar {
 
     // Fires PlayerHasItemEvent every 20 ticks for each online player
     private void firePlayerHasItemEvents(MinecraftServer server, long totalTicks) {
-        if (totalTicks % 20 != 0) return;
         if (PLAYER_HAS_ITEM_MAP.isEmpty()) return;
+        if (totalTicks % 20 != 0) return;
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             HashMap<Item, Integer> inventoryMap = HBUtil.ItemUtil.parseInventory(player.getInventory());

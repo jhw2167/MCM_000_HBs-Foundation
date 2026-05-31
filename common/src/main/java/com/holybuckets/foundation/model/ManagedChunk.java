@@ -9,11 +9,8 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
-import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -25,6 +22,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.*;
 import org.apache.commons.lang3.tuple.Pair;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -81,7 +79,7 @@ public class ManagedChunk implements IMangedChunkData {
         if(!this.level.isClientSide())
         {
             this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
-            this.initSubclassesFromMemory(level, id);
+            this.initSubclasses(level, id, null);
         }
 
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
@@ -171,63 +169,50 @@ public class ManagedChunk implements IMangedChunkData {
     }
 
 
-    /**
-     * Initialize subclasses using getStaticInstance method from each subclass. Which
-     * allows each subclass to initialize itself from an existing datastructure owned by
-     * a class unknown to Managed Chunk. useSerialize is a boolean, that if set to true
-     * the subclass will be skipped since more correct data is from the serialized data.
-     * @param level
-     * @param chunkId
-     */
-    private void initSubclassesFromMemory(LevelAccessor level, String chunkId)
-    {
-        for(Map.Entry<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> data : MANAGED_SUBCLASSES.entrySet() ) {
-            setSubclass( data.getKey() , data.getValue().get().getStaticInstance(level, chunkId) );
-        }
-
-    }
-
-    private void initSubclassesFromNbt(CompoundTag tag) throws InvalidId
+    private void initSubclasses(LevelAccessor level, String chunkId, @Nullable CompoundTag tag)
     {
         //Loop over all subclasses and deserialize if matching chunk not found in RAM
         HashMap<String, String> errors = new HashMap<>();
         for(Map.Entry<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> data : MANAGED_SUBCLASSES.entrySet() )
         {
-            IMangedChunkData sub = data.getValue().get();
-            try {
-
-                CompoundTag nbt = tag.getCompound(sub.getClass().getName());
-                sub.setId(this.id);
-                sub.setLevel(this.level);
-
-                if( managedChunkData.containsKey(sub.getClass()) ) {
-                    managedChunkData.get(sub.getClass()).deserializeNBT(nbt);
+            IMangedChunkData subData = data.getValue().get();
+            String className = data.getKey().getName();
+            if(tag == null || tag.isEmpty() || !tag.contains(className)) {
+                //no deserialization
+            }
+            else
+            {
+                try {
+                    CompoundTag subTag = tag.getCompound(className);
+                    subData.setId(this.id);
+                    subData.setLevel(this.level);
+                    subData.deserializeNBT(subTag);
+                } catch (Exception e) {
+                    errors.put(data.getKey().getName(), e.getMessage());
+                    continue;
                 }
-                else {
-                    sub.deserializeNBT(nbt);
-                    setSubclass(sub.getClass(), sub);
-                }
+            }
 
-            } catch (Exception e) {
-                errors.put(sub.getClass().getName(), e.getMessage());
+            IMangedChunkData resolved = subData.resolveSubData(level, chunkId, subData);
+            if( resolved != null ) {
+                managedChunkData.put(data.getKey(), resolved);
             }
 
         }
 
         if(!errors.isEmpty())
         {
-            //Add all errors in list to error message
             StringBuilder error = new StringBuilder();
             for (String key : errors.keySet()) {
                 error.append(key).append(": ").append(errors.get(key)).append("\n");
             }
-            throw new InvalidId(error.toString());
+            LoggerBase.logError(null, "003021",
+            "Error initializing subclasses for chunk with id: " + chunkId + "\nErrors: \n" + error);
         }
     }
 
-
     /** OVERRIDES **/
-    private void init(CompoundTag tag) throws InvalidId
+    private void init(CompoundTag tag)
     {
         //print tag as string, info
         this.id = tag.getString("id");
@@ -239,18 +224,7 @@ public class ManagedChunk implements IMangedChunkData {
          * was written previously and removed from memory. Replace the dummy
          * with serialized data.
          */
-        //if( this.tickWritten < this.tickLoaded )
-        if( this.isLoaded )
-        {
-            //LoggerBase.logInfo(null, "003007", "Init from nbt id: " + this.id);
-            this.initSubclassesFromMemory(level, id);
-        }
-        else
-        {
-            //LoggerBase.logInfo(null, "003006", "Init from memory id: " + this.id);
-            this.initSubclassesFromNbt(tag);
-        }
-
+        this.initSubclasses(level, id, tag);
         this.tickLoaded = GENERAL_CONFIG.getTotalTickCount();
 
     }
@@ -274,14 +248,10 @@ public class ManagedChunk implements IMangedChunkData {
         return false;
     }
 
-    /**
-     * Override, dummy method
-     * @param level
-     * @param id
-     * @return
-     */
+
+    @Nullable
     @Override
-    public IMangedChunkData getStaticInstance(LevelAccessor level, String id) {
+    public IMangedChunkData resolveSubData(LevelAccessor level, String id, @Nullable IMangedChunkData serialized) {
         return ManagedChunkUtility.getInstance(level).getManagedChunk(id);
     }
 
@@ -418,11 +388,10 @@ public class ManagedChunk implements IMangedChunkData {
 
             for(IMangedChunkData data : managedChunkData.values())
             {
-                if( data == null )
-                    continue;
-                //TO DO: Thread this operation and lock until data object is done with current operation
-                //to ensure write is most recent info
-                details.put(data.getClass().getName(), data.serializeNBT());
+                if( data == null ) continue;
+                CompoundTag serialData = data.serializeNBT();
+                if( serialData == null || serialData.isEmpty()) continue;
+                details.put(data.getClass().getName(), serialData);
                 count++;
             }
 
@@ -450,20 +419,8 @@ public class ManagedChunk implements IMangedChunkData {
     @Override
     public void deserializeNBT(CompoundTag tag)
     {
-        if(tag == null || tag.isEmpty()) {
-            return;
-        }
-
-        //LoggerBase.logInfo(null, "003001", "Deserializing ManagedChunk with id: " + this.id);
-
-        //Deserialize subclasses
-        try {
-            this.init(tag);
-        } catch (InvalidId e) {
-            LoggerBase.logError(null, "003021", "Error initializing ManagedChunk with id: " + id);
-        }
-
-
+        if(tag == null || tag.isEmpty())return;
+        this.init(tag);
     }
 
     /*

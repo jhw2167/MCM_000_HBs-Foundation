@@ -1578,7 +1578,7 @@ public class HBUtil {
                     warnNoDefaultFile.append("Could not find the default  JSON config file at path: ");
                     warnNoDefaultFile.append(configFile.getAbsolutePath());
                     warnNoDefaultFile.append(". A default file will be created for future reference.");
-                    LoggerBase.logError( null, "000002", warnNoDefaultFile.toString());
+                    LoggerBase.logWarning( null, "000002", warnNoDefaultFile.toString());
 
                     try {
                         configFile.createNewFile();

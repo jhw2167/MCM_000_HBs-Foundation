@@ -64,3 +64,9 @@ Useful tool for applying textures to antoher item:
 https://github.com/Mrthomas20121/WoodEditing/tree/master
 @MrThomas20121 via discord - run with npm
 
+
+Update to synchronized tables:
+private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
+final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
+final Multimap<ResourceLocation, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS =
+    Multimaps.synchronizedMultimap(HashMultimap.create());

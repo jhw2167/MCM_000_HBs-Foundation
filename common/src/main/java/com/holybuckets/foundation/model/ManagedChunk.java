@@ -176,6 +176,8 @@ public class ManagedChunk implements IMangedChunkData {
         for(Map.Entry<Class<? extends IMangedChunkData>, Supplier<IMangedChunkData>> data : MANAGED_SUBCLASSES.entrySet() )
         {
             IMangedChunkData subData = data.getValue().get();
+            subData.setLevel(level);
+            subData.setId(chunkId);
             String className = data.getKey().getName();
             if(tag == null || tag.isEmpty() || !tag.contains(className)) {
                 //no deserialization
@@ -184,8 +186,6 @@ public class ManagedChunk implements IMangedChunkData {
             {
                 try {
                     CompoundTag subTag = tag.getCompound(className);
-                    subData.setId(this.id);
-                    subData.setLevel(this.level);
                     subData.deserializeNBT(subTag);
                 } catch (Exception e) {
                     errors.put(data.getKey().getName(), e.getMessage());

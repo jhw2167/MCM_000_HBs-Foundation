@@ -17,6 +17,7 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -345,6 +346,7 @@ public class StructureManager {
 
     public static void init(EventRegistrar reg) {
         reg.registerOnBeforeServerStarted(StructureManager::onServerStart);
+        reg.registerOnServerStopped(StructureManager::onServerStopped);
         reg.registerOnLevelLoad(StructureManager::onLevelLoad, EventPriority.High);
         reg.registerOnChunkLoad(StructureManager::onChunkLoad);
         reg.registerOnChunkUnload(StructureManager::onChunkUnload);
@@ -375,6 +377,15 @@ public class StructureManager {
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
+            managers.clear();
+    }
+
+    private static void onServerStopped(ServerStoppedEvent event) {
+        for(StructureManager manager : managers.values()) {
+            manager.structures.clear();
+            manager.structuresByType.clear();
+            manager.loadedStructures.clear();
+        }
         managers.clear();
     }
 

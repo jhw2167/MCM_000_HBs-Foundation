@@ -8,6 +8,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Supplier;
 
 //Project imports
@@ -15,7 +16,7 @@ import java.util.function.Supplier;
 public class CommandRegistry {
 
     private static final String CLASS_ID = "011";
-    private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ArrayDeque<>();
+    private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ConcurrentLinkedDeque<>();
 
     //Package private
     static void register(CommandDispatcher<CommandSourceStack> dispatcher)

@@ -7,10 +7,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Supplier;
 
 //Project imports
@@ -18,20 +16,18 @@ import java.util.function.Supplier;
 public class CommandRegistry {
 
     private static final String CLASS_ID = "011";
-    //private static final Deque<Consumer<CommandSourceStack>> COMMANDS = new ArrayDeque<>();
-    private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ArrayDeque<>();
-    private static final Set<Integer> registeredCommands = new ConcurrentSet<>();
+    private static final Deque<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> COMMANDS = new ConcurrentLinkedDeque<>();
 
     //Package private
     static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         LoggerBase.logDebug(null, "011001", "Registering Commands " + COMMANDS.size());
-        COMMANDS.stream().filter(s -> !registeredCommands.contains(s) ).forEach( (s) ->
-        {
+        Iterator<Supplier<LiteralArgumentBuilder<CommandSourceStack>>> it = COMMANDS.iterator();
+        while(it.hasNext()) {
+            Supplier<LiteralArgumentBuilder<CommandSourceStack>> s = it.next();
             dispatcher.register(s.get());
-            registeredCommands.add(s.hashCode());
-        });
-        LoggerBase.logDebug(null, "011002", "Finished Registering Commands " + COMMANDS.size());
+        }
+        LoggerBase.logDebug(null, "011002", "Finished Registering Commands");
     }
 
     public static void register( Supplier<LiteralArgumentBuilder<CommandSourceStack>> command)

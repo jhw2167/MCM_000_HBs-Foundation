@@ -17,6 +17,7 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -234,54 +235,54 @@ public class StructureManager {
         }
     }
 
-    private void onChunkLoad(ChunkAccess chunk)
-    {
-        var starts = chunk.getAllStarts().entrySet().iterator();
-        while (starts.hasNext()) {
-            var entry = starts.next();
-            Structure structure = entry.getKey();
-            StructureStart start = entry.getValue();
-
-            if (start.isValid())
-            {
-                BlockPos structStartPos = start.getBoundingBox().getCenter();
-                loadedStructures.add(structStartPos);
-                if(structures.containsKey(structStartPos)) {
-                StructureInfo info = structures.get(structStartPos);
-                    EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
-                }
-                //LoggerBase.logInfo(null, "StructureManager", "Discovered structure " + HBUtil.BlockUtil.positionToString(structStartPos));
-                if (structureRegistry == null) continue;
-                ResourceLocation structureLocation = structureRegistry.getKey(structure);
-                if(structureLocation == null) continue;
-                ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
-                Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
-                if(holder == null) continue;
-                
-                StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
-                this.structures.put(structStartPos, structureInfo);
-                this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
-                
-                // Fire StructureLoadedEvent
-                StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
-                EventRegistrar.getInstance().onStructureLoaded(event);
-            }
+    private void onChunkLoad(ChunkAccess chunk) {
+        if(chunk.getAllStarts()==null || chunk.getAllStarts().isEmpty()) return;
+        for (var entry : chunk.getAllStarts().entrySet()) {
+            processStructureLoad(entry.getKey(), entry.getValue());
         }
-
-
     }
 
     private void onChunkUnload(ChunkAccess chunk) {
-        var starts = chunk.getAllStarts().entrySet().iterator();
-        while (starts.hasNext()) {
-            var entry = starts.next();
-            StructureStart start = entry.getValue();
-
-            if (start.isValid()) {
-                BlockPos structStartPos = start.getBoundingBox().getCenter();
-                loadedStructures.remove(structStartPos);
-            }
+        if(chunk.getAllStarts()==null || chunk.getAllStarts().isEmpty()) return;
+        for (var entry : chunk.getAllStarts().entrySet()) {
+            processStructureUnload(entry.getKey(), entry.getValue());
         }
+    }
+
+    public void processStructureLoad(Structure structure, StructureStart start)
+    {
+        if (!start.isValid()) return;
+
+        BlockPos structStartPos = start.getBoundingBox().getCenter();
+        loadedStructures.add(structStartPos);
+
+        if (structures.containsKey(structStartPos)) {
+            StructureInfo info = structures.get(structStartPos);
+            EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
+        }
+
+        if (structureRegistry == null) return;
+
+        ResourceLocation structureLocation = structureRegistry.getKey(structure);
+        if (structureLocation == null) return;
+
+        ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
+        Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
+        if (holder == null) return;
+
+        StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
+        this.structures.put(structStartPos, structureInfo);
+        this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
+
+        StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
+        EventRegistrar.getInstance().onStructureLoaded(event);
+    }
+
+    public void processStructureUnload(Structure structure, StructureStart start) {
+        if (!start.isValid()) return;
+
+        BlockPos structStartPos = start.getBoundingBox().getCenter();
+        loadedStructures.remove(structStartPos);
     }
 
     private void load(DataStore ds)
@@ -345,6 +346,7 @@ public class StructureManager {
 
     public static void init(EventRegistrar reg) {
         reg.registerOnBeforeServerStarted(StructureManager::onServerStart);
+        reg.registerOnServerStopped(StructureManager::onServerStopped);
         reg.registerOnLevelLoad(StructureManager::onLevelLoad, EventPriority.High);
         reg.registerOnChunkLoad(StructureManager::onChunkLoad);
         reg.registerOnChunkUnload(StructureManager::onChunkUnload);
@@ -375,6 +377,15 @@ public class StructureManager {
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
+            managers.clear();
+    }
+
+    private static void onServerStopped(ServerStoppedEvent event) {
+        for(StructureManager manager : managers.values()) {
+            manager.structures.clear();
+            manager.structuresByType.clear();
+            manager.loadedStructures.clear();
+        }
         managers.clear();
     }
 
@@ -450,7 +461,6 @@ public class StructureManager {
             }
 
         }
-
 
     }
 

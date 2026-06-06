@@ -4,6 +4,8 @@ import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelAccessor;
 
+import javax.annotation.Nullable;
+
 public interface IMangedChunkData  {
 
     /**
@@ -13,12 +15,17 @@ public interface IMangedChunkData  {
     boolean isInit(String subclass);
 
     /**
-     * Create a dummy constructor to call this method and return a reference to an
-     * existing instance of the class sitting in RAM. I am aware this is a hack and
-     * not an elegant implementation
+     * Instance method to force implementation on subclasses. resolveSubDataInstances
+     * passes the burden of resolving the in-memory instance of subdata vs. the deserialized data
+     * to the subclass itself.
+     *
+     * @param level - level this chunk was loaded in
+     * @param id - string id of the chunk data to resolve in "x,z" format
+     * @param serialized - the deserialized chunk data, if applicable
      * @return IMangedChunkData
      */
-    public IMangedChunkData getStaticInstance(LevelAccessor level, String id);
+    @Nullable
+    public IMangedChunkData resolveSubData(LevelAccessor level, String id, @Nullable IMangedChunkData serialized);
 
     /**
      * @param event

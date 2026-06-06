@@ -26,6 +26,7 @@ import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -112,6 +113,11 @@ public class EventRegistrar {
     final Map<Item, List<Consumer<ItemEntityTickEvent>>> ITEM_ENTITY_TICK_MAP = new ConcurrentHashMap<>();
     final Set<Consumer<ItemEntityTickEvent>> ALL_ITEM_ENTITY_CONSUMERS = new ConcurrentSet<>();
 
+    // PlayerHasItem event support
+    final List<Supplier<Item>> PLAYER_HAS_ITEM_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<PlayerHasItemEvent>> PLAYER_HAS_ITEM_CONSUMER_LIST = Collections.synchronizedList(new ArrayList<>());
+    final Map<Item, List<Consumer<PlayerHasItemEvent>>> PLAYER_HAS_ITEM_MAP = new ConcurrentHashMap<>();
+
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
 
@@ -140,6 +146,7 @@ public class EventRegistrar {
         GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Process deferred item objects for ItemEntity tick events
         processItemEntityDeferredObjects();
+        processPlayerHasItemDeferredObjects();
 
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
             .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
@@ -167,6 +174,16 @@ public class EventRegistrar {
             }
         }
 
+    }
+
+    private void processPlayerHasItemDeferredObjects() {
+        for (int i = 0; i < PLAYER_HAS_ITEM_SUPPLIERS.size(); i++) {
+            Supplier<Item> supplier = PLAYER_HAS_ITEM_SUPPLIERS.get(i);
+            Consumer<PlayerHasItemEvent> consumer = PLAYER_HAS_ITEM_CONSUMER_LIST.get(i);
+            if (supplier == null || consumer == null) continue;
+            Item item = supplier.get();
+            PLAYER_HAS_ITEM_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
+        }
     }
 
     void onServerStopped(ServerStoppedEvent event)
@@ -554,6 +571,28 @@ public class EventRegistrar {
         PRIORITIES.put(function, priority);
     }
 
+    public void registerOnPlayerHasItem(Supplier<Item> itemType, Consumer<PlayerHasItemEvent> function) {
+        registerOnPlayerHasItem(itemType, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerHasItem(Supplier<Item> itemType, Consumer<PlayerHasItemEvent> function, EventPriority priority) {
+        PLAYER_HAS_ITEM_SUPPLIERS.add(itemType);
+        PLAYER_HAS_ITEM_CONSUMER_LIST.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    /**
+     * Adds a consumer to the "player has item" array at runtime, calls the consumer when
+     * the player has the item
+     * @param itemType
+     * @param function
+     * @param priority
+     */
+    public void runtimeOnPlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
+        PLAYER_HAS_ITEM_MAP.computeIfAbsent(itemType, k -> new ArrayList<>()).add(function);
+    }
+
+
     /**
      * Custom Events
      **/
@@ -578,6 +617,8 @@ public class EventRegistrar {
                 tryEvent((Consumer<ServerTickEvent>) consumer, event);
             }
         });
+
+        firePlayerHasItemEvents(s, totalTicks);
 
         // Handle daily tick events
         Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
@@ -736,6 +777,23 @@ public class EventRegistrar {
         Item item = itemEntity.getItem().getItem();
         List<Consumer<ItemEntityTickEvent>> specificConsumers = registrar.ITEM_ENTITY_TICK_MAP.get(item);
         specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
+    }
+
+    // Fires PlayerHasItemEvent every 20 ticks for each online player
+    private void firePlayerHasItemEvents(MinecraftServer server, long totalTicks) {
+        if (PLAYER_HAS_ITEM_MAP.isEmpty()) return;
+        if (totalTicks % 20 != 0) return;
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            HashMap<Item, Integer> inventoryMap = HBUtil.ItemUtil.parseInventory(player.getInventory());
+            PlayerHasItemEvent event = new PlayerHasItemEvent(player, inventoryMap);
+
+            PLAYER_HAS_ITEM_MAP.forEach((item, consumers) -> {
+                if (inventoryMap.containsKey(item)) {
+                    consumers.forEach(consumer -> tryEvent(consumer, event));
+                }
+            });
+        }
     }
 
     private <T> void tryEvent(Consumer<T> consumer, T event) {

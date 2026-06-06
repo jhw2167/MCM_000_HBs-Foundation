@@ -31,8 +31,10 @@ import net.minecraft.server.level.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -282,9 +284,16 @@ public class HBUtil {
             return  1;
         }
 
-
-
-
+        // Maps each distinct Item to the first slot index it occupies (0-35 main, 36-39 armor, 40 offhand)
+        public static HashMap<Item, Integer> parseInventory(Inventory inventory) {
+            HashMap<Item, Integer> itemSlotMap = new HashMap<>();
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack stack = inventory.getItem(i);
+                if (stack.isEmpty()) continue;
+                itemSlotMap.putIfAbsent(stack.getItem(), i);
+            }
+            return itemSlotMap;
+        }
 
     }
 
@@ -662,6 +671,10 @@ public class HBUtil {
         public static Level toLevel(@Nullable LevelNameSpace nameSpace, String dimensionId)
         {
             String levelId = dimensionId.replace("CLIENT:", "").replace("SERVER:", "");
+
+            if(!dimensionId.contains(":"))
+                levelId = "minecraft:" + levelId;
+
             if( nameSpace == LevelNameSpace.CLIENT ) {
                 levelId = "CLIENT:" + levelId;
             } else if( nameSpace == LevelNameSpace.SERVER ) {
@@ -1592,7 +1605,7 @@ public class HBUtil {
                     warnNoDefaultFile.append("Could not find the default  JSON config file at path: ");
                     warnNoDefaultFile.append(configFile.getAbsolutePath());
                     warnNoDefaultFile.append(". A default file will be created for future reference.");
-                    LoggerBase.logError( null, "000002", warnNoDefaultFile.toString());
+                    LoggerBase.logWarning( null, "000002", warnNoDefaultFile.toString());
 
                     try {
                         configFile.createNewFile();

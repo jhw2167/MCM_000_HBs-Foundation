@@ -9,6 +9,7 @@ import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
+import com.holybuckets.foundation.event.custom.PlayerHasItemEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
@@ -71,6 +72,18 @@ public class CommonClass {
      */
     public static void testMessager(EventRegistrar reg) {
         //reg.registerOnClientInput(CommonClass::onPlayerInput);
+    }
+
+    //has oak_log in inventory, send message to player using messager system
+    private static void onPlayerHasOakLog(PlayerHasItemEvent event) {
+        if (event.getPlayer() == null) return;
+            Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have an oak log in your inventory!");
+    }
+
+    //if a player has a diamond sword in their inventory, send a message using the Messager system
+    private static void onPlayerHasDiamondSword(PlayerHasItemEvent event) {
+        if (event.getPlayer() == null) return;
+            Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have a diamond sword in your inventory!");
     }
 
     private static void onPlayerInput(ClientInputEvent event) {

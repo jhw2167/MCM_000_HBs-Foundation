@@ -13,6 +13,7 @@ import java.util.Set;
 
 public class WoolColorHelper {
     private static final IntObjectHashMap<DustParticleOptions> WOOL_DUST_CACHE = new IntObjectHashMap<>();
+    private static final HashSet<Block> woolBlocks = new HashSet<>();
 
     public static void addDustColorFromWool(Block wool, int id)
     {
@@ -46,28 +47,34 @@ public class WoolColorHelper {
     }
 
     public static void initWoolColors() {
-        Set<Block> woolIds = new HashSet<>();
-        woolIds.add(Blocks.RED_WOOL);
-        woolIds.add(Blocks.ORANGE_WOOL);
-        woolIds.add(Blocks.YELLOW_WOOL);
-        woolIds.add(Blocks.LIME_WOOL);
-        woolIds.add(Blocks.GREEN_WOOL);
-        woolIds.add(Blocks.CYAN_WOOL);
-        woolIds.add(Blocks.LIGHT_BLUE_WOOL);
-        woolIds.add(Blocks.BLUE_WOOL);
-        woolIds.add(Blocks.PURPLE_WOOL);
-        woolIds.add(Blocks.MAGENTA_WOOL);
-        woolIds.add(Blocks.PINK_WOOL);
-        woolIds.add(Blocks.WHITE_WOOL);
-        woolIds.add(Blocks.LIGHT_GRAY_WOOL);
-        woolIds.add(Blocks.GRAY_WOOL);
-        woolIds.add(Blocks.BROWN_WOOL);
-        woolIds.add(Blocks.BLACK_WOOL);
+        woolBlocks.add(Blocks.RED_WOOL);
+        woolBlocks.add(Blocks.ORANGE_WOOL);
+        woolBlocks.add(Blocks.YELLOW_WOOL);
+        woolBlocks.add(Blocks.LIME_WOOL);
+        woolBlocks.add(Blocks.GREEN_WOOL);
+        woolBlocks.add(Blocks.CYAN_WOOL);
+        woolBlocks.add(Blocks.LIGHT_BLUE_WOOL);
+        woolBlocks.add(Blocks.BLUE_WOOL);
+        woolBlocks.add(Blocks.PURPLE_WOOL);
+        woolBlocks.add(Blocks.MAGENTA_WOOL);
+        woolBlocks.add(Blocks.PINK_WOOL);
+        woolBlocks.add(Blocks.WHITE_WOOL);
+        woolBlocks.add(Blocks.LIGHT_GRAY_WOOL);
+        woolBlocks.add(Blocks.GRAY_WOOL);
+        woolBlocks.add(Blocks.BROWN_WOOL);
+        woolBlocks.add(Blocks.BLACK_WOOL);
 
         int i = 0;
-        for (Block wool : woolIds) {
+        for (Block wool : woolBlocks) {
             WoolColorHelper.addDustColorFromWool(wool, i++);
         }
 
     }
+
+    //get woolBlocks
+    public static Set<Block> getWoolBlocks() {
+        return woolBlocks;
+    }
+
 }
+//end class

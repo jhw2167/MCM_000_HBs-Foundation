@@ -27,7 +27,7 @@ public class WoolColorHelper {
             }
         }
         //float[] rgb = color.getTextureDiffuseColors();
-        Integer colorInt = color.getTextColor();
+        Integer colorInt = color.getTextureDiffuseColor();
         WOOL_DUST_CACHE.put(id, new DustParticleOptions(
             Vec3.fromRGB24(colorInt).toVector3f(),
             1.0f
@@ -45,7 +45,7 @@ public class WoolColorHelper {
     }
 
     public static int getWoolColorRGBInt(int colorId) {
-        return INT_COLOR_CACHE.getOrDefault(colorId, DyeColor.WHITE.getTextColor());
+        return INT_COLOR_CACHE.getOrDefault(colorId, DyeColor.WHITE.getTextureDiffuseColor());
     }
 
     public static void initWoolColors() {

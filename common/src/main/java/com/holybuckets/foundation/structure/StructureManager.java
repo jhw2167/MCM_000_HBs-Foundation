@@ -54,6 +54,7 @@ public class StructureManager {
         this.structures = new HashMap<>();
         this.structuresByType = new HashMap<>();
         this.existingStructures = new HashSet<>();
+        this.structureChunkCheck = new HashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
             this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);

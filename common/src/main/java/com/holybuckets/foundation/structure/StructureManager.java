@@ -5,7 +5,6 @@ import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
-import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.*;
@@ -21,20 +20,17 @@ import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.level.levelgen.structure.StructureType;
-import org.apache.commons.logging.Log;
 
 import java.util.*;
 
@@ -46,7 +42,8 @@ public class StructureManager {
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private Map<ResourceLocation, Set<BlockPos>> structuresByType;
-    private Set<BlockPos> loadedStructures;
+    private Set<BlockPos> existingStructures;
+    private Map<String, BlockPos> structureChunkCheck; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -56,7 +53,8 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new HashMap<>();
-        this.loadedStructures = new HashSet<>();
+        this.existingStructures = new HashSet<>();
+        this.structureChunkCheck = new HashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
             this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -220,12 +218,12 @@ public class StructureManager {
     public static final double NEAR_STRUCTURE_THRESHOLD = 100.0; // Define what "near" means (100 blocks)
     private void checkPlayersNearStructures() {
         if (level.isClientSide()) return;
-        
+
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
             if (!player.level().equals(level)) continue;
             BlockPos playerPos = player.blockPosition();
-            
-            for(BlockPos pos : loadedStructures) {
+
+            for(BlockPos pos : existingStructures) {
                 if (playerPos.distSqr(pos) <= NEAR_STRUCTURE_THRESHOLD * NEAR_STRUCTURE_THRESHOLD) {
                     PlayerNearStructureEvent event = new PlayerNearStructureEvent(player,
                         structures.get(pos));
@@ -251,20 +249,26 @@ public class StructureManager {
 
     public void processStructureLoad(Structure structure, StructureStart start)
     {
-        if (!start.isValid()) return;
+        if (start==null || !start.isValid()) return;
+        if (structureRegistry == null) return;
 
+        ResourceLocation structureLocation = structureRegistry.getKey(structure);
+        ChunkPos cp = new ChunkPos(start.getBoundingBox().getCenter());
+
+        if (structureLocation == null) return;
+        String key = "" + cp + ":" + structureLocation;
         BlockPos structStartPos = start.getBoundingBox().getCenter();
-        loadedStructures.add(structStartPos);
+        if( structureChunkCheck.containsKey(key) )
+            structStartPos = structureChunkCheck.get(key);
+
+        existingStructures.add(structStartPos);
 
         if (structures.containsKey(structStartPos)) {
             StructureInfo info = structures.get(structStartPos);
             EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
+            return;
         }
 
-        if (structureRegistry == null) return;
-
-        ResourceLocation structureLocation = structureRegistry.getKey(structure);
-        if (structureLocation == null) return;
 
         ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
         Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
@@ -282,7 +286,7 @@ public class StructureManager {
         if (!start.isValid()) return;
 
         BlockPos structStartPos = start.getBoundingBox().getCenter();
-        loadedStructures.remove(structStartPos);
+        existingStructures.remove(structStartPos);
     }
 
     private void load(DataStore ds)
@@ -304,7 +308,9 @@ public class StructureManager {
                     if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
                     this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
-                    this.loadedStructures.add(info.origin); // Mark as previously loaded
+                    this.existingStructures.add(info.origin); // Mark as previously loaded
+                    ChunkPos cp = new ChunkPos(info.origin);
+                    this.structureChunkCheck.put( "" + cp + ":" + structureLocation, info.origin );
                 }
             }
         }
@@ -377,14 +383,14 @@ public class StructureManager {
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
-            managers.clear();
+        managers.clear();
     }
 
     private static void onServerStopped(ServerStoppedEvent event) {
         for(StructureManager manager : managers.values()) {
             manager.structures.clear();
             manager.structuresByType.clear();
-            manager.loadedStructures.clear();
+            manager.existingStructures.clear();
         }
         managers.clear();
     }
@@ -461,7 +467,6 @@ public class StructureManager {
             }
 
         }
-
 
     }
 

@@ -42,8 +42,8 @@ public class StructureManager {
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private Map<ResourceLocation, Set<BlockPos>> structuresByType;
-    private Set<BlockPos> existingStructures;
-    private Map<String, BlockPos> structureChunkCheck; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
+    private Set<BlockPos> currentlyLoadedStructures;
+    private Map<String, BlockPos> existingStructures; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
@@ -53,8 +53,9 @@ public class StructureManager {
         this.level = level;
         this.structures = new HashMap<>();
         this.structuresByType = new HashMap<>();
-        this.existingStructures = new HashSet<>();
-        this.structureChunkCheck = new HashMap<>();
+
+        this.currentlyLoadedStructures = new HashSet<>();
+        this.existingStructures = new HashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
             this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -218,12 +219,12 @@ public class StructureManager {
     public static final double NEAR_STRUCTURE_THRESHOLD = 100.0; // Define what "near" means (100 blocks)
     private void checkPlayersNearStructures() {
         if (level.isClientSide()) return;
-        
+
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
             if (!player.level().equals(level)) continue;
             BlockPos playerPos = player.blockPosition();
-            
-            for(BlockPos pos : existingStructures) {
+
+            for(BlockPos pos : currentlyLoadedStructures) {
                 if (playerPos.distSqr(pos) <= NEAR_STRUCTURE_THRESHOLD * NEAR_STRUCTURE_THRESHOLD) {
                     PlayerNearStructureEvent event = new PlayerNearStructureEvent(player,
                         structures.get(pos));
@@ -258,11 +259,10 @@ public class StructureManager {
         if (structureLocation == null) return;
         String key = "" + cp + ":" + structureLocation;
         BlockPos structStartPos = start.getBoundingBox().getCenter();
-        if( structureChunkCheck.containsKey(key) )
-            structStartPos = structureChunkCheck.get(key);
 
-        existingStructures.add(structStartPos);
-
+        if( existingStructures.containsKey(key) )
+            structStartPos = existingStructures.get(key);
+        currentlyLoadedStructures.add(structStartPos);
         if (structures.containsKey(structStartPos)) {
             StructureInfo info = structures.get(structStartPos);
             EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
@@ -286,7 +286,40 @@ public class StructureManager {
         if (!start.isValid()) return;
 
         BlockPos structStartPos = start.getBoundingBox().getCenter();
-        existingStructures.remove(structStartPos);
+        currentlyLoadedStructures.remove(structStartPos);
+    }
+
+    public void addPseudoStructure(ResourceLocation loc, BlockPos pos)
+    {
+        if (loc == null || pos == null) return;
+        if (this.structures.containsKey(pos)) return;
+
+        // Hash the resource location to synthesize an int registry id.
+        int rId = loc.hashCode();
+        StructureInfo info = new StructureInfo(pos, loc, rId, loc.getPath(), loc);
+
+        this.structures.put(pos, info);
+        this.structuresByType.computeIfAbsent(loc, k -> new HashSet<>()).add(pos);
+        this.currentlyLoadedStructures.add(pos);
+        this.existingStructures.put(new ChunkPos(pos) + ":" + loc, pos);
+    }
+
+    public void removePseudoStructure(BlockPos pos)
+    {
+        if(pos == null) return;
+        if(!this.structures.containsKey(pos)) return;
+
+        StructureInfo info = this.structures.get(pos);
+        ResourceLocation loc = info.getStructureLocation();
+        this.structures.remove(pos);
+        if(loc != null && this.structuresByType.containsKey(loc)) {
+            this.structuresByType.get(loc).remove(pos);
+            if(this.structuresByType.get(loc).isEmpty()) {
+                this.structuresByType.remove(loc);
+            }
+        }
+        this.currentlyLoadedStructures.remove(pos);
+        this.existingStructures.remove(new ChunkPos(pos) + ":" + loc);
     }
 
     private void load(DataStore ds)
@@ -308,9 +341,9 @@ public class StructureManager {
                     if(structures.containsKey(info.origin)) continue;
                     this.structures.put(info.origin, info);
                     this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
-                    this.existingStructures.add(info.origin); // Mark as previously loaded
+                    this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
                     ChunkPos cp = new ChunkPos(info.origin);
-                    this.structureChunkCheck.put( "" + cp + ":" + structureLocation, info.origin );
+                    this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
                 }
             }
         }
@@ -383,14 +416,14 @@ public class StructureManager {
 
     //** Events
     private static void onServerStart(ServerStartingEvent event) {
-            managers.clear();
+        managers.clear();
     }
 
     private static void onServerStopped(ServerStoppedEvent event) {
         for(StructureManager manager : managers.values()) {
             manager.structures.clear();
             manager.structuresByType.clear();
-            manager.existingStructures.clear();
+            manager.currentlyLoadedStructures.clear();
         }
         managers.clear();
     }

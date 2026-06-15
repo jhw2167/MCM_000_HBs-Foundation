@@ -9,13 +9,14 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 
 public class WoolColorHelper {
     private static final IntObjectHashMap<DustParticleOptions> WOOL_DUST_CACHE = new IntObjectHashMap<>();
     private static final IntObjectHashMap<Integer> INT_COLOR_CACHE = new IntObjectHashMap<>();
-    private static final HashSet<Block> woolBlocks = new HashSet<>();
+    private static final HashSet<Block> woolBlocks = new LinkedHashSet<>();
 
     public static void addDustColorFromWool(Block wool, int id)
     {

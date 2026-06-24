@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.Blocks;
 import org.joml.Vector3f;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 
@@ -46,7 +47,7 @@ public class WoolColorHelper {
     }
 
     public static void initWoolColors() {
-        Set<Block> woolIds = new HashSet<>();
+        Set<Block> woolIds = new LinkedHashSet<>();
         woolIds.add(Blocks.RED_WOOL);
         woolIds.add(Blocks.ORANGE_WOOL);
         woolIds.add(Blocks.YELLOW_WOOL);

@@ -15,6 +15,7 @@ import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import net.minecraft.client.Camera;
@@ -35,6 +36,8 @@ public class MovingWaypoint {
         BlockPos targetPos;
         int colorId;
         boolean isActive;
+        // ticks the player has spent within DELETE_NEAR_HORIZ_DIST (xz only) of this waypoint
+        int nearTicks;
 
         public static int activeCount = 0;
 
@@ -42,18 +45,14 @@ public class MovingWaypoint {
             this.levelId = levelId;
             this.colorId = colorId;
             this.targetPos = targetPos;
+            this.nearTicks = 0;
             setActive(CURRENT_LEVEL_ID);
         }
 
         public void setActive(String currentLevelId) {
             boolean wasActive = this.isActive;
-            this.isActive = currentLevelId.equals(this.levelId);
+            this.isActive = currentLevelId != null && currentLevelId.equals(this.levelId);
 
-            if(isActive) {
-                Level level = Minecraft.getInstance().level;
-               targetPos = targetPos.atY(level.getMinBuildHeight());
-            }
-            
             if (wasActive && !this.isActive) {
                 activeCount--;
             } else if (!wasActive && this.isActive) {
@@ -81,6 +80,12 @@ public class MovingWaypoint {
     private static final int MAX_BEACON_VERTICES = 256 * 1024;
     private static final int MAX_CONCURRENT_BEACONS = 8;
     private static final int MAX_RANGE = 192;
+    // Auto-delete: when the player spends DELETE_NEAR_TICKS_THRESHOLD ticks within
+    // DELETE_NEAR_HORIZ_DIST blocks (xz-only) of the target, the waypoint clears itself.
+    private static final int DELETE_NEAR_HORIZ_DIST = 4;
+    private static final int DELETE_NEAR_TICKS_THRESHOLD = 60; // ~3 sec at 20 tps
+    // Query cadence for the moving waypoint position recompute (ON_20_TICKS = 1 sec).
+    private static final int TICK_CADENCE = 20;
 
     private final UUID playerId;
     private final String waypointKey;
@@ -147,28 +152,46 @@ public class MovingWaypoint {
         Vec3 playerPos = player.position();
         Vec3 targetPos = Vec3.atCenterOf(targetPosition);
 
-        double distanceToTarget = playerPos.distanceTo(targetPos);
+        double horizDistSq = horizontalDistanceSq(playerPos, targetPos);
+        double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
 
-        if (distanceToTarget <= MAX_RANGE) {
+        if (horizDistSq <= maxRangeSq) {
             return targetPosition;
         }
 
-        Vec3 direction = targetPos.subtract(playerPos).normalize();
-        Vec3 waypoint = playerPos.add(direction.scale(MAX_RANGE));
-
-        return BlockPos.containing(waypoint.x, waypoint.y, waypoint.z);
+        double horizDist = Math.sqrt(horizDistSq);
+        double scale = MAX_RANGE / horizDist;
+        double dx = targetPos.x - playerPos.x;
+        double dz = targetPos.z - playerPos.z;
+        return BlockPos.containing(
+            playerPos.x + dx * scale,
+            targetPos.y,
+            playerPos.z + dz * scale
+        );
     }
 
     public boolean isInRange(Player player) {
-        return player.position().distanceTo(Vec3.atCenterOf(targetPosition)) <= MAX_RANGE;
+        return horizontalDistance(player.position(), Vec3.atCenterOf(targetPosition)) <= MAX_RANGE;
     }
 
     public double getDistanceToTarget(Player player) {
-        return player.position().distanceTo(Vec3.atCenterOf(targetPosition));
+        return horizontalDistance(player.position(), Vec3.atCenterOf(targetPosition));
     }
 
     public double getDistanceToWaypoint(Player player) {
-        return player.position().distanceTo(Vec3.atCenterOf(waypointPosition));
+        return horizontalDistance(player.position(), Vec3.atCenterOf(waypointPosition));
+    }
+
+    // Horizontal (xz-only) distance helpers — Y is ignored so that targets which the
+    // server may have floor-anchored (Y = minBuildHeight) don't blow up the range math.
+    private static double horizontalDistanceSq(Vec3 a, Vec3 b) {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
+    private static double horizontalDistance(Vec3 a, Vec3 b) {
+        return Math.sqrt(horizontalDistanceSq(a, b));
     }
 
     public static void clearAllWaypoints(UUID playerId) {
@@ -184,30 +207,38 @@ public class MovingWaypoint {
     }
 
     public static void updateAllActiveWaypoints(Player player) {
-        // Update active waypoints based on original waypoints and player position
+        // Update active waypoints based on original waypoints and player position.
+        // Range/projection use xz-only distance; the target's Y is preserved on the active waypoint.
         activeWaypoints.clear();
-        
+
+        double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
         for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
         {
             int colorId = entry.key();
             Waypoint originalWp = entry.value();
             originalWp.setActive(CURRENT_LEVEL_ID);
-            
+
             if(!originalWp.isActive) continue;
-            
+
             Vec3 playerPos = player.position();
             Vec3 targetPos = Vec3.atCenterOf(originalWp.targetPos);
-            double distanceToTarget = playerPos.distanceTo(targetPos);
-            
+            double horizDistSq = horizontalDistanceSq(playerPos, targetPos);
+
             BlockPos waypointPos;
-            if (distanceToTarget <= MAX_RANGE) {
+            if (horizDistSq <= maxRangeSq) {
                 waypointPos = originalWp.targetPos;
             } else {
-                Vec3 direction = targetPos.subtract(playerPos).normalize();
-                Vec3 waypoint = playerPos.add(direction.scale(MAX_RANGE));
-                waypointPos = BlockPos.containing(waypoint.x, waypoint.y, waypoint.z);
+                double horizDist = Math.sqrt(horizDistSq);
+                double scale = MAX_RANGE / horizDist;
+                double dx = targetPos.x - playerPos.x;
+                double dz = targetPos.z - playerPos.z;
+                waypointPos = BlockPos.containing(
+                    playerPos.x + dx * scale,
+                    targetPos.y,
+                    playerPos.z + dz * scale
+                );
             }
-            
+
             activeWaypoints.put(colorId, new Waypoint(CURRENT_LEVEL_ID, waypointPos, colorId));
         }
     }
@@ -218,7 +249,17 @@ public class MovingWaypoint {
     public static void registerEvents(ClientEventRegistrar registrar ) {
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
         registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
-        registrar.registerOnClientLevelTick(TickType.ON_120_TICKS, MovingWaypoint::onClient120Tick);
+        registrar.registerOnClientLevelTick(TickType.ON_20_TICKS, MovingWaypoint::onClient20Tick);
+        // Eagerly seed CURRENT_LEVEL_ID at login so waypoint messages that arrive before
+        // the first 120-tick fires aren't dropped as inactive.
+        registrar.registerOnConnectedToServer(MovingWaypoint::onConnectedToServer);
+    }
+
+    private static void onConnectedToServer(ConnectedToServerEvent event) {
+        Level level = Minecraft.getInstance().level;
+        if (level != null) {
+            CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(level);
+        }
     }
 
     private static void onMovingWaypointMessage(SimpleMessageEvent event)
@@ -258,12 +299,52 @@ public class MovingWaypoint {
         }
     }
 
-    private static void onClient120Tick(ClientLevelTickEvent event) {
-        Player player = Minecraft.getInstance().player;
-        if (player != null && !originalWaypoints.isEmpty()) {
-            updateAllActiveWaypoints(player);
+    private static void onClient20Tick(ClientLevelTickEvent event) {
+        Level level = Minecraft.getInstance().level;
+        if (level != null) {
+            CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(level);
         }
-        CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(Minecraft.getInstance().level);
+
+        Player player = Minecraft.getInstance().player;
+        if (player == null || originalWaypoints.isEmpty()) return;
+
+        updateAllActiveWaypoints(player);
+
+        // Dwell-then-delete: if the player stays within DELETE_NEAR_HORIZ_DIST blocks
+        // (xz only) of an original target for DELETE_NEAR_TICKS_THRESHOLD ticks, clear it.
+        Vec3 playerPos = player.position();
+        double nearDistSq = (double) DELETE_NEAR_HORIZ_DIST * DELETE_NEAR_HORIZ_DIST;
+
+        java.util.List<Integer> toRemove = null;
+        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries()) {
+            Waypoint wp = entry.value();
+            if (!wp.isActive) {
+                wp.nearTicks = 0;
+                continue;
+            }
+            Vec3 wpPos = Vec3.atCenterOf(wp.targetPos);
+            if (horizontalDistanceSq(playerPos, wpPos) <= nearDistSq) {
+                wp.nearTicks += TICK_CADENCE;
+                if (wp.nearTicks >= DELETE_NEAR_TICKS_THRESHOLD) {
+                    if (toRemove == null) toRemove = new java.util.ArrayList<>();
+                    toRemove.add(entry.key());
+                }
+            } else {
+                wp.nearTicks = 0;
+            }
+        }
+
+        if (toRemove != null) {
+            for (int colorId : toRemove) {
+                Waypoint removed = originalWaypoints.get(colorId);
+                if (removed != null) {
+                    removed.deactivate();
+                    originalWaypoints.remove(colorId);
+                    Waypoint.remove(removed.targetPos);
+                }
+                activeWaypoints.remove(colorId);
+            }
+        }
     }
 
     //** RENDERING

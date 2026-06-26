@@ -80,6 +80,13 @@ public class HBUtil {
         LevelUtil.init(reg);
     }
 
+    public static ResourceLocation LOC(String namespace, String path) {
+        if(namespace == null || namespace.isEmpty()) {
+            namespace = "minecraft";
+        }
+        return new ResourceLocation(namespace, path);
+    }
+
 
     public static class PlayerUtil {
 

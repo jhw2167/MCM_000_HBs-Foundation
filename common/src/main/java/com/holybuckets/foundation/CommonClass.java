@@ -57,7 +57,6 @@ public class CommonClass {
 
         FoundationInitializers.init();
         EventRegistrar reg = EventRegistrar.getInstance();
-        reg.registerOnBeforeServerStarted(CommonClass::onServerStarting);
         //test(EventRegistrar.getInstance());
         //testMessager(EventRegistrar.getInstance());
 
@@ -111,8 +110,9 @@ public class CommonClass {
         //LoggerBase.logInfo(null, "MESSAGER_TEST", "Player input: " + keyMessage.toString());
     }
 
+    //ANYTHING HERE SHOULD BE HIGH PRIORITY, DO FROM GENERAL CONFIG
     private static void onServerStarting(ServerStartingEvent event) {
-        WoolColorHelper.initWoolColors();
+
     }
 
     /**

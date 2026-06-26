@@ -73,6 +73,7 @@ public class WoolColorHelper {
     }
 
     public static HashSet<Block> getWoolBlocks() {
+        if(woolBlocks.isEmpty()) initWoolColors();
         return woolBlocks;
     }
 }

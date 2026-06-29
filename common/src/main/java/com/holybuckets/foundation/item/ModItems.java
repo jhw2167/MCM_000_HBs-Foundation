@@ -17,10 +17,10 @@ public class ModItems {
 
     public static Item emptyBlockItem;
     public static SimpleRewardItem enchantedEssence;
+    public static WaypointStick waypointStick;
 
     public static void commonInitialize(BalmItems items)
     {
-        //creativeModeTab = items.registerCreativeModeTab( () -> new ItemStack(ModBlocks.empty), FOUNDATIONS_TAB);
         items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
         new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
@@ -28,14 +28,14 @@ public class ModItems {
     public static void initialize(BalmItems items) {
         //items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
 
-    /*
-        items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
-            ModBlocks.empty,
-            ModBlocks.stoneBrickBlockEntity,
-            ModItems.enchantedEssence
-        });
+        // Creative tab for the foundation mod — use the waypoint stick as the icon.
+        creativeModeTab = items.registerCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemStack(waypointStick));
 
-     */
+        items.registerItem(() -> waypointStick = new WaypointStick(), id("waypoint_stick"));
+
+        items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
+            ModItems.waypointStick
+        });
     }
 
     private static ResourceLocation id(String name) {

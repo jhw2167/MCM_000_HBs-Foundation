@@ -13,6 +13,7 @@ import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
@@ -39,13 +40,30 @@ public class MovingWaypoint {
         // ticks the player has spent within DELETE_NEAR_HORIZ_DIST (xz only) of this waypoint
         int nearTicks;
 
+        // --- new (optional) state ---
+        int waypointId;              // unique id; defaults to colorId for simple waypoints
+        boolean isPermanent;         // skip the dwell-near auto-delete when true
+        UUID linkedEntityUuid;       // resolve via level.getEntities()/getPlayerByUUID at use time; null if unset
+        String nameTag;              // optional label; null if unset
+
         public static int activeCount = 0;
 
+        // Backwards-compatible constructor (existing in-class callers continue to work).
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
+            this(levelId, targetPos, colorId, colorId, false, null, null);
+        }
+
+        // Full constructor capturing all new fields.
+        public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
+                        boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
             this.levelId = levelId;
             this.colorId = colorId;
             this.targetPos = targetPos;
             this.nearTicks = 0;
+            this.waypointId = waypointId;
+            this.isPermanent = isPermanent;
+            this.linkedEntityUuid = linkedEntityUuid;
+            this.nameTag = nameTag;
             setActive(CURRENT_LEVEL_ID);
         }
 
@@ -79,7 +97,13 @@ public class MovingWaypoint {
     private static BufferBuilder bufferBuilder = null;
     private static final int MAX_BEACON_VERTICES = 256 * 1024;
     private static final int MAX_CONCURRENT_BEACONS = 8;
-    private static final int MAX_RANGE = 192;
+    private static final int MAX_RANGE = 256;
+    // Beam (core) radius — kept constant in world units, slightly larger than vanilla beacons.
+    private static final float BEAM_RADIUS = 0.35f;
+    // Glow (outer halo) radius — base in world units; scaled by camera distance / GLOW_SCALE_REF
+    // so the glow stays angularly readable from far away.
+    private static final float GLOW_RADIUS_BASE = 0.5f;
+    private static final float GLOW_SCALE_REF = 32.0f;
     // Auto-delete: when the player spends DELETE_NEAR_TICKS_THRESHOLD ticks within
     // DELETE_NEAR_HORIZ_DIST blocks (xz-only) of the target, the waypoint clears itself.
     private static final int DELETE_NEAR_HORIZ_DIST = 4;
@@ -283,13 +307,33 @@ public class MovingWaypoint {
             return;
         }
 
+        // Read the new optional fields. Any missing key falls back to the simple-waypoint
+        // default so older servers (and the existing simple sendWaypointToClient path)
+        // continue to produce a valid Waypoint with no extended state.
+        int waypointId = obj.has("waypointId") ? obj.get("waypointId").getAsInt() : colorId;
+        boolean isPermanent = obj.has("isPermanent") && obj.get("isPermanent").getAsBoolean();
+        UUID linkedEntityUuid = null;
+        if (obj.has("linkedEntityUuid")) {
+            try {
+                linkedEntityUuid = UUID.fromString(obj.get("linkedEntityUuid").getAsString());
+            } catch (IllegalArgumentException ignored) {
+                // malformed uuid → treat as unset
+            }
+        }
+        String nameTag = (obj.has("nameTag") && !obj.get("nameTag").isJsonNull())
+            ? obj.get("nameTag").getAsString() : null;
+
         // Add or update original waypoint
         Waypoint w = new Waypoint(
             obj.get("levelId").getAsString(),
             HBUtil.BlockUtil.stringToBlockPos(obj.get("targetPos").getAsString()),
-            colorId
+            colorId,
+            waypointId,
+            isPermanent,
+            linkedEntityUuid,
+            nameTag
         );
-        
+
         originalWaypoints.put(colorId, w);
         
         // Update active waypoints if player is available
@@ -375,41 +419,60 @@ public class MovingWaypoint {
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance()
             .renderBuffers().bufferSource();
 
-        int renderedCount = 0;
-        for (IntObjectMap.PrimitiveEntry<Waypoint> entry : activeWaypoints.entries()) {
-            Waypoint wp = entry.value();
+        // Push fog far out so beams remain visible past the world's fog cutoff.
+        // Restored in the finally block below.
+        float prevFogStart = RenderSystem.getShaderFogStart();
+        float prevFogEnd = RenderSystem.getShaderFogEnd();
+        RenderSystem.setShaderFogStart(Float.MAX_VALUE);
+        RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
 
-            if (!wp.isActive) continue;
-            if (renderedCount >= MAX_CONCURRENT_BEACONS) break;
-            
-            BlockPos targetPos = wp.targetPos;
+        try {
+            int renderedCount = 0;
+            for (IntObjectMap.PrimitiveEntry<Waypoint> entry : activeWaypoints.entries()) {
+                Waypoint wp = entry.value();
 
-            poseStack.pushPose();
+                if (!wp.isActive) continue;
+                if (renderedCount >= MAX_CONCURRENT_BEACONS) break;
 
-            poseStack.translate(
-                targetPos.getX() - cameraPos.x + 0.5,
-                targetPos.getY() - cameraPos.y,
-                targetPos.getZ() - cameraPos.z + 0.5
-            );
+                BlockPos targetPos = wp.targetPos;
 
-            float[] colors = WoolColorHelper.getWoolColorRGB(wp.colorId);
+                // Distance from camera to the beam base (xz-aware, but Y matters here for
+                // angular sizing of the halo when the camera is well above/below the floor-
+                // anchored target).
+                double cameraDist = cameraPos.distanceTo(Vec3.atCenterOf(targetPos));
+                float glowRadius = (float) Math.max(GLOW_RADIUS_BASE,
+                    GLOW_RADIUS_BASE * (cameraDist / GLOW_SCALE_REF));
 
-            BeaconRenderer.renderBeaconBeam(
-                poseStack,
-                bufferSource,
-                BeaconRenderer.BEAM_LOCATION,
-                event.getPartialTick(),
-                1.0f,
-                gameTime,
-                0,
-                Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
-                colors,
-                0.2f,
-                0.25f
-            );
+                poseStack.pushPose();
 
-            poseStack.popPose();
-            renderedCount++;
+                poseStack.translate(
+                    targetPos.getX() - cameraPos.x + 0.5,
+                    targetPos.getY() - cameraPos.y,
+                    targetPos.getZ() - cameraPos.z + 0.5
+                );
+
+                float[] colors = WoolColorHelper.getWoolColorRGB(wp.colorId);
+
+                BeaconRenderer.renderBeaconBeam(
+                    poseStack,
+                    bufferSource,
+                    BeaconRenderer.BEAM_LOCATION,
+                    event.getPartialTick(),
+                    1.0f,
+                    gameTime,
+                    0,
+                    Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
+                    colors,
+                    BEAM_RADIUS,
+                    glowRadius
+                );
+
+                poseStack.popPose();
+                renderedCount++;
+            }
+        } finally {
+            RenderSystem.setShaderFogStart(prevFogStart);
+            RenderSystem.setShaderFogEnd(prevFogEnd);
         }
     }
 }

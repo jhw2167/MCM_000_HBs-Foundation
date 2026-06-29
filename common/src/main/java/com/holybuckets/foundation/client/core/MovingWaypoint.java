@@ -9,6 +9,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.core.WoolColorHelper;
+import com.holybuckets.foundation.mixin.ClientLevelAccessor;
 import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
@@ -21,11 +22,14 @@ import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
@@ -34,7 +38,7 @@ public class MovingWaypoint {
 
     private static class Waypoint {
         String levelId;
-        BlockPos targetPos;
+        private BlockPos targetPos;
         int colorId;
         boolean isActive;
         // ticks the player has spent within DELETE_NEAR_HORIZ_DIST (xz only) of this waypoint
@@ -45,8 +49,21 @@ public class MovingWaypoint {
         boolean isPermanent;         // skip the dwell-near auto-delete when true
         UUID linkedEntityUuid;       // resolve via level.getEntities()/getPlayerByUUID at use time; null if unset
         String nameTag;              // optional label; null if unset
+        // Live position of the linked entity (set by updateAllActiveWaypoints each cadence).
+        // Null when there is no linked entity or it isn't currently loaded; in that case
+        // getTargetPos() falls back to the stored targetPos.
+        BlockPos entityTargetPos;
 
         public static int activeCount = 0;
+
+        /**
+         * Returns the live entity position when this waypoint has a loaded linked entity,
+         * otherwise the static target position. All render and dwell logic should read
+         * the waypoint position through this method so a moving linked entity is followed.
+         */
+        BlockPos getTargetPos() {
+            return entityTargetPos != null ? entityTargetPos : targetPos;
+        }
 
         // Backwards-compatible constructor (existing in-class callers continue to work).
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
@@ -235,6 +252,12 @@ public class MovingWaypoint {
         // Range/projection use xz-only distance; the target's Y is preserved on the active waypoint.
         activeWaypoints.clear();
 
+
+        LevelEntityGetter<Entity> entityGetter = null;
+        if (player.level() instanceof ClientLevel cl) {
+            entityGetter = ((ClientLevelAccessor)(Object) cl).hbs$getEntities();
+        }
+
         double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
         for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
         {
@@ -244,13 +267,20 @@ public class MovingWaypoint {
 
             if(!originalWp.isActive) continue;
 
+            if (originalWp.linkedEntityUuid != null && entityGetter != null) {
+                Entity ent = entityGetter.get(originalWp.linkedEntityUuid);
+                originalWp.entityTargetPos = (ent != null && !ent.isRemoved()) ? ent.blockPosition() : null;
+            } else {
+                originalWp.entityTargetPos = null;
+            }
+
             Vec3 playerPos = player.position();
-            Vec3 targetPos = Vec3.atCenterOf(originalWp.targetPos);
+            Vec3 targetPos = Vec3.atCenterOf(originalWp.getTargetPos());
             double horizDistSq = horizontalDistanceSq(playerPos, targetPos);
 
             BlockPos waypointPos;
             if (horizDistSq <= maxRangeSq) {
-                waypointPos = originalWp.targetPos;
+                waypointPos = originalWp.getTargetPos();
             } else {
                 double horizDist = Math.sqrt(horizDistSq);
                 double scale = MAX_RANGE / horizDist;
@@ -366,7 +396,7 @@ public class MovingWaypoint {
                 wp.nearTicks = 0;
                 continue;
             }
-            Vec3 wpPos = Vec3.atCenterOf(wp.targetPos);
+            Vec3 wpPos = Vec3.atCenterOf(wp.getTargetPos());
             if (horizontalDistanceSq(playerPos, wpPos) <= nearDistSq) {
                 wp.nearTicks += TICK_CADENCE;
                 if (wp.nearTicks >= DELETE_NEAR_TICKS_THRESHOLD) {
@@ -384,7 +414,7 @@ public class MovingWaypoint {
                 if (removed != null) {
                     removed.deactivate();
                     originalWaypoints.remove(colorId);
-                    Waypoint.remove(removed.targetPos);
+                    Waypoint.remove(removed.getTargetPos());
                 }
                 activeWaypoints.remove(colorId);
             }
@@ -434,7 +464,7 @@ public class MovingWaypoint {
                 if (!wp.isActive) continue;
                 if (renderedCount >= MAX_CONCURRENT_BEACONS) break;
 
-                BlockPos targetPos = wp.targetPos;
+                BlockPos targetPos = wp.getTargetPos();
 
                 // Distance from camera to the beam base (xz-aware, but Y matters here for
                 // angular sizing of the halo when the camera is well above/below the floor-

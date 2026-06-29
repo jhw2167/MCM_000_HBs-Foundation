@@ -3,6 +3,7 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.item.WaypointStick;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 
@@ -22,7 +23,7 @@ public class CommonClass {
 
         FoundationInitializers.init();
         EventRegistrar reg = EventRegistrar.getInstance();
-
+        WaypointStick.init(reg);
         // Debug-only hooks live in CommonClassDebug. Activate individual hooks by
         // uncommenting registrations inside that class.
         //CommonClassDebug.init(reg);

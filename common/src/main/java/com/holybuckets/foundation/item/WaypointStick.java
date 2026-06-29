@@ -1,12 +1,15 @@
 package com.holybuckets.foundation.item;
 
 import com.holybuckets.foundation.core.MovingWaypoint;
+import com.holybuckets.foundation.event.EventRegistrar;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.LivingDamageEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -43,6 +46,23 @@ public class WaypointStick extends Item {
         super(Balm.getItems().itemProperties().stacksTo(1));
     }
 
+    public static void init(EventRegistrar reg) {
+        Balm.getEvents().onEvent(LivingDamageEvent.class, WaypointStick::livingEntityHurt);
+    }
+
+    private static void livingEntityHurt(LivingDamageEvent dmgEvent) {
+        LivingEntity target = dmgEvent.getEntity();
+        if(target.level().isClientSide()) return;
+        Entity p = dmgEvent.getDamageSource().getEntity();
+        if(!(p instanceof ServerPlayer sp)) return;
+        if(!(sp.getMainHandItem().getItem() instanceof WaypointStick)) return;
+
+        StickIds ids = nextStickIds();
+        String nameTag = target.getDisplayName() != null ? target.getDisplayName().getString() : null;
+        MovingWaypoint.setWaypoint(sp, target.blockPosition(), ids.colorId, ids.waypointId,
+            false, target, nameTag);
+    }
+
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Player player = context.getPlayer();
@@ -54,19 +74,6 @@ public class WaypointStick extends Item {
         BlockPos hit = context.getClickedPos();
         StickIds ids = nextStickIds();
         MovingWaypoint.setWaypoint(sp, hit, ids.colorId, ids.waypointId, false, null, null);
-        return InteractionResult.SUCCESS;
-    }
-
-    @Override
-    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
-        if (player.level().isClientSide) return InteractionResult.SUCCESS;
-        if (!(player instanceof ServerPlayer sp)) return InteractionResult.PASS;
-        if (target == null) return InteractionResult.PASS;
-
-        StickIds ids = nextStickIds();
-        String nameTag = target.getDisplayName() != null ? target.getDisplayName().getString() : null;
-        MovingWaypoint.setWaypoint(sp, target.blockPosition(), ids.colorId, ids.waypointId,
-            false, target, nameTag);
         return InteractionResult.SUCCESS;
     }
 

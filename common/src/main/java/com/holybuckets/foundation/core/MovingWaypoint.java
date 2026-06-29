@@ -2,10 +2,19 @@ package com.holybuckets.foundation.core;
 
 import com.google.gson.JsonObject;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
+import com.holybuckets.foundation.player.ManagedPlayer;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -17,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.holybuckets.foundation.HBUtil.PlayerUtil;
 
@@ -26,27 +36,38 @@ public class MovingWaypoint {
         String levelId;
         BlockPos targetPos;
         int colorId;
-        // --- new (optional) state ---
-        int waypointId;       // unique id; defaults to colorId for simple waypoints
-        boolean isPermanent;  // if true, the client should NOT auto-clear via dwell-near
-        Entity linkedEntity;  // server-side entity reference for "moves with entity" waypoints; null if none
-        String nameTag;       // optional label, null if unset
+        // --- extended state ---
+        int waypointId;          // unique id; defaults to colorId for simple waypoints
+        boolean isPermanent;     // if true, the client should NOT auto-clear via dwell-near
+        // Persistable identifier for the linked entity. We hold the UUID rather than the
+        // Entity itself so we don't pin unloaded entities in memory and so the value
+        // survives save/load (NBT) and reconnect cycles. Look the entity up on demand
+        // via ServerLevel#getEntity(UUID) when we need its current position.
+        UUID linkedEntityUuid;
+        String nameTag;          // optional label, null if unset
 
         // Backwards-compatible constructor (existing callers continue to work).
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
-            this(levelId, targetPos, colorId, colorId, false, null, null);
+            this(levelId, targetPos, colorId, colorId, false, (UUID) null, null);
         }
 
-        // Full constructor capturing all new fields.
+        // Full constructor capturing all extended fields, taking a raw UUID.
         public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
-                        boolean isPermanent, Entity linkedEntity, String nameTag) {
+                        boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
             this.levelId = levelId;
             this.targetPos = targetPos;
             this.colorId = colorId;
             this.waypointId = waypointId;
             this.isPermanent = isPermanent;
-            this.linkedEntity = linkedEntity;
+            this.linkedEntityUuid = linkedEntityUuid;
             this.nameTag = nameTag;
+        }
+
+        // Convenience constructor that captures the UUID off a live Entity.
+        public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
+                        boolean isPermanent, Entity linkedEntity, String nameTag) {
+            this(levelId, targetPos, colorId, waypointId, isPermanent,
+                linkedEntity == null ? null : linkedEntity.getUUID(), nameTag);
         }
     }
 
@@ -121,7 +142,8 @@ public class MovingWaypoint {
         waypoints.put(colorId,
             new Waypoint(levelId, target, colorId, waypointId, isPermanent, linkedEntity, nameTag));
 
-        sendWaypointToClient(playerId, levelId, target, colorId, waypointId, isPermanent, linkedEntity, nameTag);
+        sendWaypointToClient(playerId, levelId, target, colorId, waypointId, isPermanent,
+            (linkedEntity==null) ? null : linkedEntity.getUUID(), nameTag);
     }
 
     public static void removeWaypoint(ServerPlayer player, int colorId) {
@@ -239,7 +261,7 @@ public class MovingWaypoint {
     }
 
     private static void sendWaypointToClient(String playerId, String levelId, BlockPos targetPos, int colorId,
-                                             int waypointId, boolean isPermanent, Entity linkedEntity, String nameTag) {
+                                             int waypointId, boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
         Player p = PlayerUtil.getPlayer(playerId, PlayerUtil.PlayerNameSpace.SERVER);
         if (p == null) return;
 
@@ -251,7 +273,7 @@ public class MovingWaypoint {
         // unknown fields remain compatible and the JSON stays small.
         if (waypointId != colorId)         json.addProperty("waypointId", waypointId);
         if (isPermanent)                   json.addProperty("isPermanent", true);
-        if (linkedEntity != null)          json.addProperty("linkedEntityUuid", linkedEntity.getUUID().toString());
+        if (linkedEntityUuid != null)      json.addProperty("linkedEntityUuid", linkedEntityUuid.toString());
         if (nameTag != null && !nameTag.isEmpty()) json.addProperty("nameTag", nameTag);
 
         SimpleStringMessage.createAndFire(p, MSG_ID_MOVING_WAYPOINT, json.toString());
@@ -265,5 +287,151 @@ public class MovingWaypoint {
         json.addProperty("colorId", colorId);
 
         SimpleStringMessage.createAndFire(p, MSG_ID_MOVING_WAYPOINT, json.toString());
+    }
+
+    //** LIFECYCLE & ENTITY RESYNC
+
+    /**
+     * Wire server-side hooks: periodic entity-resync tick and the {@link PlayerWaypointData}
+     * managed-player registration for save/load. Call once from FoundationInitializers.
+     */
+    public static void init(EventRegistrar reg) {
+        // Re-sync entity-linked waypoints once per second. Cheap enough at this cadence and
+        // catches motion from any player loading the entity, not just the firing player.
+        reg.registerOnServerTick(TickType.ON_20_TICKS, MovingWaypoint::onEntityResyncTick);
+        PlayerWaypointData.init();
+    }
+
+    private static void onEntityResyncTick(ServerTickEvent event) {
+        if (playerWaypoints.isEmpty()) return;
+
+        for (Map.Entry<String, IntObjectMap<Waypoint>> playerEntry : playerWaypoints.entrySet()) {
+            String playerId = playerEntry.getKey();
+            Player p = PlayerUtil.getPlayer(playerId, PlayerUtil.PlayerNameSpace.SERVER);
+            if (!(p instanceof ServerPlayer sp)) continue;
+
+            for (IntObjectMap.PrimitiveEntry<Waypoint> e : playerEntry.getValue().entries()) {
+                Waypoint w = e.value();
+                if (w.linkedEntityUuid == null) continue;
+
+                // Look in the player's current dimension first; if the entity lives elsewhere
+                // ServerLevel#getEntity returns null and we leave the waypoint alone.
+                Entity ent = sp.serverLevel().getEntity(w.linkedEntityUuid);
+                if (ent == null || ent.isRemoved()) continue;
+
+                BlockPos newPos = ent.blockPosition();
+                if (!newPos.equals(w.targetPos)) {
+                    w.targetPos = newPos;
+                    // Re-send so the client gets the fresh anchor and can update its own
+                    // entity position prediction. This is the "remove and re-set" pattern.
+                    sendWaypointToClient(playerId, w.levelId, w.targetPos, w.colorId,
+                        w.waypointId, w.isPermanent, w.linkedEntityUuid, w.nameTag);
+                }
+            }
+        }
+    }
+
+    //** PERSISTENCE — IManagedPlayer
+
+    /**
+     * Per-player waypoint persistence. Acts as a thin adapter over the static
+     * {@link #playerWaypoints} map: on serialize it snapshots the player's current
+     * waypoints; on deserialize it pushes the saved set back into the map and replays
+     * each one to the client so the player sees them again after rejoin / restart.
+     */
+    public static class PlayerWaypointData implements IManagedPlayer {
+
+        private String id;
+        private Player p;
+
+        public PlayerWaypointData(Player player) {
+            setPlayer(player);
+        }
+
+        public static void init() {
+            ManagedPlayer.registerManagedPlayerData(PlayerWaypointData.class,
+                () -> new PlayerWaypointData(null));
+        }
+
+        @Override public boolean isServerOnly() { return true; }
+        @Override public boolean isInit(String subclass) { return true; }
+        @Override public IManagedPlayer getStaticInstance(Player player, String id) { return null; }
+
+        @Override
+        public void handlePlayerJoin(Player player) {
+            // After deserializeNBT has populated playerWaypoints, push everything back to
+            // the client so the user sees their persisted waypoints on login.
+            if (!(player instanceof ServerPlayer sp)) return;
+            String playerId = PlayerUtil.getId(sp);
+            if (playerId == null) return;
+            IntObjectMap<Waypoint> waypoints = playerWaypoints.get(playerId);
+            if (waypoints == null || waypoints.isEmpty()) return;
+
+            for (IntObjectMap.PrimitiveEntry<Waypoint> e : waypoints.entries()) {
+                Waypoint w = e.value();
+                sendWaypointToClient(playerId, w.levelId, w.targetPos, w.colorId,
+                    w.waypointId, w.isPermanent, w.linkedEntityUuid, w.nameTag);
+            }
+        }
+
+        @Override
+        public CompoundTag serializeNBT() {
+            CompoundTag tag = new CompoundTag();
+            if (p == null) return tag;
+
+            String playerId = PlayerUtil.getId(p);
+            if (playerId == null) return tag;
+            IntObjectMap<Waypoint> waypoints = playerWaypoints.get(playerId);
+            if (waypoints == null || waypoints.isEmpty()) return tag;
+
+            ListTag list = new ListTag();
+            for (IntObjectMap.PrimitiveEntry<Waypoint> e : waypoints.entries()) {
+                Waypoint w = e.value();
+                CompoundTag c = new CompoundTag();
+                c.putString("levelId", w.levelId == null ? "" : w.levelId);
+                c.putString("targetPos", HBUtil.BlockUtil.positionToString(w.targetPos));
+                c.putInt("colorId", w.colorId);
+                c.putInt("waypointId", w.waypointId);
+                if (w.isPermanent)               c.putBoolean("isPermanent", true);
+                if (w.linkedEntityUuid != null)  c.putUUID("linkedEntityUuid", w.linkedEntityUuid);
+                if (w.nameTag != null)           c.putString("nameTag", w.nameTag);
+                list.add(c);
+            }
+            tag.put("waypoints", list);
+            return tag;
+        }
+
+        @Override
+        public void deserializeNBT(CompoundTag nbt) {
+            if (p == null) return;
+            String playerId = PlayerUtil.getId(p);
+            if (playerId == null) return;
+
+            if (!nbt.contains("waypoints", Tag.TAG_LIST)) return;
+            ListTag list = nbt.getList("waypoints", Tag.TAG_COMPOUND);
+            if (list.isEmpty()) return;
+
+            IntObjectMap<Waypoint> map = playerWaypoints.computeIfAbsent(playerId, k -> new IntObjectHashMap<>());
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag c = list.getCompound(i);
+                BlockPos targetPos = new BlockPos(HBUtil.BlockUtil.stringToBlockPos(c.getString("targetPos")));
+                int colorId = c.getInt("colorId");
+                int waypointId = c.contains("waypointId") ? c.getInt("waypointId") : colorId;
+                boolean isPermanent = c.getBoolean("isPermanent");
+                UUID linkedEntityUuid = c.hasUUID("linkedEntityUuid") ? c.getUUID("linkedEntityUuid") : null;
+                String nameTag = c.contains("nameTag") ? c.getString("nameTag") : null;
+                String levelId = c.contains("levelId") ? c.getString("levelId") : "";
+
+                map.put(colorId, new Waypoint(levelId, targetPos, colorId, waypointId,
+                    isPermanent, linkedEntityUuid, nameTag));
+            }
+        }
+
+        @Override public void setId(String id) { this.id = id; }
+
+        @Override
+        public void setPlayer(Player player) {
+            if (player != null) this.p = player;
+        }
     }
 }

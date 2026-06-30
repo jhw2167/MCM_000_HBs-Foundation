@@ -11,6 +11,7 @@ import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.mixin.ClientLevelAccessor;
 import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
+import com.holybuckets.foundation.event.custom.DetermineActiveWaypointEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -36,41 +37,28 @@ import java.util.UUID;
 
 public class MovingWaypoint {
 
-    private static class Waypoint {
-        String levelId;
-        private BlockPos targetPos;
-        int colorId;
-        boolean isActive;
-        // ticks the player has spent within DELETE_NEAR_HORIZ_DIST (xz only) of this waypoint
-        int nearTicks;
-
-        // --- new (optional) state ---
-        int waypointId;              // unique id; defaults to colorId for simple waypoints
-        boolean isPermanent;         // skip the dwell-near auto-delete when true
-        UUID linkedEntityUuid;       // resolve via level.getEntities()/getPlayerByUUID at use time; null if unset
-        String nameTag;              // optional label; null if unset
-        // Live position of the linked entity (set by updateAllActiveWaypoints each cadence).
-        // Null when there is no linked entity or it isn't currently loaded; in that case
-        // getTargetPos() falls back to the stored targetPos.
-        BlockPos entityTargetPos;
+    public static class Waypoint {
+        public String levelId;
+        public BlockPos targetPos;
+        public int colorId;
+        public boolean isActive;
+        public int nearTicks;
+        public int waypointId;
+        public boolean isPermanent;
+        public UUID linkedEntityUuid;
+        public String nameTag;
+        public BlockPos entityTargetPos;
 
         public static int activeCount = 0;
 
-        /**
-         * Returns the live entity position when this waypoint has a loaded linked entity,
-         * otherwise the static target position. All render and dwell logic should read
-         * the waypoint position through this method so a moving linked entity is followed.
-         */
-        BlockPos getTargetPos() {
+        public BlockPos getTargetPos() {
             return entityTargetPos != null ? entityTargetPos : targetPos;
         }
 
-        // Backwards-compatible constructor (existing in-class callers continue to work).
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
             this(levelId, targetPos, colorId, colorId, false, null, null);
         }
 
-        // Full constructor capturing all new fields.
         public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
                         boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
             this.levelId = levelId;
@@ -247,6 +235,12 @@ public class MovingWaypoint {
         activeWaypoints.clear();
     }
 
+
+    private static void determineActiveWaypointHook(Waypoint wp, Player player) {
+        ClientEventRegistrar.getInstance().onDetermineActiveWaypoint(
+            new DetermineActiveWaypointEvent(wp, player));
+    }
+
     public static void updateAllActiveWaypoints(Player player) {
         // Update active waypoints based on original waypoints and player position.
         // Range/projection use xz-only distance; the target's Y is preserved on the active waypoint.
@@ -264,6 +258,8 @@ public class MovingWaypoint {
             int colorId = entry.key();
             Waypoint originalWp = entry.value();
             originalWp.setActive(CURRENT_LEVEL_ID);
+
+            MovingWaypoint.determineActiveWaypointHook(originalWp, player);
 
             if(!originalWp.isActive) continue;
 

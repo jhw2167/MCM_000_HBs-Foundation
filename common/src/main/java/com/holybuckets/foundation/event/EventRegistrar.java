@@ -16,7 +16,6 @@ import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
-import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
@@ -57,6 +56,7 @@ public class EventRegistrar {
     /**
      * World Data
      **/
+     private static GeneralConfig GENERAL_CONFIG;
     private static EventRegistrar instance;
     final Map<Consumer<?>, EventPriority> PRIORITIES = new ConcurrentHashMap<>();
 
@@ -101,6 +101,7 @@ public class EventRegistrar {
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
     final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
+    final Map<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> ON_PLAYER_INTERACT_BY_TYPE = new ConcurrentHashMap<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
@@ -143,6 +144,7 @@ public class EventRegistrar {
     void onBeforeServerStarted(ServerStartingEvent event)
     {
 
+        GENERAL_CONFIG = GeneralConfig.getInstance();
         GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Process deferred item objects for ItemEntity tick events
         processItemEntityDeferredObjects();
@@ -524,6 +526,39 @@ public class EventRegistrar {
         generalRegister(function, ON_TOSS_ITEM, priority);
     }
 
+    public <T extends PlayerInteractEvent> void registerOnPlayerInteract(Class<T> eventType, Consumer<? super T> function) {
+        registerOnPlayerInteract(eventType, function, EventPriority.Normal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends PlayerInteractEvent> void registerOnPlayerInteract(Class<T> eventType, Consumer<? super T> function, EventPriority priority) {
+        Consumer<PlayerInteractEvent> consumer = (Consumer<PlayerInteractEvent>) function;
+        ON_PLAYER_INTERACT_BY_TYPE
+            .computeIfAbsent(eventType, k -> new ConcurrentSet<>())
+            .add(consumer);
+        PRIORITIES.put(consumer, priority);
+    }
+
+    public boolean onPlayerInteract(PlayerInteractEvent event)
+    {
+        if (ON_PLAYER_INTERACT_BY_TYPE.isEmpty()) return false;
+        if (GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide) return false;
+
+        Class<? extends PlayerInteractEvent> eventClass = event.getClass();
+        for (Map.Entry<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> entry : ON_PLAYER_INTERACT_BY_TYPE.entrySet()) {
+            if (!entry.getKey().isAssignableFrom(eventClass)) continue;
+            for (Consumer<PlayerInteractEvent> c : entry.getValue()) {
+                try {
+                    c.accept(event);
+                } catch (Exception e) {
+                    LoggerBase.logError(null, "PLAYER_INTERACT",
+                        "Error firing PlayerInteractEvent consumer: " + e.getMessage());
+                }
+            }
+        }
+        return event.isCanceled();
+    }
+
     public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function) {
         registerOnSimpleMessage(messageId, function, EventPriority.Normal);
     }
@@ -607,7 +642,7 @@ public class EventRegistrar {
     }
 
     public void onServerTick(MinecraftServer s) {
-        GeneralConfig config = GeneralConfig.getInstance();
+        GeneralConfig config = GENERAL_CONFIG;
         long totalTicks = config.getTotalTickCount();
         ServerTickEvent event = new ServerTickEvent(totalTicks);
         
@@ -667,7 +702,7 @@ public class EventRegistrar {
 
     public void onWakeUpAllPlayers(ServerLevel level)
     {
-        GeneralConfig config = GeneralConfig.getInstance();
+        GeneralConfig config = GENERAL_CONFIG;
         int totalSleeps = config.getTotalSleeps(level)+1;
         WakeUpAllPlayersEvent event = new WakeUpAllPlayersEvent(level, totalSleeps);
         GeneralConfig.fireEvent(WakeUpAllPlayersEvent.class, event);
@@ -690,7 +725,7 @@ public class EventRegistrar {
     }
 
     public void onClientInput(ClientInputMessage message) {
-        GeneralConfig config = GeneralConfig.getInstance();
+        GeneralConfig config = GENERAL_CONFIG;
         Player p = config.getServer().getPlayerList().getPlayer(message.playerId);
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));

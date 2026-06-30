@@ -26,7 +26,7 @@ public class CommonClass {
         WaypointStick.init(reg);
         // Debug-only hooks live in CommonClassDebug. Activate individual hooks by
         // uncommenting registrations inside that class.
-        //CommonClassDebug.init(reg);
+        CommonClassDebug.init(reg);
 
         BalmEventRegister.registerEvents();
         isInitialized = true;

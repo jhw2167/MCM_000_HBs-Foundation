@@ -7,6 +7,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.PlayerHasItemEvent;
+import com.holybuckets.foundation.event.custom.PlayerInteractEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
@@ -44,8 +45,8 @@ public class CommonClassDebug {
 
     public static void init(EventRegistrar reg)
     {
-        testMessager(reg);
-        test(reg);
+        //testMessager(reg);
+        //test(reg);
     }
 
     public static void testMessager(EventRegistrar reg) {
@@ -105,6 +106,50 @@ public class CommonClassDebug {
         //reg.registerOnAnvilUpdate(swordUpdate, CommonClassDebug::onAnvilUpdateSword);
         //reg.registerOnAnvilUpdate(ironToolCobble, CommonClassDebug::onAnvilUpdateIronToolCobble);
         //reg.registerOnAnvilUpdate(empowerEnchant, CommonClassDebug::onAnvilUpdateRepair);
+
+        // PlayerInteractEvent — uncomment any single line to verify one variant in isolation,
+        // or the .class line to verify the catch-all subscription path.
+        reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
+        reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
+        reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
+        reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+    }
+
+    private static void onRightClickInteraction(PlayerInteractEvent.RightClickInteraction event) {
+        LoggerBase.logInfo(null, "001300",
+            "RightClickInteraction: hand=" + event.getHand()
+            + " item=" + event.getItemStack().getItem().getDescriptionId()
+            + " pos=" + event.getPos()
+            + " face=" + event.getFace());
+    }
+
+    private static void onLeftClickInteraction(PlayerInteractEvent.LeftClickInteraction event) {
+        LoggerBase.logInfo(null, "001301",
+            "LeftClickInteraction: hand=" + event.getHand()
+            + " item=" + event.getItemStack().getItem().getDescriptionId()
+            + " pos=" + event.getPos()
+            + " face=" + event.getFace());
+    }
+
+    private static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        String targetName = event.getTarget() != null
+            ? event.getTarget().getType().getDescriptionId() : "null";
+        LoggerBase.logInfo(null, "001302",
+            "EntityInteract: target=" + targetName
+            + " localPos=" + event.getLocalPos()
+            + " hand=" + event.getHand()
+            + " item=" + event.getItemStack().getItem().getDescriptionId());
+    }
+
+    // Catch-all subscriber — exercises the PlayerInteractEvent.class registration path
+    // that fires on every variant regardless of subclass.
+    private static void onAnyPlayerInteract(PlayerInteractEvent event) {
+        String playerName = event.getPlayer() != null
+            ? event.getPlayer().getName().getString() : "null";
+        LoggerBase.logInfo(null, "001303",
+            "PlayerInteractEvent (any): type=" + event.getClass().getSimpleName()
+            + " player=" + playerName
+            + " canceled=" + event.isCanceled());
     }
 
     private static AnvilUpdateEvent swordUpdate = new AnvilUpdateEvent(Items.DIAMOND_SWORD, Items.COBBLESTONE);

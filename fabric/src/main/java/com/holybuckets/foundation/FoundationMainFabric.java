@@ -1,6 +1,7 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.capability.FoundationAttachments;
+import com.holybuckets.foundation.event.PlayerInteractEventFabric;
 import com.holybuckets.foundation.util.ModContext;
 import net.blay09.mods.balm.api.Balm;
 import net.fabricmc.api.ModInitializer;
@@ -21,6 +22,7 @@ public class FoundationMainFabric implements ModInitializer {
 
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         FoundationAttachments.init();
+        PlayerInteractEventFabric.register();
     }
 
 

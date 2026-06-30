@@ -87,6 +87,15 @@ public class HBUtil {
         return new ResourceLocation(namespace, path);
     }
 
+    public static ResourceLocation LOC(String qualified) {
+        if(!qualified.contains(":")) {
+            return LOC("minecraft", qualified);
+        }
+        String[] parts = qualified.split(":");
+        return LOC(parts[0], parts[1]);
+    }
+
+
 
     public static class PlayerUtil {
 
@@ -186,6 +195,10 @@ public class HBUtil {
                 return null;
             }
             return item.toString().replace("Item{", "").replace("}", "");
+        }
+
+        public static Item toItem(ResourceLocation loc) {
+            return itemNameToItem(loc.getNamespace(), loc.getPath());
         }
 
         public static Item itemNameToItem(String qualifiedItemName) {
@@ -1546,6 +1559,13 @@ public class HBUtil {
                 .result()
                 .orElse(new CompoundTag());
         }
+
+        //String to json, jsonToString, convert string to json
+        public static JsonElement jsonToString(String jsonString) {
+            return JsonParser.parseString(jsonString);
+        }
+
+
     }
 
     public static class FileIO {

@@ -5,6 +5,8 @@ package com.holybuckets.foundation.command;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.biome.BiomeAPI;
 import com.holybuckets.foundation.biome.BiomeInfo;
+import com.holybuckets.foundation.core.MovingWaypoint;
+import com.holybuckets.foundation.core.MovingWaypoint.WaypointInfo;
 import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.structure.StructureAPI;
@@ -28,6 +30,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +63,9 @@ public class CommandList {
         CommandRegistry.register(AllBiomes::list);
         CommandRegistry.register(GetBiomesNearPoint::withCoordinates);
         CommandRegistry.register(GetBiomesNearPoint::withCoordinatesAndRadius);
+
+        CommandRegistry.register(ListWaypoints::noArgs);
+        CommandRegistry.register(DeleteWaypoint::byId);
     }
 
     //**** SUGGETTIONS ****//
@@ -350,6 +356,18 @@ public class CommandList {
             builder
         );
 
+    private static final SuggestionProvider<CommandSourceStack> WAYPOINT_ID_SUGGESTIONS =
+        (context, builder) -> {
+            if (!(context.getSource().getEntity() instanceof ServerPlayer sp)) {
+                return SharedSuggestionProvider.suggest(new String[0], builder);
+            }
+            return SharedSuggestionProvider.suggest(
+                MovingWaypoint.getAllWaypoints(sp).stream()
+                    .map(w -> Integer.toString(w.waypointId)),
+                builder
+            );
+        };
+
 
     //1. Nearest Biomes
     private static class NearestBiomes {
@@ -605,6 +623,88 @@ public class CommandList {
     }
 
 
+
+
+    //**** WAYPOINTS ****//
+
+    //1. List Waypoints
+    private static class ListWaypoints {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> noArgs() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("listWaypoints")
+                    .executes(context -> execute(context.getSource()))
+                );
+        }
+
+        private static int execute(CommandSourceStack source) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            Collection<WaypointInfo> waypoints = MovingWaypoint.getAllWaypoints(player);
+            if (waypoints.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("You have no waypoints."), false);
+                return 1;
+            }
+
+            source.sendSuccess(() -> Component.literal("You have " + waypoints.size() + " waypoint(s):"), false);
+            for (WaypointInfo w : waypoints) {
+                String name = (w.nameTag != null && !w.nameTag.isEmpty()) ? " \"" + w.nameTag + "\"" : "";
+                String perm = w.isPermanent ? " [permanent]" : "";
+                String message = "  id=" + w.waypointId
+                    + " color=" + w.colorId
+                    + " @ " + posString(w.targetPos)
+                    + name + perm;
+                source.sendSuccess(() -> Component.literal(message), false);
+            }
+            return 1;
+        }
+    }
+
+    //2. Delete Waypoint By Id
+    private static class DeleteWaypoint {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> byId() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("deleteWaypoint")
+                    .then(Commands.argument("waypointId", IntegerArgumentType.integer(0))
+                        .suggests(WAYPOINT_ID_SUGGESTIONS)
+                        .executes(context -> {
+                            int id = IntegerArgumentType.getInteger(context, "waypointId");
+                            return execute(context.getSource(), id);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int waypointId) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            WaypointInfo match = null;
+            for (WaypointInfo w : MovingWaypoint.getAllWaypoints(player)) {
+                if (w.waypointId == waypointId) { match = w; break; }
+            }
+
+            if (match == null) {
+                source.sendFailure(Component.literal("No waypoint found with id " + waypointId));
+                return 0;
+            }
+
+            MovingWaypoint.removeWaypointById(player, waypointId);
+            final WaypointInfo removed = match;
+            source.sendSuccess(() -> Component.literal(
+                "Removed waypoint id=" + removed.waypointId
+                + " color=" + removed.colorId
+                + " @ " + posString(removed.targetPos)
+            ), false);
+            return 1;
+        }
+    }
 
 
     //**** STATIC UTILITY ****//

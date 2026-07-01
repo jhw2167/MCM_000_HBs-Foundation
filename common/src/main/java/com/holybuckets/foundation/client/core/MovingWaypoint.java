@@ -392,6 +392,10 @@ public class MovingWaypoint {
                 wp.nearTicks = 0;
                 continue;
             }
+            if (wp.isPermanent) {
+                wp.nearTicks = 0;
+                continue;
+            }
             Vec3 wpPos = Vec3.atCenterOf(wp.getTargetPos());
             if (horizontalDistanceSq(playerPos, wpPos) <= nearDistSq) {
                 wp.nearTicks += TICK_CADENCE;

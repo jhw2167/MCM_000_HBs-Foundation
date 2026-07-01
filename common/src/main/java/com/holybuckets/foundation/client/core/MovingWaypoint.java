@@ -105,7 +105,7 @@ public class MovingWaypoint {
     private static BufferBuilder bufferBuilder = null;
     private static final int MAX_BEACON_VERTICES = 256 * 1024;
     private static final int MAX_CONCURRENT_BEACONS = 8;
-    private static final int MAX_RANGE = 256;
+    private static final int MAX_RANGE = 512;
     // Beam (core) radius — kept constant in world units, slightly larger than vanilla beacons.
     private static final float BEAM_RADIUS = 0.35f;
     // Glow (outer halo) radius — base in world units; scaled by camera distance / GLOW_SCALE_REF
@@ -439,17 +439,14 @@ public class MovingWaypoint {
     private static void renderWaypointFlare(RenderLevelEvent event) {
         if (activeWaypoints.isEmpty()) return;
 
-        if (bufferBuilder == null) {
-            bufferBuilder = new BufferBuilder(MAX_BEACON_VERTICES);
-        }
-
-        PoseStack poseStack = event.getPoseStack();
+        PoseStack poseStack = new PoseStack();
         Camera camera = event.getCamera();
         Vec3 cameraPos = camera.getPosition();
         long gameTime = Minecraft.getInstance().level.getGameTime();
 
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance()
             .renderBuffers().bufferSource();
+
 
         // Push fog far out so beams remain visible past the world's fog cutoff.
         // Restored in the finally block below.

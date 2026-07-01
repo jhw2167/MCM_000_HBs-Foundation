@@ -35,6 +35,9 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
+import static com.holybuckets.foundation.core.MovingWaypoint.MAX_COLORS;
+import static com.holybuckets.foundation.core.MovingWaypoint.MSG_ID_MOVING_WAYPOINT;
+
 public class MovingWaypoint {
 
     public static class Waypoint {
@@ -56,13 +59,13 @@ public class MovingWaypoint {
         }
 
         public Waypoint(String levelId, BlockPos targetPos, int colorId) {
-            this(levelId, targetPos, colorId, colorId, false, null, null);
+            this(levelId, targetPos, colorId % MAX_COLORS, colorId, false, null, null);
         }
 
         public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
                         boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
             this.levelId = levelId;
-            this.colorId = colorId;
+            this.colorId = colorId % MAX_COLORS;
             this.targetPos = targetPos;
             this.nearTicks = 0;
             this.waypointId = waypointId;
@@ -255,7 +258,7 @@ public class MovingWaypoint {
         double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
         for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
         {
-            int colorId = entry.key();
+            int wpId = entry.key();
             Waypoint originalWp = entry.value();
             originalWp.setActive(CURRENT_LEVEL_ID);
 
@@ -289,13 +292,12 @@ public class MovingWaypoint {
                 );
             }
 
-            activeWaypoints.put(colorId, new Waypoint(CURRENT_LEVEL_ID, waypointPos, colorId));
+            activeWaypoints.put(wpId, new Waypoint(CURRENT_LEVEL_ID, waypointPos, originalWp.colorId));
         }
     }
 
     //** EVENTS
 
-    public static final String MSG_ID_MOVING_WAYPOINT = "moving_waypoint";
     public static void registerEvents(ClientEventRegistrar registrar ) {
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
         registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
@@ -322,21 +324,21 @@ public class MovingWaypoint {
         if (obj.has("colorId"))
             colorId = obj.get("colorId").getAsInt();
 
+        int waypointId = colorId;
+        if (obj.has("waypointId"))
+            waypointId = obj.get("waypointId").getAsInt();
+
         if (!obj.has("levelId") || !obj.has("targetPos")) {
             // Remove waypoint
-            Waypoint originalWp = originalWaypoints.get(colorId);
+            Waypoint originalWp = originalWaypoints.get(waypointId);
             if (originalWp != null) {
                 originalWp.deactivate();
-                originalWaypoints.remove(colorId);
+                originalWaypoints.remove(waypointId);
             }
-            activeWaypoints.remove(colorId);
+            activeWaypoints.remove(waypointId);
             return;
         }
 
-        // Read the new optional fields. Any missing key falls back to the simple-waypoint
-        // default so older servers (and the existing simple sendWaypointToClient path)
-        // continue to produce a valid Waypoint with no extended state.
-        int waypointId = obj.has("waypointId") ? obj.get("waypointId").getAsInt() : colorId;
         boolean isPermanent = obj.has("isPermanent") && obj.get("isPermanent").getAsBoolean();
         UUID linkedEntityUuid = null;
         if (obj.has("linkedEntityUuid")) {
@@ -360,7 +362,7 @@ public class MovingWaypoint {
             nameTag
         );
 
-        originalWaypoints.put(colorId, w);
+        originalWaypoints.put(waypointId, w);
         
         // Update active waypoints if player is available
         Player player = Minecraft.getInstance().player;
@@ -409,14 +411,14 @@ public class MovingWaypoint {
         }
 
         if (toRemove != null) {
-            for (int colorId : toRemove) {
-                Waypoint removed = originalWaypoints.get(colorId);
+            for (int waypointId : toRemove) {
+                Waypoint removed = originalWaypoints.get(waypointId);
                 if (removed != null) {
                     removed.deactivate();
-                    originalWaypoints.remove(colorId);
+                    originalWaypoints.remove(waypointId);
                     Waypoint.remove(removed.getTargetPos());
                 }
-                activeWaypoints.remove(colorId);
+                activeWaypoints.remove(waypointId);
             }
         }
     }

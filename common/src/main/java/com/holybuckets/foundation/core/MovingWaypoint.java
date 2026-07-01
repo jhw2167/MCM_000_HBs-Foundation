@@ -56,7 +56,7 @@ public class MovingWaypoint {
                         boolean isPermanent, UUID linkedEntityUuid, String nameTag) {
             this.levelId = levelId;
             this.targetPos = targetPos;
-            this.colorId = colorId;
+            this.colorId = colorId % MAX_COLORS;
             this.waypointId = waypointId;
             this.isPermanent = isPermanent;
             this.linkedEntityUuid = linkedEntityUuid;
@@ -72,8 +72,6 @@ public class MovingWaypoint {
     }
 
     public static final String MSG_ID_MOVING_WAYPOINT = "moving_waypoint";
-    // Wool-color range. Public so callers (e.g. WaypointStick) can seed their own
-    // id counters relative to it.
     public static final int MAX_COLORS = 16;
 
     /**
@@ -139,24 +137,24 @@ public class MovingWaypoint {
 
         IntObjectMap<Waypoint> waypoints = playerWaypoints.computeIfAbsent(playerId, k -> new IntObjectHashMap<>());
 
-        waypoints.put(colorId,
+        waypoints.put(waypointId,
             new Waypoint(levelId, target, colorId, waypointId, isPermanent, linkedEntity, nameTag));
 
         sendWaypointToClient(playerId, levelId, target, colorId, waypointId, isPermanent,
             (linkedEntity==null) ? null : linkedEntity.getUUID(), nameTag);
     }
 
-    public static void removeWaypoint(ServerPlayer player, int colorId) {
-        removeWaypoint(PlayerUtil.getId(player), colorId);
+    public static void removeWaypoint(ServerPlayer player, int waypointId) {
+        removeWaypoint(PlayerUtil.getId(player), waypointId);
     }
 
 
-    public static void removeWaypoint(String playerId, int colorId) {
+    public static void removeWaypoint(String playerId, int waypointId) {
         if (playerId == null) return;
         IntObjectMap<Waypoint> waypoints = playerWaypoints.get(playerId);
         if (waypoints != null) {
-            waypoints.remove(colorId);
-            sendRemoveWaypointToClient(playerId, colorId);
+            waypoints.remove(waypointId);
+            sendRemoveWaypointToClient(playerId, waypointId);
         }
     }
 
@@ -279,12 +277,12 @@ public class MovingWaypoint {
         SimpleStringMessage.createAndFire(p, MSG_ID_MOVING_WAYPOINT, json.toString());
     }
 
-    private static void sendRemoveWaypointToClient(String playerId, int colorId) {
+    private static void sendRemoveWaypointToClient(String playerId, int waypointId) {
         Player p = PlayerUtil.getPlayer(playerId, PlayerUtil.PlayerNameSpace.SERVER);
         if (p == null) return;
 
         JsonObject json = new JsonObject();
-        json.addProperty("colorId", colorId);
+        json.addProperty("waypointId", waypointId);
 
         SimpleStringMessage.createAndFire(p, MSG_ID_MOVING_WAYPOINT, json.toString());
     }

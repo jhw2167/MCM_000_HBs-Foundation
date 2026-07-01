@@ -82,6 +82,7 @@ public class FoundationInitializers {
         //Core Operations
         EssenceCauldronManager.init(reg);
         CustomRecipes.init(EventRegistrar.getInstance());
+        com.holybuckets.foundation.core.MovingWaypoint.init(reg);
     }
 
     private static void initCommands()

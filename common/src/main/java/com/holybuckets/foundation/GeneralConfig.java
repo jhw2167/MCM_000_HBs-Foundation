@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
 import com.holybuckets.foundation.datastore.PlayerSaveData;
@@ -222,7 +223,8 @@ public class GeneralConfig {
             }
 
         }
-
+        
+        WoolColorHelper.initWoolColors();
         this.dataStore.onBeforeServerStarted(event);
         this.playerSaveData = dataStore.getPlayerSaveData();
     }

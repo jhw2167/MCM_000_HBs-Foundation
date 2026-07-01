@@ -13,7 +13,7 @@ import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
-import net.minecraft.client.DeltaTracker;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
@@ -72,6 +72,7 @@ public class ClientEventRegistrar {
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Multimap<RenderLevelEvent.RenderStage, Consumer<RenderLevelEvent>> ON_RENDER_LEVEL = HashMultimap.create();
+    final Set<Consumer<DetermineActiveWaypointEvent>> ON_DETERMINE_ACTIVE_WAYPOINT = new ConcurrentSet<>();
 
     // Static RenderLevelEvent instance for performance
     private static final RenderLevelEvent RENDER_LEVEL_EVENT = new RenderLevelEvent();
@@ -254,6 +255,15 @@ public class ClientEventRegistrar {
         PRIORITIES.put(function.hashCode(), priority);
     }
 
+    public void registerOnDetermineActiveWaypoint(Consumer<DetermineActiveWaypointEvent> function) {
+        registerOnDetermineActiveWaypoint(function, EventPriority.Normal);
+    }
+
+    public void registerOnDetermineActiveWaypoint(Consumer<DetermineActiveWaypointEvent> function, EventPriority priority) {
+        ON_DETERMINE_ACTIVE_WAYPOINT.add(function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
 
     //** TICK EVENTS
     private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
@@ -286,7 +296,6 @@ public class ClientEventRegistrar {
 
     /**
      * Custom Events
-     * onTick, handleTick, doTick
      **/
     public void onClientTick(Minecraft client) {
         if(client.player == null || client.level == null) return; //not in game
@@ -322,31 +331,37 @@ public class ClientEventRegistrar {
     public void onSimpleMessage(Player player, SimpleStringMessage message, String messageId) {
         SimpleMessageEvent event = new SimpleMessageEvent(player, message, messageId);
         Collection<Consumer<SimpleMessageEvent>> consumers = ON_SIMPLE_MESSAGE.get(messageId);
-        
+
         // Sort consumers by priority
         List<Consumer<SimpleMessageEvent>> sortedConsumers = consumers.stream()
             .sorted((a, b) -> PRIORITIES.get(b.hashCode()).compareTo(PRIORITIES.get(a.hashCode())))
             .toList();
-            
+
         // Execute in priority order
         for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
             tryEvent(consumer, event);
         }
     }
 
-    public void onRenderLevel(RenderLevelEvent.RenderStage stage, DeltaTracker deltaTracker,
-                              boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
-                              LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix)
+    public void onDetermineActiveWaypoint(DetermineActiveWaypointEvent event) {
+        if (ON_DETERMINE_ACTIVE_WAYPOINT.isEmpty()) return;
+        for (Consumer<DetermineActiveWaypointEvent> consumer : ON_DETERMINE_ACTIVE_WAYPOINT) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, PoseStack poseStack,
+                              float partialTick, long finishNanoTime, boolean renderBlockOutline,
+                              Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projectionMatrix)
     {
         // Skip this stage if it has previously thrown an exception
         if (renderLevelErrorStages.contains(stage)) return;
         Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
         if(consumers.isEmpty()) return;
-
+        
         // Update the static event instance with new values
-        RENDER_LEVEL_EVENT.updateValues(stage, deltaTracker,
-                                       renderBlockOutline, camera, gameRenderer,
-                                       lightTexture, modelViewMatrix, projectionMatrix);
+        RENDER_LEVEL_EVENT.updateValues(stage, poseStack, partialTick, finishNanoTime, 
+                                       renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
             try {

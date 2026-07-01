@@ -11,7 +11,8 @@
         "ItemEntityMixin"
     ],
     "client": [
-        "LevelRendererMixin"
+        "LevelRendererMixin",
+        "ClientLevelAccessor"
     ],
     "server": [
         "ServerLevelMixin"

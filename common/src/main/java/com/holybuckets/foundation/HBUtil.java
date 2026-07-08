@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.exception.NoDefaultConfig;
+import com.holybuckets.foundation.mixin.ClientLevelAccessor;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.authlib.GameProfile;
@@ -20,6 +21,7 @@ import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
@@ -724,6 +726,7 @@ public class HBUtil {
             return id;
         }
 
+
         public static String toLevelIdAgnostic(LevelAccessor level) {
             String id = toLevelId(level);
             return id.replace("CLIENT:", "").replace("SERVER:", "");
@@ -1253,6 +1256,23 @@ public class HBUtil {
             );
         }
 
+        /**
+         * Takes clientLevel or ServerLevel object, returns entity with matching UUID or null
+         * @param level
+         * @param uuid
+         * @return
+         */
+        public static Entity getEntity(Level level, UUID uuid) {
+            if (level == null || uuid == null) return null;
+            if(level instanceof ServerLevel server) {
+                server.getEntity(uuid);
+            }
+            else if( level instanceof ClientLevel client) {
+                ((ClientLevelAccessor) client).getEntityGetter().get(uuid);
+            }
+
+        return null;
+        }
 
     }
 

@@ -690,13 +690,13 @@ public class CommandList {
                 if (w.waypointId == waypointId) { match = w; break; }
             }
 
-            if (match == null) {
-                source.sendFailure(Component.literal("No waypoint found with id " + waypointId));
-                return 0;
-            }
-
             MovingWaypoint.removeWaypointById(player, waypointId);
             final WaypointInfo removed = match;
+
+            //write a case if match is null
+            source.sendSuccess(() -> Component.literal(
+                "Did not find Waypoint on server, but sent request to remove waypoint id=" + waypointId), false);
+
             source.sendSuccess(() -> Component.literal(
                 "Removed waypoint id=" + removed.waypointId
                 + " color=" + removed.colorId

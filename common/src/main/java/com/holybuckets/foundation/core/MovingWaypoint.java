@@ -330,13 +330,6 @@ public class MovingWaypoint {
     }
 
     //** PERSISTENCE — IManagedPlayer
-
-    /**
-     * Per-player waypoint persistence. Acts as a thin adapter over the static
-     * {@link #playerWaypoints} map: on serialize it snapshots the player's current
-     * waypoints; on deserialize it pushes the saved set back into the map and replays
-     * each one to the client so the player sees them again after rejoin / restart.
-     */
     public static class PlayerWaypointData implements IManagedPlayer {
 
         private String id;
@@ -346,9 +339,9 @@ public class MovingWaypoint {
             setPlayer(player);
         }
 
+        //STOPPING DEFAULT WAYPOINT SAVING
         public static void init() {
-            ManagedPlayer.registerManagedPlayerData(PlayerWaypointData.class,
-                () -> new PlayerWaypointData(null));
+            //ManagedPlayer.registerManagedPlayerData(PlayerWaypointData.class, () -> new PlayerWaypointData(null));
         }
 
         @Override public boolean isServerOnly() { return true; }

@@ -3,7 +3,6 @@ package com.holybuckets.foundation.client.core;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
@@ -252,7 +251,7 @@ public class MovingWaypoint {
 
         LevelEntityGetter<Entity> entityGetter = null;
         if (player.level() instanceof ClientLevel cl) {
-            entityGetter = ((ClientLevelAccessor)(Object) cl).hbs$getEntities();
+            entityGetter = ((ClientLevelAccessor)(Object) cl).getEntityGetter();
         }
 
         double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;

@@ -16,5 +16,5 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface ClientLevelAccessor {
 
     @Invoker("getEntities")
-    LevelEntityGetter<Entity> hbs$getEntities();
+    LevelEntityGetter<Entity> getEntityGetter();
 }

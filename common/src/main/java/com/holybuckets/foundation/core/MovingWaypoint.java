@@ -99,8 +99,7 @@ public class MovingWaypoint {
         return new WaypointInfo(w.colorId, w.waypointId, w.targetPos, w.isPermanent, w.nameTag);
     }
 
-    // Keyed by PlayerUtil.getId(player) so the entry survives reconnects, dim
-    // changes, and respawns (which all replace the ServerPlayer instance).
+
     private static final Map<String, IntObjectMap<Waypoint>> playerWaypoints = new HashMap<>();
 
     public static void setWaypoint(ServerPlayer player, BlockPos target) {
@@ -112,8 +111,6 @@ public class MovingWaypoint {
     }
 
     public static void setWaypoint(ServerPlayer player, BlockPos target, int colorId) {
-        // Backwards-compatible path: simple waypoint, waypointId == colorId, not permanent,
-        // no linked entity, no name tag.
         setWaypoint(player, target, colorId, colorId, false, null, null);
     }
 
@@ -289,19 +286,14 @@ public class MovingWaypoint {
 
     //** LIFECYCLE & ENTITY RESYNC
 
-    /**
-     * Wire server-side hooks: periodic entity-resync tick and the {@link PlayerWaypointData}
-     * managed-player registration for save/load. Call once from FoundationInitializers.
-     */
     public static void init(EventRegistrar reg) {
-        // Re-sync entity-linked waypoints once per second. Cheap enough at this cadence and
-        // catches motion from any player loading the entity, not just the firing player.
         reg.registerOnServerTick(TickType.ON_20_TICKS, MovingWaypoint::onEntityResyncTick);
         PlayerWaypointData.init();
     }
 
-    private static void onEntityResyncTick(ServerTickEvent event) {
-        if (playerWaypoints.isEmpty()) return;
+    private static void onEntityResyncTick(ServerTickEvent event)
+    {
+        if (playerWaypoints.isEmpty() || ManagedPlayer.PLAYERS.isEmpty()) return;
 
         for (Map.Entry<String, IntObjectMap<Waypoint>> playerEntry : playerWaypoints.entrySet()) {
             String playerId = playerEntry.getKey();

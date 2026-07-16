@@ -109,10 +109,8 @@ public class MovingWaypoint {
     private static final float BEAM_RADIUS = 0.35f;
     // Glow (outer halo) radius — base in world units; scaled by camera distance / GLOW_SCALE_REF
     // so the glow stays angularly readable from far away.
-    private static final float GLOW_RADIUS_BASE = 0.5f;
-    private static final float GLOW_SCALE_REF = 32.0f;
-    // Auto-delete: when the player spends DELETE_NEAR_TICKS_THRESHOLD ticks within
-    // DELETE_NEAR_HORIZ_DIST blocks (xz-only) of the target, the waypoint clears itself.
+    private static final float GLOW_RADIUS_BASE = 0.45f;
+    private static final float GLOW_SCALE_REF = 24.0f;
     private static final int DELETE_NEAR_HORIZ_DIST = 4;
     private static final int DELETE_NEAR_TICKS_THRESHOLD = 60; // ~3 sec at 20 tps
     // Query cadence for the moving waypoint position recompute (ON_20_TICKS = 1 sec).

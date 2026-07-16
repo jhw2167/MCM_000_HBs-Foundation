@@ -304,16 +304,12 @@ public class MovingWaypoint {
                 Waypoint w = e.value();
                 if (w.linkedEntityUuid == null) continue;
 
-                // Look in the player's current dimension first; if the entity lives elsewhere
-                // ServerLevel#getEntity returns null and we leave the waypoint alone.
                 Entity ent = sp.serverLevel().getEntity(w.linkedEntityUuid);
                 if (ent == null || ent.isRemoved()) continue;
 
                 BlockPos newPos = ent.blockPosition();
                 if (!newPos.equals(w.targetPos)) {
                     w.targetPos = newPos;
-                    // Re-send so the client gets the fresh anchor and can update its own
-                    // entity position prediction. This is the "remove and re-set" pattern.
                     sendWaypointToClient(playerId, w.levelId, w.targetPos, w.colorId,
                         w.waypointId, w.isPermanent, w.linkedEntityUuid, w.nameTag);
                 }

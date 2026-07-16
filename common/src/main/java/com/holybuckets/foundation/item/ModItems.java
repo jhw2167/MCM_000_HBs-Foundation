@@ -27,16 +27,16 @@ public class ModItems {
     }
 
     public static void initialize(BalmItems items) {
-        //items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
 
-        // Creative tab for the foundation mod — use the waypoint stick as the icon.
-        creativeModeTab = items.registerCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemStack(waypointStick));
-
-        items.registerItem(() -> waypointStick = new WaypointStick(), id("waypoint_stick"));
+        items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
 
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
+            ModBlocks.empty,
+            ModBlocks.stoneBrickBlockEntity,
+            ModItems.enchantedEssence,
             ModItems.waypointStick
         });
+
     }
 
     private static ResourceLocation id(String name) {

@@ -26,6 +26,7 @@ import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -350,18 +351,19 @@ public class ClientEventRegistrar {
         }
     }
 
-    public void onRenderLevel(RenderLevelEvent.RenderStage stage, PoseStack poseStack,
-                              float partialTick, long finishNanoTime, boolean renderBlockOutline,
-                              Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projectionMatrix)
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, DeltaTracker deltaTracker,
+                              boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
+                              LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix)
     {
         // Skip this stage if it has previously thrown an exception
         if (renderLevelErrorStages.contains(stage)) return;
         Collection<Consumer<RenderLevelEvent>> consumers = ON_RENDER_LEVEL.get(stage);
         if(consumers.isEmpty()) return;
-        
+
         // Update the static event instance with new values
-        RENDER_LEVEL_EVENT.updateValues(stage, poseStack, partialTick, finishNanoTime, 
-                                       renderBlockOutline, camera, gameRenderer, lightTexture, projectionMatrix);
+        RENDER_LEVEL_EVENT.updateValues(stage, deltaTracker,
+            renderBlockOutline, camera, gameRenderer,
+            lightTexture, modelViewMatrix, projectionMatrix);
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
             try {

@@ -152,6 +152,7 @@ public class CommonClassDebug {
             + " canceled=" + event.isCanceled());
     }
 
+    /*
     private static AnvilUpdateEvent swordUpdate = new AnvilUpdateEvent(Items.DIAMOND_SWORD, Items.COBBLESTONE);
     private static void onAnvilUpdateSword(AnvilUpdateEvent event) {
         ItemStack sword = event.getLeftItem();
@@ -167,6 +168,7 @@ public class CommonClassDebug {
         LoggerBase.logInfo(null, "ANVIL_UPDATE",
             String.format("Upgraded Sharpness from %d to %d", currentSharpness, newSharpness));
     }
+
 
     private static Set<Item> IRON_TOOLS = Set.of(Items.IRON_SWORD, Items.IRON_SHOVEL, Items.IRON_PICKAXE, Items.IRON_AXE, Items.IRON_HOE);
     private static AnvilUpdateEvent.MaterialDriven ironToolCobble = new AnvilUpdateEvent.MaterialDriven(IRON_TOOLS, Items.COBBLESTONE);
@@ -287,13 +289,7 @@ public class CommonClassDebug {
         //HBUtil.TripleInt[] sphere = HBUtil.ShapeUtil.getSphere(8, 32).toArray();
         List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();
 
-        /*
-        for(int i = 0; i < sphere.length; i++)
-        {
-            BlockPos pos = p.offset(sphere[i].x, sphere[i].y+120, sphere[i].z);
-            blockStateList.add(Pair.of(GOLDSTATE, pos));
-        }
-        */
+
 
         LoggerBase.logInfo(null, "999000", "Added blocks to chunk: " + p);
         ManagedChunk.updateChunkBlockStates(level, blockStateList);
@@ -331,5 +327,6 @@ public class CommonClassDebug {
         if( event.getLevel().isClientSide() ) return;
         Constants.LOG.info("Level loaded: " + ( (ServerLevel) event.getLevel() ).dimensionTypeId() );
     }
-
+    */
 }
+

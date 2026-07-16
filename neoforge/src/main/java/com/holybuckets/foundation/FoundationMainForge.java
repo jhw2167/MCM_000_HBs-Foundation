@@ -24,7 +24,6 @@ public class FoundationMainForge {
                 info.getVersion().toString()
             )
         );
-
         final var context = new NeoForgeLoadContext(modEventBus);
         FoundationAttachments.ATTACHMENT_TYPES.register(modEventBus);
         Balm.initialize(Constants.MOD_ID, context, CommonClass::init);

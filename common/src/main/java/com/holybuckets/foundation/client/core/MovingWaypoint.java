@@ -5,10 +5,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.model.EntityLike;
+import com.holybuckets.foundation.model.EntityLikeResolver;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.core.WoolColorHelper;
-import com.holybuckets.foundation.mixin.ClientLevelAccessor;
 import com.holybuckets.foundation.event.custom.ClientLevelTickEvent;
 import com.holybuckets.foundation.event.custom.DetermineActiveWaypointEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
@@ -22,16 +23,14 @@ import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.holybuckets.foundation.core.MovingWaypoint.MAX_COLORS;
@@ -247,11 +246,6 @@ public class MovingWaypoint {
         activeWaypoints.clear();
 
 
-        LevelEntityGetter<Entity> entityGetter = null;
-        if (player.level() instanceof ClientLevel cl) {
-            entityGetter = ((ClientLevelAccessor)(Object) cl).getEntityGetter();
-        }
-
         double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
         for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
         {
@@ -263,9 +257,11 @@ public class MovingWaypoint {
 
             if(!originalWp.isActive) continue;
 
-            if (originalWp.linkedEntityUuid != null && entityGetter != null) {
-                Entity ent = entityGetter.get(originalWp.linkedEntityUuid);
-                originalWp.entityTargetPos = (ent != null && !ent.isRemoved()) ? ent.blockPosition() : null;
+            if (originalWp.linkedEntityUuid != null) {
+                Optional<EntityLike> resolved =
+                    EntityLikeResolver.resolveEntity(originalWp.linkedEntityUuid, player.level());
+                originalWp.entityTargetPos =
+                    (resolved.isPresent() && resolved.get().isValid()) ? resolved.get().blockPosition() : null;
             } else {
                 originalWp.entityTargetPos = null;
             }
@@ -284,7 +280,7 @@ public class MovingWaypoint {
                 double dz = targetPos.z - playerPos.z;
                 waypointPos = BlockPos.containing(
                     playerPos.x + dx * scale,
-                    targetPos.y,
+                    player.level().getMinBuildHeight()+1,
                     playerPos.z + dz * scale
                 );
             }
@@ -296,11 +292,10 @@ public class MovingWaypoint {
     //** EVENTS
 
     public static void registerEvents(ClientEventRegistrar registrar ) {
+        EntityLikeResolver.register(ClientEntityLikeResolver.INSTANCE);
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
         registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
         registrar.registerOnClientLevelTick(TickType.ON_20_TICKS, MovingWaypoint::onClient20Tick);
-        // Eagerly seed CURRENT_LEVEL_ID at login so waypoint messages that arrive before
-        // the first 120-tick fires aren't dropped as inactive.
         registrar.registerOnConnectedToServer(MovingWaypoint::onConnectedToServer);
     }
 

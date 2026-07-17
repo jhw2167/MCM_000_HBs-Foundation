@@ -17,7 +17,7 @@ public class ModBlockEntities {
     public static DeferredObject<BlockEntityType<SimpleBlockEntity>> simpleBlockEntity;
 
     public static void initialize(BalmBlockEntities blockEntities) {
-        simpleBlockEntity = blockEntities.registerBlockEntity(id("simple_block_entity"), SimpleBlockEntity::new, () -> new Block[]{ModBlocks.stoneBrickBlockEntity} );
+        simpleBlockEntity = blockEntities.registerBlockEntity(id("simple_block_entity"), SimpleBlockEntity::new, () -> new Block[]{ModBlocks.stoneBrickBlockEntity.get()} );
     }
 
     private static ResourceLocation id(String name) {

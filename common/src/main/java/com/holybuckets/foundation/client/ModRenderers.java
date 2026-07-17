@@ -18,7 +18,7 @@ public class ModRenderers {
         //renderers.registerBlockColorHandler((state, view, pos, tintIndex) -> Objects.requireNonNull(((SharestoneBlock) state.getBlock()).getColor()).getTextColor(), () -> ModBlocks.scopedSharestones);
         //renderers.registerItemColorHandler((stack, tintIndex) -> Objects.requireNonNull(((SharestoneBlock) Block.byItem((stack.getItem()))).getColor()).getTextColor(), () -> ModBlocks.scopedSharestones);
 
-        renderers.setBlockRenderType(() -> ModBlocks.stoneBrickBlockEntity, RenderType.cutout());
+        renderers.setBlockRenderType(() -> ModBlocks.stoneBrickBlockEntity.get(), RenderType.cutout());
     }
 
 }

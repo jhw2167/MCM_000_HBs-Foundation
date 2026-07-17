@@ -2,7 +2,6 @@ package com.holybuckets.foundation.item;
 
 
 import com.holybuckets.foundation.Constants;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.block.ModBlocks;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.DeferredObject;
@@ -15,31 +14,44 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 
+import  com.holybuckets.foundation.HBUtil;
+
 public class ModItems {
     public static DeferredObject<CreativeModeTab> creativeModeTab;
     public static ResourceLocation FOUNDATIONS_TAB = id(Constants.MOD_ID);
 
-    public static SimpleRewardItem enchantedEssence;
-    public static WaypointStick waypointStick;
+    public static DeferredObject<Item> enchantedEssence;
+    public static DeferredObject<Item> waypointStick;
 
     public static void commonInitialize(BalmItems items)
     {
-        items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
-        HBUtil.LOC("hbs_traveler_rewards:hbs_traveler_rewards"));
+        // Register the enchanted essence item (added to the creative tab manually below).
+        enchantedEssence = items.registerItem(rl -> new SimpleRewardItem(Constants.MOD_ID, "enchanted_essence"), id("enchanted_essence"),
+         id("hbs_traveler_rewards"));
     }
 
     public static void initialize(BalmItems items) {
+        // Register the waypoint stick (added to the creative tab manually below).
+        waypointStick = items.registerItem(rl -> new WaypointStick(), id("waypoint_stick"), null);
+
+        creativeModeTab = items.registerCreativeModeTab(
+            () -> new ItemStack( ModBlocks.stoneBrickBlockEntity.get().asItem() ), FOUNDATIONS_TAB);
+        items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
+            ModItems.enchantedEssence.get(),
+            ModItems.waypointStick.get()
+        });
+
         Balm.getRuntime().creativeModeTabs(Constants.MOD_ID, ModItems::creativeTab);
     }
 
     public static void creativeTab(BalmCreativeModeTabRegistrar tabRegistrar) {
         tabRegistrar.register(Constants.MOD_ID, builder ->
         builder.title(Component.translatable("itemGroup.hbs_foundation.hbs_foundation"))
-        .icon(() -> new ItemStack(ModBlocks.stoneBrickBlockEntity.asItem()))
+        .icon(() -> new ItemStack(ModBlocks.stoneBrickBlockEntity.get().asItem()))
             .displayItems((displayParameters, output) -> {
-                output.accept(ModBlocks.stoneBrickBlockEntity.asItem());
-                output.accept(ModItems.enchantedEssence);
-                output.accept(ModItems.waypointStick);
+                output.accept(ModBlocks.stoneBrickBlockEntity.get().asItem());
+                output.accept(ModItems.enchantedEssence.get());
+                output.accept(ModItems.waypointStick.get());
             }
         ));
     }

@@ -3,6 +3,7 @@ package com.holybuckets.foundation.block;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.HBUtil;
 import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.block.BalmBlocks;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -13,15 +14,25 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class ModBlocks {
 
-    public static Block empty;
-    public static Block stoneBrickBlockEntity;
-    public static Block essenceCauldron;
+    // Held as Balm DeferredObjects so consumers resolve the real block via .get()
+    // AFTER registration, instead of reading a raw static field that is still null
+    // while the deferred registration phase is running.
+    public static DeferredObject<Block> empty;
+    public static DeferredObject<Block> stoneBrickBlockEntity;
+    public static DeferredObject<Block> essenceCauldron;
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
-        blocks.register(() -> empty = new EmptyBlock(defaultProperties()), () -> itemBlock(empty), id("empty_block"));
-        blocks.register(() -> stoneBrickBlockEntity = new SimpleBlockEntityBlock(SimpleBlockEntityBlock.stoneBrickProperties()), () -> itemBlock(stoneBrickBlockEntity), id("stone_brick_block_entity"));
-        blocks.register(() -> essenceCauldron = new EssenceCauldronBlock(), () -> itemBlock(essenceCauldron), id("essence_cauldron"));
+        ResourceLocation creativeTab = id(Constants.MOD_ID);
+
+        empty = blocks.registerBlock(rl -> new EmptyBlock(defaultProperties()), id("empty_block"));
+        blocks.registerBlockItem(rl -> itemBlock(empty.get()), id("empty_block"), creativeTab);
+
+        stoneBrickBlockEntity = blocks.registerBlock(rl -> new SimpleBlockEntityBlock(SimpleBlockEntityBlock.stoneBrickProperties()), id("stone_brick_block_entity"));
+        blocks.registerBlockItem(rl -> itemBlock(stoneBrickBlockEntity.get()), id("stone_brick_block_entity"), creativeTab);
+
+        essenceCauldron = blocks.registerBlock(rl -> new EssenceCauldronBlock(), id("essence_cauldron"));
+        blocks.registerBlockItem(rl -> itemBlock(essenceCauldron.get()), id("essence_cauldron"), creativeTab);
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {

@@ -405,7 +405,7 @@ public class EssenceCauldronManager {
             if (!(level.getBlockState(startPos).getBlock() instanceof EssenceCauldronBlock)) {
                 cauldronState = level.getBlockState(startPos);
                 level.setBlock(startPos,
-                    ModBlocks.essenceCauldron.defaultBlockState()
+                    ModBlocks.essenceCauldron.get().defaultBlockState()
                         .setValue(LayeredCauldronBlock.LEVEL, 3), 3
                 );
             }

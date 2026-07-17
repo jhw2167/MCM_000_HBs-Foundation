@@ -70,7 +70,7 @@ public class MovingWaypoint {
 
         // Convenience constructor that captures the UUID off a live Entity.
         public Waypoint(String levelId, BlockPos targetPos, int colorId, int waypointId,
-                        boolean isPermanent, Entity linkedEntity, String nameTag) {
+                        boolean isPermanent, EntityLike linkedEntity, String nameTag) {
             this(levelId, targetPos, colorId, waypointId, isPermanent,
                 linkedEntity == null ? null : linkedEntity.getUUID(), nameTag);
         }
@@ -128,7 +128,7 @@ public class MovingWaypoint {
      * @param nameTag        optional label to render alongside the waypoint, may be {@code null}
      */
     public static void setWaypoint(ServerPlayer player, BlockPos target, int colorId, int waypointId,
-                                   boolean isPermanent, Entity linkedEntity, String nameTag) {
+                                   boolean isPermanent, EntityLike linkedEntity, String nameTag) {
         String playerId = PlayerUtil.getId(player);
         if (playerId == null) return;
         String levelId = player.level().dimension().location().toString();

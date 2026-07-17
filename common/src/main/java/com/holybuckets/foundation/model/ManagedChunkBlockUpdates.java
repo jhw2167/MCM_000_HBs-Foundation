@@ -187,7 +187,7 @@ public class ManagedChunkBlockUpdates {
 
         //Filter out any blockStates that have hbs_foundaton:empty_block default state
         List<Pair<BlockState, BlockPos>> mutableUpdates = new ArrayList<>(updates);
-        mutableUpdates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.defaultBlockState()));
+        mutableUpdates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.get().defaultBlockState()));
         if( level.isClientSide() ) {
             //nothing
         }

@@ -37,14 +37,14 @@ public class CustomRecipes {
     public static void init(EventRegistrar registrar) {
         registrar.registerOnAnvilUpdate(enchantEssenceEvent, CustomRecipes::onAnvilUpdateEnchantEssence);
         registrar.registerOnServerStarted(CustomRecipes::onServerStartedComplteAnvilRegistration);
-        registrar.registerOnItemEntityTick(() -> ModItems.enchantedEssence, CustomRecipes::onEnchantedEssenceTick);
+        registrar.registerOnItemEntityTick(() -> ModItems.enchantedEssence.get(), CustomRecipes::onEnchantedEssenceTick);
     }
 
     //** ENTITY TICK RECIPES **//
 
     private static void onEnchantedEssenceTick(ItemEntityTickEvent event)
      {
-        if(!event.is( ModItems.enchantedEssence) ) return;
+        if(!event.is( ModItems.enchantedEssence.get()) ) return;
          ItemEntity entity = event.getItemEntity();
         if(!entity.getItem().isEnchanted()) return;
 
@@ -71,7 +71,7 @@ public class CustomRecipes {
 
         private static void purifyEssence(ItemEntity entity)
         {
-            ItemStack newStack = ModItems.enchantedEssence.getDefaultInstance();
+            ItemStack newStack = ModItems.enchantedEssence.get().getDefaultInstance();
             newStack.setCount(entity.getItem().getCount());
             ItemEntity newEntity = new ItemEntity(entity.level(),
                 entity.getX(), entity.getY(), entity.getZ(), newStack);
@@ -115,7 +115,7 @@ public class CustomRecipes {
     //** ANVIL RECIPES **//
 
     private static void onServerStartedComplteAnvilRegistration(ServerStartedEvent event) {
-        enchantEssenceEvent.setLeftItem(ModItems.enchantedEssence.getDefaultInstance());
+        enchantEssenceEvent.setLeftItem(ModItems.enchantedEssence.get().getDefaultInstance());
     }
 
     //private final static Set<Item> ENCHANTED_ESSENCE_SET = new HashSet<>();
@@ -124,7 +124,7 @@ public class CustomRecipes {
     private static void onAnvilUpdateEnchantEssence(AnvilUpdateEvent event)
     {
         ItemStack essence = event.getLeftItem();
-        if(essence.getItem() != ModItems.enchantedEssence) return;
+        if(essence.getItem() != ModItems.enchantedEssence.get()) return;
 
         ItemStack enchantingItem = event.getRightItem();
         Enchantment essenceEnchantment = EssenceEnchantment.of(enchantingItem.getItem());

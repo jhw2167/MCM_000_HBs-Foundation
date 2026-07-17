@@ -336,7 +336,7 @@ public class HBUtil {
             {
                 LoggerBase.logError( null, "004001", "Error parsing block name as string into a Minecraft Block type, " +
                     "type provided was null or provided as empty string");
-                return ModBlocks.empty;
+                return ModBlocks.empty.get();
             }
 
             if( blockName.contains(":") )
@@ -504,7 +504,7 @@ public class HBUtil {
                 return "[]";
 
             Map<Block, List<BlockPos>> blocks = new HashMap<>();
-            blocks.putIfAbsent(ModBlocks.empty, list);
+            blocks.putIfAbsent(ModBlocks.empty.get(), list);
             return serializeBlockPairs(blocks);
         }
 
@@ -517,7 +517,7 @@ public class HBUtil {
             if( blocks.isEmpty() )
                 return Collections.emptyList();
 
-            return blocks.getOrDefault(ModBlocks.empty, Collections.emptyList());
+            return blocks.getOrDefault(ModBlocks.empty.get(), Collections.emptyList());
         }
 
         /**

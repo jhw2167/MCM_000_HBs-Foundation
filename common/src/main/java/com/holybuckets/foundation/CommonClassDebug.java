@@ -268,7 +268,7 @@ public class CommonClassDebug {
     {
         //final BlockState GOLD = Blocks.DIAMOND_BLOCK.defaultBlockState();
         final BlockState GOLDSTATE = Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState();
-        final Block GOLD = ModBlocks.empty;
+        final Block GOLD = ModBlocks.empty.get();
         List<Pair<BlockState, BlockPos>> blocks = new ArrayList<>();
         ChunkAccess c = event.getChunk();
         BlockPos p = c.getPos().getWorldPosition();

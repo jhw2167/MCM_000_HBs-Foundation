@@ -16,25 +16,29 @@ public class ModItems {
     public static ResourceLocation FOUNDATIONS_TAB = id(Constants.MOD_ID);
 
     public static Item emptyBlockItem;
-    public static SimpleRewardItem enchantedEssence;
-    public static WaypointStick waypointStick;
+    public static DeferredObject<Item> enchantedEssence;
+    public static DeferredObject<Item> waypointStick;
 
     public static void commonInitialize(BalmItems items)
     {
-        items.registerItem(() -> enchantedEssence = new EnchantedEssence(null), id("enchanted_essence"),
-        new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
+        // Register the enchanted essence item (added to the creative tab manually below).
+        enchantedEssence = items.registerItem(rl -> new SimpleRewardItem(Constants.MOD_ID, "enchanted_essence"), id("enchanted_essence"),
+         new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
 
     public static void initialize(BalmItems items) {
+        // Register the waypoint stick (added to the creative tab manually below).
+        waypointStick = items.registerItem(rl -> new WaypointStick(), id("waypoint_stick"), null);
 
-        items.registerItem(() -> emptyBlockItem = new EmptyBlockItem(items.itemProperties()), id("empty_block"));
-
+        creativeModeTab = items.registerCreativeModeTab(
+            () -> new ItemStack( ModBlocks.stoneBrickBlockEntity.get().asItem() ), FOUNDATIONS_TAB);
+        // Blocks add themselves to FOUNDATIONS_TAB via their registerBlockItem call
+        // (see ModBlocks). Here we only add the non-block items.
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
-            ModBlocks.empty,
-            ModBlocks.stoneBrickBlockEntity,
-            ModItems.enchantedEssence,
-            ModItems.waypointStick
+            ModItems.enchantedEssence.get(),
+            ModItems.waypointStick.get()
         });
+
 
     }
 

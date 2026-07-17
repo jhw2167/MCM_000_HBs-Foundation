@@ -6,7 +6,7 @@ import net.minecraft.world.item.BlockItem;
 public class EmptyBlockItem extends BlockItem {
 
     public EmptyBlockItem(Properties properties) {
-        super(ModBlocks.empty, properties);
+        super(ModBlocks.empty.get(), properties);
     }
 
 

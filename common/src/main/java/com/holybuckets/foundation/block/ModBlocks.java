@@ -23,16 +23,18 @@ public class ModBlocks {
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
-        ResourceLocation creativeTab = id(Constants.MOD_ID);
-
+        // Block items are NOT auto-added to a creative tab here (creativeTab = null).
+        // Creative-tab contents are populated explicitly in ModItems.creativeTab()'s
+        // displayItems callback — passing a tab here as well would add the same item
+        // twice, which NeoForge 1.21.1 rejects ("already exists in the tab's list").
         empty = blocks.registerBlock(rl -> new EmptyBlock(defaultProperties()), id("empty_block"));
-        blocks.registerBlockItem(rl -> itemBlock(empty.get()), id("empty_block"), creativeTab);
+        blocks.registerBlockItem(rl -> itemBlock(empty.get()), id("empty_block"), null);
 
         stoneBrickBlockEntity = blocks.registerBlock(rl -> new SimpleBlockEntityBlock(SimpleBlockEntityBlock.stoneBrickProperties()), id("stone_brick_block_entity"));
-        blocks.registerBlockItem(rl -> itemBlock(stoneBrickBlockEntity.get()), id("stone_brick_block_entity"), creativeTab);
+        blocks.registerBlockItem(rl -> itemBlock(stoneBrickBlockEntity.get()), id("stone_brick_block_entity"), null);
 
         essenceCauldron = blocks.registerBlock(rl -> new EssenceCauldronBlock(), id("essence_cauldron"));
-        blocks.registerBlockItem(rl -> itemBlock(essenceCauldron.get()), id("essence_cauldron"), creativeTab);
+        blocks.registerBlockItem(rl -> itemBlock(essenceCauldron.get()), id("essence_cauldron"), null);
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {

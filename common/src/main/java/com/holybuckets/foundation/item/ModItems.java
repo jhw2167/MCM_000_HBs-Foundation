@@ -34,13 +34,6 @@ public class ModItems {
         // Register the waypoint stick (added to the creative tab manually below).
         waypointStick = items.registerItem(rl -> new WaypointStick(), id("waypoint_stick"), null);
 
-        creativeModeTab = items.registerCreativeModeTab(
-            () -> new ItemStack( ModBlocks.stoneBrickBlockEntity.get().asItem() ), FOUNDATIONS_TAB);
-        items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
-            ModItems.enchantedEssence.get(),
-            ModItems.waypointStick.get()
-        });
-
         Balm.getRuntime().creativeModeTabs(Constants.MOD_ID, ModItems::creativeTab);
     }
 

@@ -21,19 +21,17 @@ public class ModItems {
 
     public static void commonInitialize(BalmItems items)
     {
-        // Register the enchanted essence item (added to the creative tab manually below).
+
         enchantedEssence = items.registerItem(rl -> new SimpleRewardItem(Constants.MOD_ID, "enchanted_essence"), id("enchanted_essence"),
          new ResourceLocation("hbs_traveler_rewards:hbs_traveler_rewards"));
     }
 
-    public static void initialize(BalmItems items) {
-        // Register the waypoint stick (added to the creative tab manually below).
+    public static void initialize(BalmItems items)
+    {
         waypointStick = items.registerItem(rl -> new WaypointStick(), id("waypoint_stick"), null);
 
         creativeModeTab = items.registerCreativeModeTab(
             () -> new ItemStack( ModBlocks.stoneBrickBlockEntity.get().asItem() ), FOUNDATIONS_TAB);
-        // Blocks add themselves to FOUNDATIONS_TAB via their registerBlockItem call
-        // (see ModBlocks). Here we only add the non-block items.
         items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
             ModItems.enchantedEssence.get(),
             ModItems.waypointStick.get()

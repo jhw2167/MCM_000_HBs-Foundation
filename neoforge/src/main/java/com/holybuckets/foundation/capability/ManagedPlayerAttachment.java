@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.capability;
 
+import com.holybuckets.foundation.model.ManagedChunk;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
@@ -39,9 +40,9 @@ public class ManagedPlayerAttachment {
                         (id) -> () -> "Player with id " + id + " not found. Cannot deserialize Managed Player.";
 
                     @Override
-                    public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input) {
-                        if (ops instanceof NbtOps) {
-                            CompoundTag tag = (CompoundTag) input;
+                    public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input)
+                    {
+                        if (input instanceof CompoundTag tag) {
                             ManagedPlayer mp = ManagedPlayer.getManagedPlayer(tag);
                             if (mp == null) {
                                 String id = ManagedPlayer.getIdFromTag(tag);

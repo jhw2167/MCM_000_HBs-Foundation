@@ -20,6 +20,7 @@ public class FoundationMainFabric implements ModInitializer {
         );
 
         Balm.initialize(Constants.MOD_ID, EmptyLoadContext.INSTANCE, CommonClass::init);
+        FoundationAttachments.init();
 
     }
 

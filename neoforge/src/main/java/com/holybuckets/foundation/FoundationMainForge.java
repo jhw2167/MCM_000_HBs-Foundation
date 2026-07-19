@@ -25,6 +25,7 @@ public class FoundationMainForge {
             )
         );
         final var context = new NeoForgeLoadContext(modEventBus);
+        FoundationAttachments.init();
         FoundationAttachments.ATTACHMENT_TYPES.register(modEventBus);
         Balm.initialize(Constants.MOD_ID, context, CommonClass::init);
     }

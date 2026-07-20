@@ -5,6 +5,9 @@ import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.model.EntityLike;
+import com.holybuckets.foundation.model.EntityLikeResolver;
+import com.holybuckets.foundation.model.VanillaEntityLike;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.player.ManagedPlayer;
@@ -18,6 +21,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -26,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.holybuckets.foundation.HBUtil.PlayerUtil;
@@ -74,11 +79,7 @@ public class MovingWaypoint {
     public static final String MSG_ID_MOVING_WAYPOINT = "moving_waypoint";
     public static final int MAX_COLORS = 16;
 
-    /**
-     * Read-only snapshot of a single waypoint for callers that want to inspect state
-     * (e.g. find the nearest waypoint to remove). The inner {@link Waypoint} stays
-     * private so its mutability is not part of the public API.
-     */
+    //Read only waypoint info snapshot for API use
     public static final class WaypointInfo {
         public final int colorId;
         public final int waypointId;
@@ -156,9 +157,7 @@ public class MovingWaypoint {
     }
 
     /**
-     * @return all waypoints currently registered for the given player. Empty
-     * collection if the player has none (never {@code null}). The returned views
-     * are snapshots; mutating them does not affect tracked state.
+     * @return all palyer active waypoints
      */
     public static Collection<WaypointInfo> getAllWaypoints(ServerPlayer player) {
         String playerId = PlayerUtil.getId(player);
@@ -172,10 +171,7 @@ public class MovingWaypoint {
         return result;
     }
 
-    /**
-     * @return the waypoint nearest to {@code position} within {@code maxHorizDist}
-     * blocks (xz-only distance), or {@code null} if none qualify.
-     */
+
     public static WaypointInfo getNearestWaypoint(ServerPlayer player, Vec3 position, double maxHorizDist) {
         if (player == null || position == null) return null;
         String playerId = PlayerUtil.getId(player);
@@ -199,10 +195,7 @@ public class MovingWaypoint {
     }
 
     /**
-     * Remove a waypoint by its {@code waypointId}. The internal map is still keyed
-     * by {@code colorId}, so this scans for a matching record. If you already know
-     * the colorId (i.e. simple waypoints where {@code waypointId == colorId}), prefer
-     * {@link #removeWaypoint(ServerPlayer, int)}.
+     * Remove a waypoint by its waypointId
      */
     public static void removeWaypointById(ServerPlayer player, int waypointId) {
         String playerId = PlayerUtil.getId(player);
@@ -287,6 +280,11 @@ public class MovingWaypoint {
     //** LIFECYCLE & ENTITY RESYNC
 
     public static void init(EventRegistrar reg) {
+        EntityLikeResolver.register((uuid, level) -> {
+            if (!(level instanceof ServerLevel serverLevel)) return Optional.empty();
+            Entity entity = serverLevel.getEntity(uuid);
+            return entity == null ? Optional.empty() : Optional.of(new VanillaEntityLike(entity));
+        });
         reg.registerOnServerTick(TickType.ON_20_TICKS, MovingWaypoint::onEntityResyncTick);
         PlayerWaypointData.init();
     }
@@ -304,10 +302,11 @@ public class MovingWaypoint {
                 Waypoint w = e.value();
                 if (w.linkedEntityUuid == null) continue;
 
-                Entity ent = sp.serverLevel().getEntity(w.linkedEntityUuid);
-                if (ent == null || ent.isRemoved()) continue;
+                // Resolve the linked UUID to an EntityLike with resolver to handle non minecraft entities
+                Optional<EntityLike> resolved = EntityLikeResolver.resolveEntity(w.linkedEntityUuid, sp.serverLevel());
+                if (resolved.isEmpty() || !resolved.get().isValid()) continue;
 
-                BlockPos newPos = ent.blockPosition();
+                BlockPos newPos = resolved.get().blockPosition();
                 if (!newPos.equals(w.targetPos)) {
                     w.targetPos = newPos;
                     sendWaypointToClient(playerId, w.levelId, w.targetPos, w.colorId,

@@ -48,7 +48,7 @@ public class ManagedPlayerAttachment {
                                 String id = ManagedPlayer.getIdFromTag(tag);
                                 if (id == null) return DataResult.error(ERROR_NO_ID);
                                 PENDING_PLAYERS.put(id, tag);
-                                return DataResult.error(ERROR_NO_PLAYER.apply(id));
+                                return DataResult.success(Pair.of(null, ops.empty()));
                             } else {
                                 ManagedPlayer.deserialize(mp, tag);
                                 return DataResult.success(Pair.of(mp, ops.empty()));

@@ -37,7 +37,7 @@ public class ManagedPlayerAttachment {
             }
 
             private static final Supplier<String> ERROR_NO_ID = () -> "Player id not found in tag. Cannot deserialize Managed Player.";
-            private static final Function<String,Supplier<String>> ERROR_NO_PLAYER = (id) -> { return () -> "Player with id " + id + " not found. Cannot deserialize Managed Player."; };
+            private static final Function<String,Supplier<String>> ERROR_NO_PLAYER = (id) -> { return () -> "Player with id " + id + " not found on reload, will wait for player join"; };
             @Override
             public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input)
             {
@@ -47,7 +47,7 @@ public class ManagedPlayerAttachment {
                         String id = ManagedPlayer.getIdFromTag(tag);
                         if (id == null) return DataResult.error(ERROR_NO_ID);
                         PENDING_PLAYERS.put(id, tag);
-                        return DataResult.error(ERROR_NO_PLAYER.apply(id));
+                        return DataResult.success(Pair.of(null, ops.empty()));
                     } else {
                         ManagedPlayer.deserialize(mp, tag);
                         return DataResult.success(Pair.of(mp, ops.empty()));

@@ -231,6 +231,7 @@ public class GeneralConfig {
 
     public void onServerStopped(ServerStoppedEvent event) {
         if( this.dataStore == null) return;
+        LEVELS.values().forEach(this::saveData);
         this.dataStore.onServerStopped(event);
         this.server = null;
         this.isClientSide = false;
@@ -250,7 +251,6 @@ public class GeneralConfig {
     public void onLevelLoad(LevelLoadingEvent.Load event)
     {
         Level level = (Level) event.getLevel();
-        this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
         LevelData data = level.getLevelData();
         BlockPos spawn = data.getSpawnPos();
         this.WORLD_SPAWNS.put(level, spawn);
@@ -280,6 +280,7 @@ public class GeneralConfig {
             LOCAL_LEVEL = level;
         }
 
+        this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event)  {

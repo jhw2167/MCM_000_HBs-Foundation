@@ -38,21 +38,19 @@ public class ManagedPlayerAttachment {
             private static final Supplier<String> ERROR_NO_ID = () -> "Player id not found in tag. Cannot deserialize Managed Player.";
             private static final Function<String,Supplier<String>> ERROR_NO_PLAYER = (id) -> { return () -> "Player with id " + id + " not found. Cannot deserialize Managed Player."; };
             @Override
-            public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input) {
-                if(ops instanceof NbtOps)
-                {
-                    CompoundTag tag = (CompoundTag) input;
+            public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input)
+            {
+                if (input instanceof CompoundTag tag) {
                     ManagedPlayer mp = ManagedPlayer.getManagedPlayer(tag);
-                    if(mp==null) {
+                    if (mp == null) {
                         String id = ManagedPlayer.getIdFromTag(tag);
-                        if(id==null) return DataResult.error(ERROR_NO_ID);
+                        if (id == null) return DataResult.error(ERROR_NO_ID);
                         PENDING_PLAYERS.put(id, tag);
                         return DataResult.error(ERROR_NO_PLAYER.apply(id));
                     } else {
                         ManagedPlayer.deserialize(mp, tag);
                         return DataResult.success(Pair.of(mp, ops.empty()));
                     }
-                    //return DataResult.success(Pair.of(new ManagedPlayer(tag), ops.empty()));
                 }
                 return DataResult.error(() -> "Not an NBT tag");
             }

@@ -2,6 +2,7 @@ package com.holybuckets.foundation.item;
 
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.event.EventRegistrar;
+import com.holybuckets.foundation.model.VanillaEntityLike;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.LivingDamageEvent;
 import net.minecraft.core.BlockPos;
@@ -19,21 +20,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Waypoint Stick — debug tool for waypoints.
- *
- * <ul>
- *   <li>Right-click a block: set a positional waypoint at the block hit pos.</li>
- *   <li>Right-click an entity: set an entity-linked waypoint that tracks the entity.</li>
- *   <li>Right-click into the air: delete the nearest waypoint within
- *       {@link #DELETE_NEAR_HORIZ_DIST} blocks (xz only), if any.</li>
- * </ul>
- *
- * Waypoints created by the stick use their own id space. A shared static counter
- * starts at {@link MovingWaypoint#MAX_COLORS} and increments on every use; the wool
- * colorId is {@code counter % MAX_COLORS} and the waypointId is {@code colorId * 2}.
- * The {@code *2} reserves even ids for stick waypoints so they don't collide with
- * other systems writing waypoints at the same colorId.
- */
+*
+* Sets a waypoint on entities when struck. Right click to remove
+*/
 public class WaypointStick extends Item {
 
     private static final double DELETE_NEAR_HORIZ_DIST = 16.0;
@@ -51,7 +40,7 @@ public class WaypointStick extends Item {
     }
 
     private static void livingEntityHurt(LivingDamageEvent dmgEvent) {
-        LivingEntity target = dmgEvent.getEntity();
+        Entity target = dmgEvent.getEntity();
         if(target.level().isClientSide()) return;
         Entity p = dmgEvent.getDamageSource().getEntity();
         if(!(p instanceof ServerPlayer sp)) return;
@@ -60,7 +49,7 @@ public class WaypointStick extends Item {
         StickIds ids = nextStickIds();
         String nameTag = target.getDisplayName() != null ? target.getDisplayName().getString() : null;
         MovingWaypoint.setWaypoint(sp, target.blockPosition(), ids.colorId, ids.waypointId,
-            false, target, nameTag);
+            false, new VanillaEntityLike(target), nameTag);
     }
 
     @Override

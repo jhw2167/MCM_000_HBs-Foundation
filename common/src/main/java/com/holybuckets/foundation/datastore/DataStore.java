@@ -5,6 +5,7 @@ import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.modelInterface.IStringSerializable;
 
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -218,6 +219,7 @@ public class DataStore implements IStringSerializable {
     }
 
     public static void onServerStopped( ServerStoppedEvent s ) {
+        EventRegistrar.getInstance().dataSaveEvent(false);
         INSTANCE.shutdown(s);
     }
 

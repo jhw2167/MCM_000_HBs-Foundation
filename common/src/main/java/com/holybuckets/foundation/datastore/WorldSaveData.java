@@ -64,6 +64,7 @@ public class WorldSaveData {
         String id = LevelUtil.toLevelId(level);
         LevelSaveData data = levelData.getOrDefault(id, new LevelSaveData(level));
         levelData.put(id, data);
+        LevelSaveData.validate(data, this);
         return data;
     }
 

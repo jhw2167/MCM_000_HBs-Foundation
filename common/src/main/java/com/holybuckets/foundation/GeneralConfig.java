@@ -239,9 +239,10 @@ public class GeneralConfig {
 
     /** Level Events **/
 
-    public  static final ResourceLocation OVERWORLD_LOC = new ResourceLocation("minecraft", "overworld");
-    public static final ResourceLocation NETHER_LOC = new ResourceLocation("minecraft", "the_nether");
-    public static final ResourceLocation END_LOC = new ResourceLocation("minecraft", "the_end");
+    public  static final ResourceLocation OVERWORLD_LOC = HBUtil.LOC("minecraft", "overworld");
+    public static final ResourceLocation NETHER_LOC = HBUtil.LOC("minecraft", "the_nether");
+    public static final ResourceLocation END_LOC = HBUtil.LOC("minecraft", "the_end");
+    public static Level LOCAL_LEVEL;
     public static ServerLevel OVERWORLD;
     public static ServerLevel NETHER;
     public static ServerLevel END;
@@ -275,6 +276,11 @@ public class GeneralConfig {
             this.isClientSide = true;
         }
 
+        if (HBUtil.LevelUtil.testLevel(level, OVERWORLD_LOC)) {
+            LOCAL_LEVEL = level;
+        }
+
+        this.LEVELS.put(HBUtil.LevelUtil.toLevelId(level), level);
     }
 
     public void onLevelUnload(LevelLoadingEvent.Unload event)  {

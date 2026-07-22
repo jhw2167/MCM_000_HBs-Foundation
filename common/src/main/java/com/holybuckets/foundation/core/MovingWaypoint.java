@@ -328,7 +328,7 @@ public class MovingWaypoint {
 
         //STOPPING DEFAULT WAYPOINT SAVING
         public static void init() {
-            //ManagedPlayer.registerManagedPlayerData(PlayerWaypointData.class, () -> new PlayerWaypointData(null));
+            ManagedPlayer.registerManagedPlayerData(PlayerWaypointData.class, () -> new PlayerWaypointData(null));
         }
 
         @Override public boolean isServerOnly() { return true; }

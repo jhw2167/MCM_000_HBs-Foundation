@@ -46,6 +46,8 @@ public class ManagedPlayer {
     private long tickWritten;
     private long tickLoaded;
     private boolean saveNextTick = false;
+    // Guards the leave sequence so it runs once per session, whether via logout or server stop.
+    private boolean hasLeft = false;
     private CompoundTag holdNbt;
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
 
@@ -173,6 +175,9 @@ public class ManagedPlayer {
             this.holdNbt = PENDING_PLAYERS.remove(p);
         }
 
+        // Re-arm the leave guard for this session.
+        this.hasLeft = false;
+
         id = HBUtil.PlayerUtil.getId(player);
 
         this.initSubclassesFromMemory();
@@ -240,6 +245,9 @@ public class ManagedPlayer {
     }
 
     private void onPlayerLeave() {
+        // Fire once per session; re-armed on join in initJoinedPlayer.
+        if(this.hasLeft) return;
+        this.hasLeft = true;
         for(IManagedPlayer data : managedPlayerData.values()) {
         try {
             data.handlePlayerLeave(player);
@@ -651,6 +659,8 @@ public class ManagedPlayer {
     public static void onServerStopped(ServerStoppedEvent event) {
         for (ManagedPlayer player : PLAYERS.values()) {
             player.save();
+            // Ensure the leave sequence runs for anyone still online (e.g. singleplayer quit-to-title).
+            player.onPlayerLeave();
         }
         PLAYERS.clear();
         PENDING_PLAYERS.clear();
@@ -701,6 +711,9 @@ public class ManagedPlayer {
         if(tag == null || tag.isEmpty()) return mp;
         if(tag.contains(PARENT_TAG))
             tag = tag.getCompound(PARENT_TAG);
+        if(mp == null) {
+            return new ManagedPlayer(tag);
+        }
         mp.deserializeNBT(tag);
         return mp;
     }

@@ -115,103 +115,6 @@ public class MovingWaypoint {
     // Query cadence for the moving waypoint position recompute (ON_20_TICKS = 1 sec).
     private static final int TICK_CADENCE = 20;
 
-    private final UUID playerId;
-    private final String waypointKey;
-    private BlockPos targetPosition;
-    private BlockPos waypointPosition;
-    private int colorId;
-
-    public MovingWaypoint(Player player, BlockPos targetPosition, int colorId) {
-        this.playerId = player.getUUID();
-        this.waypointKey = "moving_waypoint_" + System.currentTimeMillis();
-        this.targetPosition = targetPosition;
-        this.colorId = colorId;
-        this.waypointPosition = calculateWaypoint(player);
-        setWaypointFlare();
-    }
-
-    public void setTargetPosition(Player player, BlockPos newTarget) {
-        this.targetPosition = newTarget;
-        this.waypointPosition = calculateWaypoint(player);
-        setWaypointFlare();
-    }
-
-    public BlockPos getWaypointPosition() {
-        return waypointPosition;
-    }
-
-    public BlockPos getTargetPosition() {
-        return targetPosition;
-    }
-
-    public void updateWaypoint(Player player) {
-        BlockPos oldWaypoint = this.waypointPosition;
-        this.waypointPosition = calculateWaypoint(player);
-
-        if (!oldWaypoint.equals(this.waypointPosition)) {
-            setWaypointFlare();
-        }
-    }
-
-    private void setWaypointFlare() {
-        // Remove existing active waypoint for this color
-        activeWaypoints.remove(colorId);
-        
-        // Add new active waypoint at calculated position
-        activeWaypoints.put(colorId, new Waypoint(CURRENT_LEVEL_ID, waypointPosition, colorId));
-    }
-
-    public void clearWaypoint() {
-        // Remove from both original and active waypoints
-        Waypoint originalWp = originalWaypoints.get(colorId);
-        if (originalWp != null) {
-            originalWp.deactivate();
-            originalWaypoints.remove(colorId);
-        }
-        
-        Waypoint activeWp = activeWaypoints.get(colorId);
-        if (activeWp != null) {
-            activeWp.deactivate();
-            activeWaypoints.remove(colorId);
-        }
-    }
-
-    private BlockPos calculateWaypoint(Player player) {
-        Vec3 playerPos = player.position();
-        Vec3 targetPos = Vec3.atCenterOf(targetPosition);
-
-        double horizDistSq = horizontalDistanceSq(playerPos, targetPos);
-        double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
-
-        if (horizDistSq <= maxRangeSq) {
-            return targetPosition;
-        }
-
-        double horizDist = Math.sqrt(horizDistSq);
-        double scale = MAX_RANGE / horizDist;
-        double dx = targetPos.x - playerPos.x;
-        double dz = targetPos.z - playerPos.z;
-        return BlockPos.containing(
-            playerPos.x + dx * scale,
-            targetPos.y,
-            playerPos.z + dz * scale
-        );
-    }
-
-    public boolean isInRange(Player player) {
-        return horizontalDistance(player.position(), Vec3.atCenterOf(targetPosition)) <= MAX_RANGE;
-    }
-
-    public double getDistanceToTarget(Player player) {
-        return horizontalDistance(player.position(), Vec3.atCenterOf(targetPosition));
-    }
-
-    public double getDistanceToWaypoint(Player player) {
-        return horizontalDistance(player.position(), Vec3.atCenterOf(waypointPosition));
-    }
-
-    // Horizontal (xz-only) distance helpers — Y is ignored so that targets which the
-    // server may have floor-anchored (Y = minBuildHeight) don't blow up the range math.
     private static double horizontalDistanceSq(Vec3 a, Vec3 b) {
         double dx = a.x - b.x;
         double dz = a.z - b.z;
@@ -222,29 +125,16 @@ public class MovingWaypoint {
         return Math.sqrt(horizontalDistanceSq(a, b));
     }
 
-    public static void clearAllWaypoints(UUID playerId) {
-        // Clear all waypoints (this method might need to be redesigned if we need per-player tracking)
-        for (Waypoint wp : originalWaypoints.values()) {
-            wp.deactivate();
-        }
-        for (Waypoint wp : activeWaypoints.values()) {
-            wp.deactivate();
-        }
-        originalWaypoints.clear();
-        activeWaypoints.clear();
-    }
-
-
     private static void determineActiveWaypointHook(Waypoint wp, Player player) {
         ClientEventRegistrar.getInstance().onDetermineActiveWaypoint(
             new DetermineActiveWaypointEvent(wp, player));
     }
 
+    // Update active waypoints based on original waypoints and player position.
+    // Range/projection use xz-only distance; the target's Y is preserved on the active waypoint.
     public static void updateAllActiveWaypoints(Player player) {
-        // Update active waypoints based on original waypoints and player position.
-        // Range/projection use xz-only distance; the target's Y is preserved on the active waypoint.
-        activeWaypoints.clear();
 
+        activeWaypoints.clear();
 
         double maxRangeSq = (double) MAX_RANGE * MAX_RANGE;
         for (IntObjectMap.PrimitiveEntry<Waypoint> entry : originalWaypoints.entries())
@@ -304,6 +194,8 @@ public class MovingWaypoint {
         if (level != null) {
             CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(level);
         }
+        //clear waypoints
+       originalWaypoints.clear();
     }
 
     private static void onMovingWaypointMessage(SimpleMessageEvent event)

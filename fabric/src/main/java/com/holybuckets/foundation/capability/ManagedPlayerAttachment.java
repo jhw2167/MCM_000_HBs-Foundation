@@ -26,9 +26,8 @@ public class ManagedPlayerAttachment {
 
     static final Map<String, CompoundTag> PENDING_PLAYERS = new HashMap<>();
 
-    static final AttachmentType<ManagedPlayer> MANAGED_PLAYER_ATTACHMENT = AttachmentRegistry.createPersistent(
-        HBUtil.LOC(Constants.MOD_ID, "managed_player"),
-        new Codec<>() {
+    static final AttachmentType<ManagedPlayer> MANAGED_PLAYER_ATTACHMENT = AttachmentRegistry.<ManagedPlayer>builder()
+        .persistent(new Codec<>() {
             @Override
             public <T> DataResult<T> encode(ManagedPlayer input, DynamicOps<T> ops, T prefix) {
                 CompoundTag tag = ManagedPlayer.serialize(input);
@@ -41,28 +40,29 @@ public class ManagedPlayerAttachment {
             @Override
             public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input)
             {
-                if (input instanceof CompoundTag tag) {
+                if (input instanceof CompoundTag tag)
+                {
                     ManagedPlayer mp = ManagedPlayer.getManagedPlayer(tag);
                     if (mp == null) {
                         String id = ManagedPlayer.getIdFromTag(tag);
                         if (id == null) return DataResult.error(ERROR_NO_ID);
                         PENDING_PLAYERS.put(id, tag);
-                        return DataResult.success(Pair.of(null, ops.empty()));
+                        mp = ManagedPlayer.deserialize(null, tag);
                     } else {
                         ManagedPlayer.deserialize(mp, tag);
-                        return DataResult.success(Pair.of(mp, ops.empty()));
                     }
+                    return DataResult.success(Pair.of(mp, ops.empty()));
                 }
                 return DataResult.error(() -> "Not an NBT tag");
             }
-        });
+        })
+        .buildAndRegister(HBUtil.LOC(Constants.MOD_ID, "managed_player"));
 
     static void onPlayerLoginRegisterAttachment(PlayerLoginEvent event) {
         Player p = event.getPlayer();
         ManagedPlayer.onPlayerLogin(event);
         ManagedPlayer mp = ManagedPlayer.getManagedPlayer(p);
-        if(!p.hasAttached(MANAGED_PLAYER_ATTACHMENT))
-            p.setAttached(MANAGED_PLAYER_ATTACHMENT, mp);
+        p.setAttached(MANAGED_PLAYER_ATTACHMENT, mp);
 
         ManagedPlayer.deserialize(mp, PENDING_PLAYERS.remove(mp.getId()));
     }

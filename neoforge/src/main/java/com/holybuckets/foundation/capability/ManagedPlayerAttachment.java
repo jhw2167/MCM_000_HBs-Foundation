@@ -57,6 +57,7 @@ public class ManagedPlayerAttachment {
                         return DataResult.error(() -> "Not an NBT tag");
                     }
                 })
+                .copyOnDeath()
                 .build()
         );
 
@@ -64,8 +65,7 @@ public class ManagedPlayerAttachment {
         Player p = event.getPlayer();
         ManagedPlayer.onPlayerLogin(event);
         ManagedPlayer mp = ManagedPlayer.getManagedPlayer(p);
-        if (!p.hasData(MANAGED_PLAYER_ATTACHMENT))
-            p.setData(MANAGED_PLAYER_ATTACHMENT, mp);
+        p.setData(MANAGED_PLAYER_ATTACHMENT, mp);
 
         ManagedPlayer.deserialize(mp, PENDING_PLAYERS.remove(mp.getId()));
     }

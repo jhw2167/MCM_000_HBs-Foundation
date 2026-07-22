@@ -21,6 +21,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -186,17 +187,19 @@ public class MovingWaypoint {
         registrar.registerOnSimpleMessage(MSG_ID_MOVING_WAYPOINT, MovingWaypoint::onMovingWaypointMessage);
         registrar.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES, MovingWaypoint::tryRenderWaypointFlare);
         registrar.registerOnClientLevelTick(TickType.ON_20_TICKS, MovingWaypoint::onClient20Tick);
-        registrar.registerOnConnectedToServer(MovingWaypoint::onConnectedToServer);
+        registrar.registerOnDisconnectedFromServer(MovingWaypoint::onConnectedToServer);
     }
 
-    private static void onConnectedToServer(ConnectedToServerEvent event) {
+    private static void onConnectedToServer(DisconnectedFromServerEvent event) {
         Level level = Minecraft.getInstance().level;
         if (level != null) {
             CURRENT_LEVEL_ID = HBUtil.LevelUtil.toLevelIdAgnostic(level);
         }
         //clear waypoints
        originalWaypoints.clear();
+       activeWaypoints.clear();
     }
+
 
     private static void onMovingWaypointMessage(SimpleMessageEvent event)
     {

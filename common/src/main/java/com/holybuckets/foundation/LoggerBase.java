@@ -221,6 +221,9 @@ public class LoggerBase {
             prefix = PREFIX;
 
         LogEntry entry = new LogEntry("WARN", logId, prefix, string);
+        if (shouldPrintLog(entry)) {
+            LOGGER.warn(buildBaseConsoleMessage(entry));
+        }
     }
 
     public static void logError(String prefix, String logId, String string)

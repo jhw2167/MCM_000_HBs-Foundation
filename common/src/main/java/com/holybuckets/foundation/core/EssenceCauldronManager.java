@@ -8,8 +8,8 @@ import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.mojang.datafixers.util.Pair;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Vec3i;
@@ -342,7 +342,7 @@ public class EssenceCauldronManager {
 
             if(chunk == null) return;
             BlockPos safePos = targetPos;
-            while(!level.canSeeSky(safePos) && level.getMaxBuildHeight() > safePos.getY()) {
+            while(!level.canSeeSky(safePos) && level.getMaxY() > safePos.getY()) {
                 safePos = safePos.above();
             }
             this.safeTeleportPos = safePos;

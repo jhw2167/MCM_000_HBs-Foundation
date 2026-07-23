@@ -12,18 +12,18 @@ import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.networking.StructureInfoMessage;
 import com.holybuckets.foundation.player.ManagedPlayer;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.event.balm.ChunkLoadingEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
@@ -41,7 +41,7 @@ public class StructureManager {
     private Level level;
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
-    private Map<ResourceLocation, Set<BlockPos>> structuresByType;
+    private Map<Identifier, Set<BlockPos>> structuresByType;
     private Set<BlockPos> currentlyLoadedStructures;
     private Map<String, BlockPos> existingStructures; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
 
@@ -64,11 +64,11 @@ public class StructureManager {
 
     //** GETTERS
 
-    public static ResourceLocation toLocation(String stringStruct) {
+    public static Identifier toLocation(String stringStruct) {
         return HBUtil.LOC(stringStruct);
     }
 
-    public Set<ResourceLocation> getAllStructures() {
+    public Set<Identifier> getAllStructures() {
         return structureRegistry.keySet();
     }
 
@@ -77,26 +77,26 @@ public class StructureManager {
         return Maps.newHashMap(structures);
     }
 
-    public List<BlockPos> getStructurePosByType(ResourceLocation location) {
+    public List<BlockPos> getStructurePosByType(Identifier location) {
         if (!structuresByType.containsKey(location)) return List.of();
         return List.copyOf( structuresByType.get(location) );
     }
 
     public List<BlockPos> getStructurePosByType(Structure structure) {
         if (structureRegistry == null) return List.of();
-        ResourceLocation location = structureRegistry.getKey(structure);
+        Identifier location = structureRegistry.getKey(structure);
         if (location == null) return List.of();
         return getStructurePosByType(location);
     }
 
-    public List<StructureInfo> getStructuresByType(ResourceLocation location) {
+    public List<StructureInfo> getStructuresByType(Identifier location) {
         if (!structuresByType.containsKey(location)) return List.of();
         return List.copyOf( structuresByType.get(location).stream().map(pos -> structures.get(pos)).toList() );
     }
 
     public List<StructureInfo> getStructuresByType(Structure structure) {
         if (structureRegistry == null) return List.of();
-        ResourceLocation location = structureRegistry.getKey(structure);
+        Identifier location = structureRegistry.getKey(structure);
         if (location == null) return List.of();
         return getStructuresByType(location);
     }
@@ -134,11 +134,11 @@ public class StructureManager {
             .toList();
     }
 
-    public List<StructureInfo> getNearestWhitelistedStructures(Set<ResourceLocation> whiteList,
+    public List<StructureInfo> getNearestWhitelistedStructures(Set<Identifier> whiteList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
-        for( ResourceLocation location : whiteList ) {
+        for( Identifier location : whiteList ) {
             var strs = getStructuresByType(location);
             if(strs == null) continue;
             allStructs.addAll( strs );
@@ -170,12 +170,12 @@ public class StructureManager {
     }
 
     //Returns structures NOT in the blacklist
-    public List<StructureInfo> getNearestBlackListedStructures(Set<ResourceLocation> blackList,
+    public List<StructureInfo> getNearestBlackListedStructures(Set<Identifier> blackList,
                                                                BlockPos center, int limit) {
         if(limit < 1) limit = structures.size();
         List<StructureInfo> allStructs = new LinkedList<>();
         for( StructureInfo info : structures.values() ) {
-            ResourceLocation structureLocation = info.getStructureLocation();
+            Identifier structureLocation = info.getStructureLocation();
             if( structureLocation != null && !blackList.contains( structureLocation ) ) {
                 allStructs.add(info);
             }
@@ -253,7 +253,7 @@ public class StructureManager {
         if (start==null || !start.isValid()) return;
         if (structureRegistry == null) return;
 
-        ResourceLocation structureLocation = structureRegistry.getKey(structure);
+        Identifier structureLocation = structureRegistry.getKey(structure);
         ChunkPos cp = new ChunkPos(start.getBoundingBox().getCenter());
 
         if (structureLocation == null) return;
@@ -289,7 +289,7 @@ public class StructureManager {
         currentlyLoadedStructures.remove(structStartPos);
     }
 
-    public void addPseudoStructure(ResourceLocation loc, BlockPos pos)
+    public void addPseudoStructure(Identifier loc, BlockPos pos)
     {
         if (loc == null || pos == null) return;
         if (this.structures.containsKey(pos)) return;
@@ -310,7 +310,7 @@ public class StructureManager {
         if(!this.structures.containsKey(pos)) return;
 
         StructureInfo info = this.structures.get(pos);
-        ResourceLocation loc = info.getStructureLocation();
+        Identifier loc = info.getStructureLocation();
         this.structures.remove(pos);
         if(loc != null && this.structuresByType.containsKey(loc)) {
             this.structuresByType.get(loc).remove(pos);
@@ -335,7 +335,7 @@ public class StructureManager {
             for(JsonElement elem : arr)
             {
                 // This would need to be stored in save data or derived
-                ResourceLocation structureLocation = structureRegistry.getKey( structureRegistry.byId(registryId) );
+                Identifier structureLocation = structureRegistry.getKey( structureRegistry.byId(registryId) );
                 if(structureLocation != null) {
                     StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
                     if(structures.containsKey(info.origin)) continue;
@@ -488,7 +488,7 @@ public class StructureManager {
         for(StructureInfo info : message.structures )
         {
             StructureManager sm = StructureManager.get(player.level());
-            ResourceLocation structureLocation = info.getStructureLocation();
+            Identifier structureLocation = info.getStructureLocation();
             if(structureLocation != null) {
                 if(sm.structures.containsKey(info.origin)) continue;
                 sm.structures.put(info.origin, info);

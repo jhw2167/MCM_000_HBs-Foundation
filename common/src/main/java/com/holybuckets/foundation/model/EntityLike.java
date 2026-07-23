@@ -1,7 +1,7 @@
 package com.holybuckets.foundation.model;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
@@ -31,7 +31,7 @@ public interface EntityLike {
     float getXRot();
 
     /** The dimension the target is currently in. */
-    ResourceLocation dimension();
+    Identifier dimension();
 
     /** False once the target is removed / disassembled / no longer trackable. */
     boolean isValid();

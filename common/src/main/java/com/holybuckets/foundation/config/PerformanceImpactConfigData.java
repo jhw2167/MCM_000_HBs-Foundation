@@ -1,12 +1,11 @@
 package com.holybuckets.foundation.config;
 
 import com.holybuckets.foundation.Constants;
-import net.blay09.mods.balm.api.config.BalmConfigData;
-import net.blay09.mods.balm.api.config.Comment;
-import net.blay09.mods.balm.api.config.Config;
+import net.blay09.mods.balm.platform.config.reflection.Comment;
+import net.blay09.mods.balm.platform.config.reflection.Config;
 
 @Config(Constants.MOD_ID)
-public class PerformanceImpactConfigData implements BalmConfigData {
+public class PerformanceImpactConfigData {
     public CPerformanceImpactConfig performanceImpactConfig = new CPerformanceImpactConfig();
     public ConfigFiles configFiles = new ConfigFiles();
 

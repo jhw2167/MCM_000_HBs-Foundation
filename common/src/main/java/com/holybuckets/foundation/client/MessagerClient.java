@@ -3,12 +3,11 @@ package com.holybuckets.foundation.client;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.client.GuiDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 
@@ -62,7 +61,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendChat(String message) {
-        Player player = Balm.getProxy().getClientPlayer();
+        Player player = net.minecraft.client.Minecraft.getInstance().player;
         if (player != null) {
             sendChat(player, message);
         }
@@ -168,7 +167,7 @@ public class MessagerClient implements IMessager {
         Minecraft mc = Minecraft.getInstance();
         //if (mc.screen != null) return; // Don't render when GUI is open
         
-        GuiGraphics guiGraphics = event.getGuiGraphics();
+        GuiGraphicsExtractor guiGraphics = event.getGuiGraphics();
         Font font = mc.font;
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
@@ -207,7 +206,7 @@ public class MessagerClient implements IMessager {
     /**
      * Draws text with a black outline for better visibility
      */
-    private void drawTextWithOutline(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color, int outlineColor) {
+    private void drawTextWithOutline(GuiGraphicsExtractor guiGraphics, Font font, String text, int x, int y, int color, int outlineColor) {
         // Draw outline (4 cardinal directions only - thinner)
         guiGraphics.drawString(font, text, x - 1, y, outlineColor, false);     // Left
         guiGraphics.drawString(font, text, x + 1, y, outlineColor, false);     // Right

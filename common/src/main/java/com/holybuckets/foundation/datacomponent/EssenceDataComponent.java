@@ -4,13 +4,13 @@ import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.core.EssenceType;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 public class EssenceDataComponent {
 
-    public static final ResourceLocation LOC = ResourceLocation
+    public static final Identifier LOC = Identifier
         .fromNamespaceAndPath(Constants.MOD_ID, "essence_type");
 
     public static final Codec<EssenceDataComponent> CODEC = Codec.STRING

@@ -1,10 +1,15 @@
 package com.holybuckets.foundation.block.entity;
 
-import net.blay09.mods.balm.common.BalmBlockEntity;
+import com.mojang.serialization.Codec;
+import net.blay09.mods.balm.world.level.block.entity.BalmBlockEntityUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +17,9 @@ import java.util.Map;
 /**
  * A block that indicates the bottom of a portal
  */
-public class SimpleBlockEntity extends BalmBlockEntity {
+public class SimpleBlockEntity extends BlockEntity {
+
+    private static final Codec<Map<String, String>> DATA_CODEC = Codec.unboundedMap(Codec.STRING, Codec.STRING);
 
     private Map<String,String> data;
     public SimpleBlockEntity(BlockPos blockPos, BlockState blockState) {
@@ -29,26 +36,21 @@ public class SimpleBlockEntity extends BalmBlockEntity {
         data.put(key, value);
     }
 
-
     @Override
-    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
-        super.loadAdditional(nbt, registries);
-        data.clear();
-        if (nbt.contains("data")) {
-            CompoundTag dataTag = nbt.getCompound("data");
-            for (String key : dataTag.getAllKeys()) {
-                data.put(key, dataTag.getString(key));
-            }
-        }
+    public @Nullable Packet<ClientGamePacketListener> getUpdatePacket() {
+        return BalmBlockEntityUtils.createUpdatePacket(this);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
-        super.saveAdditional(nbt, registries);
-        CompoundTag dataTag = new CompoundTag();
-        for (Map.Entry<String, String> entry : data.entrySet()) {
-            dataTag.putString(entry.getKey(), entry.getValue());
-        }
-        nbt.put("data", dataTag);
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        data.clear();
+        input.read("data", DATA_CODEC).ifPresent(loaded -> data.putAll(loaded));
+    }
+
+    @Override
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.store("data", DATA_CODEC, Map.copyOf(data));
     }
 }

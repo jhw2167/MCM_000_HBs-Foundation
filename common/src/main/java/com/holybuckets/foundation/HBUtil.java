@@ -14,12 +14,12 @@ import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.network.BalmNetworking;
+import net.blay09.mods.balm.Balm;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.PlayerLoginEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartedEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import net.blay09.mods.balm.network.BalmNetworking;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -28,7 +28,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -50,7 +50,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.blay09.mods.balm.api.BalmRegistries;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
@@ -82,11 +81,11 @@ public class HBUtil {
         LevelUtil.init(reg);
     }
 
-    public static ResourceLocation LOC(String nameSpace, String path) {
-        return ResourceLocation.fromNamespaceAndPath(nameSpace, path);
+    public static Identifier LOC(String nameSpace, String path) {
+        return Identifier.fromNamespaceAndPath(nameSpace, path);
     }
 
-    public static ResourceLocation LOC(String path) {
+    public static Identifier LOC(String path) {
         if (path == null || path.isEmpty()) return null;
         String[] split = path.split(":");
         if( split.length > 1 ) {
@@ -212,7 +211,7 @@ public class HBUtil {
                 return null;
             }
 
-            ResourceLocation itemKey = HBUtil.LOC(nameSpace.trim(), itemName.trim());
+            Identifier itemKey = HBUtil.LOC(nameSpace.trim(), itemName.trim());
             Item item = BuiltInRegistries.ITEM.get(itemKey);
 
             if( item == null ) {
@@ -256,12 +255,12 @@ public class HBUtil {
 
         @Nullable
         public static Holder<Enchantment> enchantNameToEnchant(String namespace, String enchantName) {
-         ResourceLocation key = HBUtil.LOC(namespace.trim(), enchantName.trim());
+         Identifier key = HBUtil.LOC(namespace.trim(), enchantName.trim());
             return enchantNameToEnchant(key);
         }
 
         @Nullable
-        public static Holder<Enchantment> enchantNameToEnchant(ResourceLocation key) {
+        public static Holder<Enchantment> enchantNameToEnchant(Identifier key) {
             if(GeneralConfig.LOCAL_LEVEL ==null) return null;
             return GeneralConfig.LOCAL_LEVEL.registryAccess()
                 .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
@@ -373,9 +372,8 @@ public class HBUtil {
             if( namespace == null || namespace.isEmpty() )
                namespace = "minecraft";
 
-            BalmRegistries registries = Balm.getRegistries();
-            ResourceLocation blockKey = HBUtil.LOC(namespace.trim(), blockName.trim());
-            Block b = registries.getBlock(blockKey);
+            Identifier blockKey = HBUtil.LOC(namespace.trim(), blockName.trim());
+            Block b = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(blockKey);
 
             if( b == null )
             {
@@ -387,11 +385,11 @@ public class HBUtil {
         }
 
         /**
-         * Gets the ResourceLocation for a block from a string identifier
+         * Gets the Identifier for a block from a string identifier
          * @param blockId String block identifier (e.g. "minecraft:stone")
-         * @return ResourceLocation for the block, or null if invalid
+         * @return Identifier for the block, or null if invalid
          */
-        public static ResourceLocation getBlockResourceLocation(String blockId) {
+        public static Identifier getBlockResourceLocation(String blockId) {
             if (blockId == null || blockId.isEmpty()) {
                 return null;
             }
@@ -402,11 +400,11 @@ public class HBUtil {
         }
 
         /**
-         * Gets the ResourceLocation for a block
-         * @param block Block to get ResourceLocation for
-         * @return ResourceLocation for the block, or null if block is null
+         * Gets the Identifier for a block
+         * @param block Block to get Identifier for
+         * @return Identifier for the block, or null if block is null
          */
-        public static ResourceLocation getBlockResourceLocation(Block block) {
+        public static Identifier getBlockResourceLocation(Block block) {
             if (block == null) {
                 return null;
             }
@@ -695,7 +693,7 @@ public class HBUtil {
             return toLevel(nameSpace, key.location());
         }
 
-        public static Level toLevel(LevelNameSpace nameSpace, ResourceLocation loc) {
+        public static Level toLevel(LevelNameSpace nameSpace, Identifier loc) {
             if (loc == null) {
                 return null;
             }
@@ -754,16 +752,16 @@ public class HBUtil {
             return testLevel(level, HBUtil.LOC(levelNameSpace, levelId));
         }
 
-        public static boolean testLevel(Level level, ResourceLocation location) {
+        public static boolean testLevel(Level level, Identifier location) {
             return level.dimension().location().equals(location);
         }
 
         /**
-         * Gets the ResourceLocation for a level from a string identifier
+         * Gets the Identifier for a level from a string identifier
          * @param levelId String level identifier (e.g. "minecraft:overworld")
-         * @return ResourceLocation for the level, or null if invalid
+         * @return Identifier for the level, or null if invalid
          */
-        public static ResourceLocation getLevelResourceLocation(String levelId) {
+        public static Identifier getLevelResourceLocation(String levelId) {
             if (levelId == null || levelId.isEmpty()) {
                 return null;
             }
@@ -774,11 +772,11 @@ public class HBUtil {
         }
 
         /**
-         * Gets the ResourceLocation for a level
-         * @param level Level to get ResourceLocation for
-         * @return ResourceLocation for the level, or null if level is null
+         * Gets the Identifier for a level
+         * @param level Level to get Identifier for
+         * @return Identifier for the level, or null if level is null
          */
-        public static ResourceLocation getLevelResourceLocation(Level level) {
+        public static Identifier getLevelResourceLocation(Level level) {
             if (level == null) {
                 return null;
             }
@@ -791,11 +789,11 @@ public class HBUtil {
          * @return Holder<Biome> for the requested biome, or null if not found
          */
         public static Biome getBiome(String biomeName) {
-            ResourceLocation biome = toBiomeResourceLocation(biomeName);
+            Identifier biome = toBiomeResourceLocation(biomeName);
             return getBiome(biome);
         }
 
-        public static ResourceLocation toBiomeResourceLocation(String biomeName)
+        public static Identifier toBiomeResourceLocation(String biomeName)
         {
             if (biomeName == null) return null;
             MinecraftServer server = GeneralConfig.getInstance().getServer();
@@ -813,7 +811,7 @@ public class HBUtil {
             return HBUtil.LOC(nmspace, biomeId);
         }
 
-        public static ResourceLocation toBiomeResourceLocation(Biome biome) {
+        public static Identifier toBiomeResourceLocation(Biome biome) {
             if (biome == null) return null;
             MinecraftServer server = GeneralConfig.getInstance().getServer();
             if (server == null) return null;
@@ -821,7 +819,7 @@ public class HBUtil {
             return biomeRegistry.getKey(biome);
         }
 
-        public static ResourceLocation toBiomeResourceLocation(Holder<Biome> holderBiome) {
+        public static Identifier toBiomeResourceLocation(Holder<Biome> holderBiome) {
             if (holderBiome == null) return null;
             if( !holderBiome.unwrapKey().isPresent() ) return null;
 
@@ -829,11 +827,11 @@ public class HBUtil {
         }
 
         /**
-         * Gets a biome from the vanilla biome registry using a ResourceLocation
-         * @param location ResourceLocation for the biome
+         * Gets a biome from the vanilla biome registry using a Identifier
+         * @param location Identifier for the biome
          * @return Holder<Biome> for the requested biome, or null if not found
          */
-        public static Biome getBiome(ResourceLocation location) {
+        public static Biome getBiome(Identifier location) {
             if (location == null) {
                 return null;
             }
@@ -845,7 +843,7 @@ public class HBUtil {
             return biomeRegistry.get(location);
         }
 
-        public static ResourceLocation getBiomeName(Biome b) {
+        public static Identifier getBiomeName(Biome b) {
             if (b == null) return null;
 
             MinecraftServer server = GeneralConfig.getInstance().getServer();
@@ -1219,7 +1217,7 @@ public class HBUtil {
         }
 
         public static EntityType<?> entityNameToEntityType(String namespace, String entityName) {
-            ResourceLocation key = HBUtil.LOC(namespace.trim(), entityName.trim());
+            Identifier key = HBUtil.LOC(namespace.trim(), entityName.trim());
             return BuiltInRegistries.ENTITY_TYPE.get(key);
         }
 
@@ -1514,7 +1512,7 @@ public class HBUtil {
         private static int SENT = 0;
         private static boolean CLIENT_STARTED = false;
         private static boolean USING_DEDICATED_SERVER = false;
-        private static BalmNetworking networking = Balm.getNetworking();
+        private static BalmNetworking networking = Balm.networking();
         private static MinecraftServer server;
 
         private static final Queue<Runnable> PENDING_TASKS = new LinkedBlockingQueue<>();
@@ -1828,8 +1826,8 @@ public class HBUtil {
 
             //Convert worldPos to sectionIndicies
             final BlockPos chunkPos = chunk.getPos().getWorldPosition();
-            final Integer Y_MIN = chunk.getMinBuildHeight();
-            final Integer Y_MAX = chunk.getMaxBuildHeight();
+            final Integer Y_MIN = chunk.getMinY();
+            final Integer Y_MAX = chunk.getMaxY();
 
             int x = pos.getX() - chunkPos.getX();
             int z = pos.getZ() - chunkPos.getZ();
@@ -1844,8 +1842,8 @@ public class HBUtil {
         public void setWorldPos(TripleInt indices, int section, ChunkAccess chunk)
         {
             final BlockPos chunkPos = chunk.getPos().getWorldPosition();
-            final Integer Y_MIN = chunk.getMinBuildHeight();
-            final Integer Y_MAX = chunk.getMaxBuildHeight();
+            final Integer Y_MIN = chunk.getMinY();
+            final Integer Y_MAX = chunk.getMaxY();
 
              int x = chunkPos.getX() + indices.x;
              int y = Y_MIN + (SECTION_SZ * section) + indices.y;
@@ -1983,17 +1981,17 @@ public class HBUtil {
 
     public static class HBMath {
         // Map to track existing UUIDs for collision detection
-        private static final Map<ResourceLocation, Map<Integer,Set<Long>>> existingUUIDs = new ConcurrentHashMap<>();
+        private static final Map<Identifier, Map<Integer,Set<Long>>> existingUUIDs = new ConcurrentHashMap<>();
 
         /**
          * Generates a unique ID of specified length from a string for a given namespace. Should chiefly
          * be used on initial startup because collision information is not persisted.
-         * @param namespace ResourceLocation where this ID should be unique
+         * @param namespace Identifier where this ID should be unique
          * @param input String to convert to unique ID
          * @param digits Maximum number of digits in resulting hash
          * @return Unique long ID
          */
-        public static long getUUID(ResourceLocation namespace, String input, int digits) {
+        public static long getUUID(Identifier namespace, String input, int digits) {
             if (input == null || input.isEmpty() || digits < 1) {
                 return 0;
             }
@@ -2015,7 +2013,7 @@ public class HBUtil {
             return hash;
         }
 
-        public static void clearUUIDs(ResourceLocation namespace) {
+        public static void clearUUIDs(Identifier namespace) {
             existingUUIDs.remove(namespace);
         }
 
@@ -2053,15 +2051,15 @@ public class HBUtil {
         }
 
         /**
-         * Gets a Block from a ResourceLocation
-         * @param location ResourceLocation to look up
+         * Gets a Block from a Identifier
+         * @param location Identifier to look up
          * @return Block if found, null if not found or location is null
          */
-        public static Block getBlockFromResourceLocation(ResourceLocation location) {
+        public static Block getBlockFromResourceLocation(Identifier location) {
             if (location == null) {
                 return null;
             }
-            return Balm.getRegistries().getBlock(location);
+            return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(location);
         }
 
         /**

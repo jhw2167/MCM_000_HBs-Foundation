@@ -19,15 +19,16 @@ import com.holybuckets.foundation.player.ManagedPlayer;
 import com.holybuckets.foundation.sample.SamplePlayerData;
 import com.holybuckets.foundation.structure.StructureManager;
 import com.holybuckets.foundation.util.ModContext;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.network.BalmNetworking;
-import net.minecraft.resources.ResourceLocation;
+import net.blay09.mods.balm.Balm;
+import net.blay09.mods.balm.core.BalmRegistrars;
+import net.blay09.mods.balm.network.BalmNetworking;
+import net.minecraft.resources.Identifier;
 
 public class FoundationInitializers {
 
     private static boolean commonIninitialized = false;
 
-    static void init()
+    static void init(BalmRegistrars registrars)
     {
         commonInitialize();
         checkInitializationErrors();
@@ -37,10 +38,7 @@ public class FoundationInitializers {
         initConfig();
         initNetworking();
 
-        initBlocks();
-        initItems();
-        ModEnchantments.register();
-        ModDataComponents.register(Balm.getRuntime().registrar());
+        initRegistries(registrars);
     }
 
 
@@ -57,8 +55,6 @@ public class FoundationInitializers {
         HBUtil.init(EventRegistrar.getInstance());
         GeneralConfig.init(EventRegistrar.getInstance());
         ModConfig.init(EventRegistrar.getInstance());
-
-        ModItems.commonInitialize(Balm.getItems());
     }
 
     private static void initConfig()
@@ -94,20 +90,20 @@ public class FoundationInitializers {
 
     private static void initNetworking()
     {
-        BalmNetworking networking = Balm.getNetworking();
+        BalmNetworking networking = Balm.networking();
         ModNetworking.init(networking);
     }
 
-    private static void initBlocks() {
-        ModBlocks.initialize(Balm.getBlocks());
-        ModBlockEntities.initialize(Balm.getBlockEntities());
+    private static void initRegistries(BalmRegistrars registrars) {
+        registrars.blocks(ModBlocks::initialize);
+        registrars.blockEntityTypes(ModBlockEntities::initialize);
+        registrars.items(ModItems::initialize);
+        registrars.creativeModeTabs(ModItems::creativeTab);
+        ModEnchantments.register();
+        ModDataComponents.register(registrars.registrar());
     }
 
-    private static void initItems() {
-        ModItems.initialize(Balm.getItems());
-    }
-
-    public static ResourceLocation id(String location) {
+    public static Identifier id(String location) {
         return HBUtil.LOC(Constants.MOD_ID, location);
     }
 

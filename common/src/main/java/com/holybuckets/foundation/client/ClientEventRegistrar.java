@@ -14,17 +14,16 @@ import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.*;
-import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
-import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
-import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
-import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
-import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.event.balm.*;
+import com.holybuckets.foundation.event.balm.client.BlockHighlightDrawEvent;
+import com.holybuckets.foundation.event.balm.client.ClientStartedEvent;
+import com.holybuckets.foundation.event.balm.client.ConnectedToServerEvent;
+import com.holybuckets.foundation.event.balm.client.DisconnectedFromServerEvent;
+import com.holybuckets.foundation.event.balm.client.screen.ScreenDrawEvent;
+import com.holybuckets.foundation.event.balm.client.screen.ContainerScreenDrawEvent;
+import com.holybuckets.foundation.event.balm.client.GuiDrawEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -324,7 +323,7 @@ public class ClientEventRegistrar {
     }
 
     public void onClientInput(ClientInputMessage message) {
-        Player p =  Balm.getProxy().getClientPlayer();
+        Player p = Minecraft.getInstance().player;
         ClientInputEvent event = new ClientInputEvent(p, message);
         ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
     }
@@ -375,6 +374,10 @@ public class ClientEventRegistrar {
                 break; // Stop processing this stage immediately
             }
         }
+    }
+
+    public void onClientStarted(ClientStartedEvent event) {
+        ON_CLIENT_STARTED_EVENT.forEach(consumer -> tryEvent(consumer, event));
     }
 
     public void onGuiDraw(GuiDrawEvent event) {

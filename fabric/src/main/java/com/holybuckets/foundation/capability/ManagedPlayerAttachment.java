@@ -2,11 +2,11 @@ package com.holybuckets.foundation.capability;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.player.ManagedPlayer;
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import com.holybuckets.foundation.event.balm.PlayerLoginEvent;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import com.holybuckets.foundation.Constants;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;

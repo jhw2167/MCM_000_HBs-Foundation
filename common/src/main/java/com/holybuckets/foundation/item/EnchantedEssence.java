@@ -10,6 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+import java.util.function.Consumer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 
@@ -24,8 +26,8 @@ public class EnchantedEssence extends SimpleRewardItem {
 
     public static final String ESSENCE_DATA_TAG = "EssenceData";
 
-    public EnchantedEssence(@Nullable EssenceEnchantment essenceEnchantment) {
-        super("enchanted_essence");
+    public EnchantedEssence(@Nullable EssenceEnchantment essenceEnchantment, Item.Properties properties) {
+        super("enchanted_essence", properties);
         this.essenceEnchantment = essenceEnchantment;
     }
     
@@ -35,9 +37,9 @@ public class EnchantedEssence extends SimpleRewardItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag isAdvanced)
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltipConsumer, TooltipFlag isAdvanced)
     {
-        super.appendHoverText(stack, context, tooltipComponents, isAdvanced);
+        super.appendHoverText(stack, context, display, tooltipConsumer, isAdvanced);
         EssenceType type = EssenceDataComponent.getEssenceType(stack);
         if(type != null)
         {
@@ -49,7 +51,7 @@ public class EnchantedEssence extends SimpleRewardItem {
             } else {
                 list = "No Biomes Associated with this Essence";
             }
-            tooltipComponents.add(Component.literal(list).withStyle(ChatFormatting.GRAY));
+            tooltipConsumer.accept(Component.literal(list).withStyle(ChatFormatting.GRAY));
         }
     }
     

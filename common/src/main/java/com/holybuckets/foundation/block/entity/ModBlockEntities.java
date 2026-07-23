@@ -1,31 +1,19 @@
 package com.holybuckets.foundation.block.entity;
 
-import com.holybuckets.foundation.Constants;
-import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.block.ModBlocks;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.DeferredObject;
-import net.blay09.mods.balm.api.block.BalmBlockEntities;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import com.holybuckets.foundation.util.DeferredObject;
+import net.blay09.mods.balm.world.level.block.entity.BalmBlockEntityTypeRegistrar;
+import net.minecraft.core.Holder;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public class ModBlockEntities {
 
+    public static Holder<BlockEntityType<SimpleBlockEntity>> simpleBlockEntityType;
     public static DeferredObject<BlockEntityType<SimpleBlockEntity>> simpleBlockEntity;
 
-    public static void initialize(BalmBlockEntities blockEntities) {
-        simpleBlockEntity = blockEntities.registerBlockEntity(id("simple_block_entity"), SimpleBlockEntity::new, () -> new Block[]{ModBlocks.stoneBrickBlockEntity.get()} );
-    }
-
-    private static ResourceLocation id(String name) {
-        return HBUtil.LOC(Constants.MOD_ID, name);
-    }
-
-    private static BlockItem itemBlock(Block block) {
-        return new BlockItem(block, Balm.getItems().itemProperties());
+    public static void initialize(BalmBlockEntityTypeRegistrar blockEntities) {
+        simpleBlockEntityType = blockEntities.register("simple_block_entity", SimpleBlockEntity::new, ModBlocks.stoneBrickBlock).asHolder();
+        simpleBlockEntity = DeferredObject.of(simpleBlockEntityType);
     }
 
 }

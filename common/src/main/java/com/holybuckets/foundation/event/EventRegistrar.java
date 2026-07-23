@@ -16,13 +16,13 @@ import com.holybuckets.foundation.model.ManagedChunkEvents;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.util.MixinManager;
-import net.blay09.mods.balm.api.event.*;
-import net.blay09.mods.balm.api.event.BreakBlockEvent;
-import net.blay09.mods.balm.api.event.PlayerAttackEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
-import net.minecraft.resources.ResourceLocation;
+import com.holybuckets.foundation.event.balm.*;
+import com.holybuckets.foundation.event.balm.BreakBlockEvent;
+import com.holybuckets.foundation.event.balm.PlayerAttackEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartedEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -83,7 +83,7 @@ public class EventRegistrar {
     final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
 
     final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
-    final Multimap<ResourceLocation, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = HashMultimap.create();
+    final Multimap<Identifier, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = HashMultimap.create();
     // Subscribers must test for level equality if they want to execute their code in only a specific dimension
     final Set<Consumer<Level>> ON_SERVER_LEVEL_TICK = new ConcurrentSet<>();
     final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
@@ -104,7 +104,7 @@ public class EventRegistrar {
     final Map<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> ON_PLAYER_INTERACT_BY_TYPE = new ConcurrentHashMap<>();
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
-    final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
+    final Map<Identifier, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
     final List<AnvilUpdateEvent> ANVIL_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
 
@@ -390,11 +390,11 @@ public class EventRegistrar {
         generalRegister(function, ON_SERVER_LEVEL_TICK, priority);
     }
 
-    public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
+    public void registerOnDailyTick(Identifier dimension, Consumer<DailyTickEvent> function) {
         registerOnDailyTick(dimension, function, EventPriority.Normal);
     }
 
-    private static final ResourceLocation EMPTY_LOC = HBUtil.LOC("minecraft", "");
+    private static final Identifier EMPTY_LOC = HBUtil.LOC("minecraft", "");
     /**
      * registers a consumer to a specific dimension for day changes.
      * This event is triggered when the number of ticks in a day have passed
@@ -403,8 +403,8 @@ public class EventRegistrar {
      * @param function
      * @param priority
      */
-    public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
-        ResourceLocation dimLoc = dimension != null ? dimension :EMPTY_LOC;
+    public void registerOnDailyTick(@Nullable Identifier dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
+        Identifier dimLoc = dimension != null ? dimension :EMPTY_LOC;
         DAILY_TICK_EVENTS.put(dimLoc, function);
         PRIORITIES.put(function, priority);
     }
@@ -576,12 +576,12 @@ public class EventRegistrar {
         generalRegister(function, ON_STRUCTURE_LOADED, priority);
     }
 
-    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function) {
+    public void registerOnPlayerNearStructure(@Nullable Identifier structureType, Consumer<PlayerNearStructureEvent> function) {
         registerOnPlayerNearStructure(structureType, function, EventPriority.Normal);
     }
 
-    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
-        ResourceLocation key = structureType != null ? structureType : EMPTY_LOC;
+    public void registerOnPlayerNearStructure(@Nullable Identifier structureType, Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
+        Identifier key = structureType != null ? structureType : EMPTY_LOC;
         ON_PLAYER_NEAR_STRUCTURE.computeIfAbsent(key, k -> new ConcurrentSet<>()).add(function);
         PRIORITIES.put(function, priority);
     }
@@ -656,14 +656,14 @@ public class EventRegistrar {
         firePlayerHasItemEvents(s, totalTicks);
 
         // Handle daily tick events
-        Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
+        Map<Identifier, DailyTickEvent> cache = new HashMap<>();
 
         for( Level l : config.getLevels().values())
         {
             if(l.isClientSide) continue;
             if (config.getNextDailyTick(l) > totalTicks) continue;
 
-            ResourceLocation dimLoc = l.dimension().location();
+            Identifier dimLoc = l.dimension().location();
             long sleepTicks = config.getTotalTickCountWithSleep(l);
             cache.put(dimLoc, new DailyTickEvent(totalTicks, sleepTicks, l, false));
         }
@@ -718,7 +718,7 @@ public class EventRegistrar {
 
         GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent);
         DAILY_TICK_EVENTS.get(EMPTY_LOC).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
-        ResourceLocation levelId = level.dimension().location();
+        Identifier levelId = level.dimension().location();
         DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
 
         cleanupOnNewDay();
@@ -759,7 +759,7 @@ public class EventRegistrar {
     }
 
     public void onPlayerNearStructure(PlayerNearStructureEvent event) {
-        ResourceLocation structureType = event.getStructureInfo().getId();
+        Identifier structureType = event.getStructureInfo().getId();
         
         // Get consumers for this specific structure type
         Set<Consumer<PlayerNearStructureEvent>> specificConsumers = ON_PLAYER_NEAR_STRUCTURE.get(structureType);
@@ -767,7 +767,7 @@ public class EventRegistrar {
            specificConsumers.forEach(consumer -> tryEvent(consumer, event));
         }
         
-        // Get consumers for all structure types (registered with null/empty ResourceLocation)
+        // Get consumers for all structure types (registered with null/empty Identifier)
         Set<Consumer<PlayerNearStructureEvent>> generalConsumers = ON_PLAYER_NEAR_STRUCTURE.get(EMPTY_LOC);
         if (generalConsumers != null) {
               generalConsumers.forEach(consumer -> tryEvent(consumer, event));

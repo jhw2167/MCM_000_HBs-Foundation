@@ -10,21 +10,21 @@ import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.holybuckets.foundation.structure.StructureManager;
-import net.blay09.mods.balm.api.client.BalmClient;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.blay09.mods.balm.client.BalmClientRegistrars;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.client.BlockHighlightDrawEvent;
+import com.holybuckets.foundation.event.balm.client.ConnectedToServerEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 
 public class CommonClassClient {
 
 
-    public static void initClient() {
+    public static void initClient(BalmClientRegistrars registrars) {
         //testRenderers();
         //testScreenDraw();
-        initRenderers();
+        initRenderers(registrars);
         initClientEvents();
     }
 
@@ -51,8 +51,8 @@ public class CommonClassClient {
              e -> StructureManager.fireSyncClientStructureCountsToServer(Minecraft.getInstance().player));
     }
 
-    private static void initRenderers() {
-        ModRenderers.clientInitialize(BalmClient.getRenderers());
+    private static void initRenderers(BalmClientRegistrars registrars) {
+        registrars.blockEntityRenderers(ModRenderers::clientInitialize);
     }
 
     //** Events

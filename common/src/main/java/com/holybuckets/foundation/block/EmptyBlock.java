@@ -17,7 +17,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  */
 public class EmptyBlock extends Block {
 
-    protected EmptyBlock(BlockBehaviour.Properties $$0) {
+    public EmptyBlock(BlockBehaviour.Properties $$0) {
         super($$0);
     }
 

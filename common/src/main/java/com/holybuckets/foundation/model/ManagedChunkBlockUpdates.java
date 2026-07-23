@@ -6,7 +6,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.networking.BlockStateUpdatesMessage;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;

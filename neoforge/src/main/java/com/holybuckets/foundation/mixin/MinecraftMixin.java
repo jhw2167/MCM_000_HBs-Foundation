@@ -1,7 +1,7 @@
 package com.holybuckets.foundation.mixin;
 
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
+import com.holybuckets.foundation.client.ClientEventRegistrar;
+import com.holybuckets.foundation.event.balm.client.ClientStartedEvent;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,8 +12,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftMixin {
     @Inject(method = "run()V", at = @At("HEAD"))
     void run(CallbackInfo callbackInfo) {
-        final ClientStartedEvent event = new ClientStartedEvent(Minecraft.getInstance());
-        Balm.getEvents().fireEvent(event);
+        ClientEventRegistrar reg = ClientEventRegistrar.getInstance();
+        if (reg != null) {
+            reg.onClientStarted(new ClientStartedEvent(Minecraft.getInstance()));
+        }
     }
 }
-

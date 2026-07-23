@@ -1,6 +1,6 @@
 package com.holybuckets.foundation.networking;
 
-import net.blay09.mods.balm.api.network.BalmNetworking;
+import net.blay09.mods.balm.network.BalmNetworking;
 import com.holybuckets.foundation.networking.SimpleStringMessage.SimpleStringClientMessage;
 import com.holybuckets.foundation.networking.SimpleStringMessage.SimpleStringServerMessage;
 

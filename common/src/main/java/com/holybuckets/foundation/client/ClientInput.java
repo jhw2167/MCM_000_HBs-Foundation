@@ -4,7 +4,7 @@ import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.networking.ClientInputMessage;
 import com.mojang.blaze3d.platform.InputConstants;
-import net.blay09.mods.balm.api.event.EventPriority;
+import com.holybuckets.foundation.event.balm.EventPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 

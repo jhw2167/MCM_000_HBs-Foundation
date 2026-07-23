@@ -15,13 +15,12 @@ import com.holybuckets.foundation.event.custom.DetermineActiveWaypointEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
+import com.holybuckets.foundation.event.balm.client.ConnectedToServerEvent;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
+import com.holybuckets.foundation.event.balm.client.DisconnectedFromServerEvent;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -171,7 +170,7 @@ public class MovingWaypoint {
                 double dz = targetPos.z - playerPos.z;
                 waypointPos = BlockPos.containing(
                     playerPos.x + dx * scale,
-                    player.level().getMinBuildHeight()+1,
+                    player.level().getMinY()+1,
                     playerPos.z + dz * scale
                 );
             }
@@ -334,14 +333,8 @@ public class MovingWaypoint {
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance()
             .renderBuffers().bufferSource();
 
-
-        // Push fog far out so beams remain visible past the world's fog cutoff.
-        // Restored in the finally block below.
-        float prevFogStart = RenderSystem.getShaderFogStart();
-        float prevFogEnd = RenderSystem.getShaderFogEnd();
-        RenderSystem.setShaderFogStart(Float.MAX_VALUE);
-        RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
-
+        // 26.1 PORT NOTE: RenderSystem shader fog overrides were removed with the fog
+        // rework; beams now respect world fog. Needs in-game verification.
         try {
             int renderedCount = 0;
             for (IntObjectMap.PrimitiveEntry<Waypoint> entry : activeWaypoints.entries()) {
@@ -377,7 +370,7 @@ public class MovingWaypoint {
                     1.0f,
                     gameTime,
                     0,
-                    Minecraft.getInstance().level.getMaxBuildHeight() - targetPos.getY(),
+                    Minecraft.getInstance().level.getMaxY() - targetPos.getY(),
                     colors,
                     BEAM_RADIUS,
                     glowRadius
@@ -387,8 +380,7 @@ public class MovingWaypoint {
                 renderedCount++;
             }
         } finally {
-            RenderSystem.setShaderFogStart(prevFogStart);
-            RenderSystem.setShaderFogEnd(prevFogEnd);
+            bufferSource.endBatch();
         }
     }
 }

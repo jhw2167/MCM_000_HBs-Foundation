@@ -8,7 +8,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ModDataComponents {
 
@@ -22,7 +22,7 @@ public class ModDataComponents {
         ESSENCE_TYPE_COMPONENT = registrar.register(key, loc -> EssenceDataComponent.TYPE);
     }
 
-    private static ResourceLocation id(String name) {
+    private static Identifier id(String name) {
         return HBUtil.LOC(Constants.MOD_ID, name);
     }
 }

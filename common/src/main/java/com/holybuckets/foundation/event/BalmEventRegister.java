@@ -1,17 +1,24 @@
 package com.holybuckets.foundation.event;
 
-import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.command.BalmCommands;
-import net.blay09.mods.balm.api.event.*;
-
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.event.balm.*;
+import com.holybuckets.foundation.event.balm.server.ServerStartedEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
+import net.blay09.mods.balm.Balm;
+import net.blay09.mods.balm.commands.BalmCommands;
+import net.blay09.mods.balm.platform.event.callback.BlockCallback;
+import net.blay09.mods.balm.platform.event.callback.InteractionEventResult;
+import net.blay09.mods.balm.platform.event.callback.ItemCallback;
+import net.blay09.mods.balm.platform.event.callback.LevelCallback;
+import net.blay09.mods.balm.platform.event.callback.LivingEntityCallback;
+import net.blay09.mods.balm.platform.event.callback.PlayerCallback;
+import net.blay09.mods.balm.platform.event.callback.ServerLifecycleCallback;
+import net.blay09.mods.balm.platform.event.callback.ServerPlayerCallback;
+import net.blay09.mods.balm.platform.event.callback.ServerTickCallback;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -28,63 +35,112 @@ public class BalmEventRegister {
     // Register all events in the Registrar with Balm Events
     public static void registerEvents()
     {
-        BalmEvents registry = Balm.getEvents();
         registrar = EventRegistrar.getInstance();
 
         //** SERVER EVENTS **/
 
         drainAndRegister(registrar.ON_CHUNK_LOAD, "ON_CHUNK_LOAD", c ->
-            registry.onEvent(ChunkLoadingEvent.Load.class, c, p(c)));
+            LevelCallback.Chunk.LOAD.register(p(c).toPhase(), (level, chunk, chunkPos) ->
+                c.accept(new ChunkLoadingEvent.Load(level, chunk, chunkPos))));
 
         drainAndRegister(registrar.ON_CHUNK_UNLOAD, "ON_CHUNK_UNLOAD", c ->
-            registry.onEvent(ChunkLoadingEvent.Unload.class, c, p(c)));
+            LevelCallback.Chunk.UNLOAD.register(p(c).toPhase(), (level, chunk, chunkPos) ->
+                c.accept(new ChunkLoadingEvent.Unload(level, chunk, chunkPos))));
 
         /** PLAYER EVENTS **/
 
         drainAndRegister(registrar.ON_PLAYER_LOGIN, "ON_PLAYER_LOGIN", c ->
-            registry.onEvent(PlayerLoginEvent.class, c, p(c)));
+            ServerPlayerCallback.Join.EVENT.register(p(c).toPhase(), player ->
+                c.accept(new PlayerLoginEvent(player))));
 
         drainAndRegister(registrar.ON_PLAYER_LOGOUT, "ON_PLAYER_LOGOUT", c ->
-            registry.onEvent(PlayerLogoutEvent.class, c, p(c)));
+            ServerPlayerCallback.Leave.EVENT.register(p(c).toPhase(), player ->
+                c.accept(new PlayerLogoutEvent(player))));
 
         drainAndRegister(registrar.ON_PLAYER_ATTACK, "ON_PLAYER_ATTACK", c ->
-            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
+            PlayerCallback.Attack.Before.EVENT.register(p(c).toPhase(), (player, target) -> {
+                PlayerAttackEvent event = new PlayerAttackEvent(player, target);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_BLOCK_BROKEN, "ON_BLOCK_BROKEN", c ->
-            registry.onEvent(BreakBlockEvent.class, c, p(c)));
+            BlockCallback.Break.Before.EVENT.register(p(c).toPhase(), (level, pos, state, blockEntity, player) -> {
+                BreakBlockEvent event = new BreakBlockEvent(level, player, pos, state, blockEntity);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_CHANGED_DIMENSION, "ON_PLAYER_CHANGED_DIMENSION", c ->
-            registry.onEvent(PlayerChangedDimensionEvent.class, c, p(c)));
+            ServerPlayerCallback.DimensionChange.EVENT.register(p(c).toPhase(), (player, from, to) ->
+                c.accept(new PlayerChangedDimensionEvent(player, from, to))));
 
         drainAndRegister(registrar.ON_PLAYER_RESPAWN, "ON_PLAYER_RESPAWN", c ->
-            registry.onEvent(PlayerRespawnEvent.class, c, p(c)));
+            ServerPlayerCallback.Respawn.EVENT.register(p(c).toPhase(), (oldPlayer, newPlayer) ->
+                c.accept(new PlayerRespawnEvent(oldPlayer, newPlayer))));
 
         drainAndRegister(registrar.ON_PLAYER_DEATH, "ON_PLAYER_DEATH", c ->
-            registry.onEvent(LivingDeathEvent.class, c, p(c)));
+            LivingEntityCallback.Death.Before.EVENT.register(p(c).toPhase(), (entity, damageSource) -> {
+                LivingDeathEvent event = new LivingDeathEvent(entity, damageSource);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_DAMAGE, "ON_PLAYER_DAMAGE", c ->
-            registry.onEvent(LivingDamageEvent.class, c, p(c)));
+            LivingEntityCallback.Damage.Before.EVENT.register(p(c).toPhase(), (entity, damageSource, damageAmount) -> {
+                LivingDamageEvent event = new LivingDamageEvent(entity, damageSource, damageAmount);
+                c.accept(event);
+                return event.isCanceled() ? 0f : event.getDamageAmount();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_FALL, "ON_PLAYER_FALL", c ->
-            registry.onEvent(LivingFallEvent.class, c, p(c)));
+            LivingEntityCallback.Fall.Before.EVENT.register(p(c).toPhase(), (entity, fallDamage) -> {
+                LivingFallEvent event = new LivingFallEvent(entity, fallDamage);
+                c.accept(event);
+                if (event.isCanceled()) return 0f;
+                return event.getFallDamageOverride() != null ? event.getFallDamageOverride() : fallDamage;
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_HEAL, "ON_PLAYER_HEAL", c ->
-            registry.onEvent(LivingHealEvent.class, c, p(c)));
+            LivingEntityCallback.Heal.Before.EVENT.register(p(c).toPhase(), (entity, healAmount) -> {
+                LivingHealEvent event = new LivingHealEvent(entity, healAmount);
+                c.accept(event);
+                return event.isCanceled() ? 0f : healAmount;
+            }));
 
         drainAndRegister(registrar.ON_USE_BLOCK, "ON_USE_BLOCK", c ->
-            registry.onEvent(UseBlockEvent.class, c, p(c)));
+            BlockCallback.Use.EVENT.register(p(c).toPhase(), (player, level, hand, hitResult) -> {
+                UseBlockEvent event = new UseBlockEvent(player, level, hand, hitResult);
+                c.accept(event);
+                if (event.isCanceled() || event.getInteractionResult() != net.minecraft.world.InteractionResult.PASS) {
+                    return () -> Optional.of(event.getInteractionResult());
+                }
+                return InteractionEventResult.DEFAULT;
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_ATTACK_EVENT, "ON_PLAYER_ATTACK_EVENT", c ->
-            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
+            PlayerCallback.Attack.Before.EVENT.register(p(c).toPhase(), (player, target) -> {
+                PlayerAttackEvent event = new PlayerAttackEvent(player, target);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_DIG_SPEED_EVENT, "ON_DIG_SPEED_EVENT", c ->
-            registry.onEvent(DigSpeedEvent.class, c, p(c)));
+            BlockCallback.DigSpeed.EVENT.register(p(c).toPhase(), (blockGetter, pos, state, player, digSpeed) -> {
+                DigSpeedEvent event = new DigSpeedEvent(player, state, digSpeed);
+                c.accept(event);
+                return event.getSpeedOverride() != null ? event.getSpeedOverride() : digSpeed;
+            }));
 
         // Track wake up event registrations even though it's not a Balm event
         drainAndRegister(registrar.ON_WAKE_UP_ALL_PLAYERS, "ON_WAKE_UP_ALL_PLAYERS", c -> {});
 
         drainAndRegister(registrar.ON_TOSS_ITEM, "ON_TOSS_ITEM", c ->
-            registry.onEvent(TossItemEvent.class, c, p(c)));
+            ItemCallback.Toss.Before.EVENT.register(p(c).toPhase(), (player, itemStack) -> {
+                TossItemEvent event = new TossItemEvent(player, itemStack);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
     }
 
     private static <T> void drainAndRegister(Set<Consumer<T>> set, String eventName, Consumer<Consumer<T>> balmRegistration)
@@ -94,10 +150,6 @@ public class BalmEventRegister {
         {
             Consumer<T> c = it.next();
             String key = c.getClass().getName() + "::" + eventName;
-
-            if(registeredEvents.containsKey(key)) {
-                String i = "why do you happen";
-            }
 
             if (!registeredEvents.containsKey(key))
             {
@@ -110,27 +162,29 @@ public class BalmEventRegister {
 
 
     public static void registerCommands() {
-        BalmCommands commands = Balm.getCommands();
+        BalmCommands commands = Balm.commands();
         commands.register(CommandRegistry::register);
     }
 
     static void registerPriorityEvents(EventRegistrar registrar)
     {
-        BalmEvents registry = Balm.getEvents();
-
         //Server Events
-        registry.onEvent(ServerStartingEvent.class, registrar::onBeforeServerStarted, EventPriority.Highest);
-        registry.onEvent(ServerStartedEvent.class, registrar::onServerStarted, EventPriority.Highest);
-        registry.onEvent(ServerStoppedEvent.class, registrar::onServerStopped, EventPriority.Lowest);
+        ServerLifecycleCallback.Starting.EVENT.register(EventPriority.Highest.toPhase(), server ->
+            registrar.onBeforeServerStarted(new ServerStartingEvent(server)));
+        ServerLifecycleCallback.Started.EVENT.register(EventPriority.Highest.toPhase(), server ->
+            registrar.onServerStarted(new ServerStartedEvent(server)));
+        ServerLifecycleCallback.Stopped.EVENT.register(EventPriority.Lowest.toPhase(), server ->
+            registrar.onServerStopped(new ServerStoppedEvent(server)));
 
         // Level events with priority handling
-        registry.onEvent(LevelLoadingEvent.Load.class, registrar::onLevelLoad, EventPriority.High);
-        registry.onEvent(LevelLoadingEvent.Unload.class, registrar::onLevelUnload, EventPriority.Low);
+        LevelCallback.LOAD.register(EventPriority.High.toPhase(), level ->
+            registrar.onLevelLoad(new LevelLoadingEvent.Load(level)));
+        LevelCallback.UNLOAD.register(EventPriority.Low.toPhase(), level ->
+            registrar.onLevelUnload(new LevelLoadingEvent.Unload(level)));
 
         // Tick events
-        registry.onTickEvent(TickType.Server , TickPhase.Start, registrar::onServerTick);
-        registry.onTickEvent(TickType.ServerLevel, TickPhase.Start, registrar::onServerLevelTick);
-
+        ServerTickCallback.BEFORE.register(registrar::onServerTick);
+        ServerTickCallback.ServerLevelTick.BEFORE.register(registrar::onServerLevelTick);
     }
 
 

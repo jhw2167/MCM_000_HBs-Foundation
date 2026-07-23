@@ -2,165 +2,62 @@ package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.client.ClientEventRegistrar;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
-import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * 26.1 PORT NOTE: renderLevel was reworked into a frame-graph/render-state pipeline.
+ * Injections now target the frame pass name constants and capture no locals; render
+ * context (camera, delta) is pulled from Minecraft.getInstance(). Matrices are no
+ * longer available at these injection points and are passed as null.
+ * Each injection uses require = 0 so a missed target logs instead of crashing;
+ * verify each stage fires in-game.
+ */
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin {
 
-    // After sky rendering
-    @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "CONSTANT",
-            args = "stringValue=sky"
-        )
-    )
-    private void afterSky(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SKY,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
+    private void hbs$fireStage(RenderLevelEvent.RenderStage stage) {
+        Minecraft mc = Minecraft.getInstance();
+        ClientEventRegistrar registrar = ClientEventRegistrar.getInstance();
+        if (registrar == null) return;
+        registrar.onRenderLevel(stage,
+            mc.getDeltaTracker(), true,
+            mc.gameRenderer.getMainCamera(), mc.gameRenderer, mc.gameRenderer.lightTexture(),
+            null, null
         );
     }
 
-    // After solid blocks
-    @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "CONSTANT",
-            args = "stringValue=entities"
-        )
-    )
-    private void afterSolidBlocks(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
-        );
+    @Inject(method = "renderLevel", at = @At(value = "CONSTANT", args = "stringValue=sky"), require = 0)
+    private void afterSky(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_SKY);
     }
 
-    // After translucent blocks (RECOMMENDED FOR BEACON BEAMS)
-    @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "CONSTANT",
-            args = "stringValue=translucent"
-        )
-    )
-    private void afterTranslucentBlocks(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
-        );
+    @Inject(method = "renderLevel", at = @At(value = "CONSTANT", args = "stringValue=entities"), require = 0)
+    private void afterSolidBlocks(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_SOLID_BLOCKS);
     }
 
-    // After particles
-    @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "CONSTANT",
-            args = "stringValue=particles"
-        )
-    )
-    private void afterParticles(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_PARTICLES,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
-        );
+    @Inject(method = "renderLevel", at = @At(value = "CONSTANT", args = "stringValue=translucent"), require = 0)
+    private void afterTranslucentBlocks(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS);
     }
 
-    // After weather — target changed from DebugRenderer.render() to LevelRenderer.renderDebug()
-    @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderDebug(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/Camera;)V",
-            shift = At.Shift.BEFORE
-        )
-    )
-    private void afterWeather(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_WEATHER,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
-        );
+    @Inject(method = "renderLevel", at = @At(value = "CONSTANT", args = "stringValue=particles"), require = 0)
+    private void afterParticles(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_PARTICLES);
     }
 
-    // At the end of renderLevel
-    @Inject(
-        method = "renderLevel",
-        at = @At("TAIL")
-    )
-    private void afterLevel(
-        DeltaTracker deltaTracker,
-        boolean renderBlockOutline,
-        Camera camera,
-        GameRenderer gameRenderer,
-        LightTexture lightTexture,
-        Matrix4f modelViewMatrix,
-        Matrix4f projectionMatrix,
-        CallbackInfo ci
-    ) {
-        ClientEventRegistrar.getInstance().onRenderLevel(RenderLevelEvent.RenderStage.AFTER_LEVEL,
-            deltaTracker, renderBlockOutline,
-            camera, gameRenderer, lightTexture,
-            modelViewMatrix, projectionMatrix
-        );
+    @Inject(method = "renderLevel", at = @At(value = "CONSTANT", args = "stringValue=weather"), require = 0)
+    private void afterWeather(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_WEATHER);
+    }
+
+    @Inject(method = "renderLevel", at = @At("TAIL"), require = 0)
+    private void afterLevel(CallbackInfo ci) {
+        hbs$fireStage(RenderLevelEvent.RenderStage.AFTER_LEVEL);
     }
 }

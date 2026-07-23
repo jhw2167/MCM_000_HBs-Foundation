@@ -1,18 +1,19 @@
 package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
-import com.holybuckets.foundation.event.custom.TickType;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.BalmEvents;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.TickPhase;
-import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
-import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
-import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
-import net.blay09.mods.balm.api.event.client.BlockHighlightDrawEvent;
-import net.blay09.mods.balm.api.event.client.screen.ScreenDrawEvent;
-import net.blay09.mods.balm.api.event.client.screen.ContainerScreenDrawEvent;
-import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.client.ClientStartedEvent;
+import com.holybuckets.foundation.event.balm.client.ConnectedToServerEvent;
+import com.holybuckets.foundation.event.balm.client.DisconnectedFromServerEvent;
+import com.holybuckets.foundation.event.balm.client.BlockHighlightDrawEvent;
+import com.holybuckets.foundation.event.balm.client.GuiDrawEvent;
+import com.holybuckets.foundation.event.balm.client.screen.ScreenDrawEvent;
+import com.holybuckets.foundation.event.balm.client.screen.ContainerScreenDrawEvent;
+import net.blay09.mods.balm.client.platform.event.callback.ClientLifecycleCallback;
+import net.blay09.mods.balm.client.platform.event.callback.ClientTickCallback;
+import net.blay09.mods.balm.client.platform.event.callback.RenderCallback;
+import net.blay09.mods.balm.client.platform.event.callback.ScreenCallback;
+import net.minecraft.client.Minecraft;
 
 import java.util.Objects;
 import java.util.Set;
@@ -25,87 +26,99 @@ public class ClientBalmEventRegister {
     public static EventPriority p(Consumer<?> func) { return events.PRIORITIES.getOrDefault(func.hashCode(), EventPriority.Normal); }
 
     public static void registerEvents() {
-        BalmEvents registry = Balm.getEvents();
         events = ClientEventRegistrar.getInstance();
 
         events.ON_CLIENT_STARTED_EVENT.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ClientStartedEvent.class, c, p(c));
+            ClientLifecycleCallback.Started.EVENT.register(p(c).toPhase(), client ->
+                c.accept(new ClientStartedEvent(client)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_CONNECTED_TO_SERVER.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ConnectedToServerEvent.class, c, p(c));
+            ClientLifecycleCallback.ConnectedToServer.EVENT.register(p(c).toPhase(), client ->
+                c.accept(new ConnectedToServerEvent(client)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_DISCONNECTED_FROM_SERVER.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(DisconnectedFromServerEvent.class, c, p(c));
+            ClientLifecycleCallback.DisconnectedFromServer.EVENT.register(p(c).toPhase(), client ->
+                c.accept(new DisconnectedFromServerEvent(client)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_BLOCK_HIGHLIGHT_DRAW.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(BlockHighlightDrawEvent.class, c, p(c));
+            RenderCallback.BlockHighlight.EVENT.register(p(c).toPhase(), (hitResult, poseStack, multiBufferSource, camera, color, lineWidth) -> {
+                BlockHighlightDrawEvent event = new BlockHighlightDrawEvent(hitResult, poseStack, multiBufferSource, camera);
+                c.accept(event);
+                return !event.isCanceled();
+            });
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_SCREEN_DRAW_PRE.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ScreenDrawEvent.Pre.class, c, p(c));
+            ScreenCallback.Render.BEFORE.register(p(c).toPhase(), (screen, guiGraphics, mouseX, mouseY, delta) ->
+                c.accept(new ScreenDrawEvent.Pre(screen, guiGraphics, mouseX, mouseY, delta)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_SCREEN_DRAW_POST.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ScreenDrawEvent.Post.class, c, p(c));
+            ScreenCallback.Render.AFTER.register(p(c).toPhase(), (screen, guiGraphics, mouseX, mouseY, delta) ->
+                c.accept(new ScreenDrawEvent.Post(screen, guiGraphics, mouseX, mouseY, delta)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_CONTAINER_SCREEN_DRAW_BACKGROUND.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ContainerScreenDrawEvent.Background.class, c, p(c));
+            ScreenCallback.Render.AFTER_BACKGROUND.register(p(c).toPhase(), (screen, guiGraphics, mouseX, mouseY, delta) ->
+                c.accept(new ContainerScreenDrawEvent.Background(screen, guiGraphics, mouseX, mouseY)));
             registeredEvents.add(c.hashCode());
         });
 
+        // Balm 26.1 has no dedicated foreground (renderLabels) hook; Render.AFTER is the closest equivalent
         events.ON_CONTAINER_SCREEN_DRAW_FOREGROUND.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(ContainerScreenDrawEvent.Foreground.class, c, p(c));
+            ScreenCallback.Render.AFTER.register(p(c).toPhase(), (screen, guiGraphics, mouseX, mouseY, delta) ->
+                c.accept(new ContainerScreenDrawEvent.Foreground(screen, guiGraphics, mouseX, mouseY)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_GUI_DRAW.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(GuiDrawEvent.class, c, p(c));
+            RenderCallback.Gui.AFTER.register(p(c).toPhase(), (guiGraphics, window) ->
+                c.accept(new GuiDrawEvent.Post(window, guiGraphics, GuiDrawEvent.Element.ALL)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_GUI_DRAW_PRE.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(GuiDrawEvent.Pre.class, c, p(c));
+            RenderCallback.Gui.BEFORE.register(p(c).toPhase(), (guiGraphics, window) -> {
+                GuiDrawEvent.Pre event = new GuiDrawEvent.Pre(window, guiGraphics, GuiDrawEvent.Element.ALL);
+                c.accept(event);
+                return !event.isCanceled();
+            });
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_GUI_DRAW_POST.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(GuiDrawEvent.Post.class, c, p(c));
+            RenderCallback.Gui.AFTER.register(p(c).toPhase(), (guiGraphics, window) ->
+                c.accept(new GuiDrawEvent.Post(window, guiGraphics, GuiDrawEvent.Element.ALL)));
             registeredEvents.add(c.hashCode());
         });
 
         events.ON_GUI_DRAW_ELEMENT.stream().filter(ClientBalmEventRegister::notRegistered).forEach(c -> {
-            registry.onEvent(GuiDrawEvent.Element.class, c, p(c));
+            RenderCallback.Gui.Health.AFTER.register((guiGraphics, window) -> c.accept(GuiDrawEvent.Element.HEALTH));
+            RenderCallback.Gui.Chat.AFTER.register((guiGraphics, window) -> c.accept(GuiDrawEvent.Element.CHAT));
+            RenderCallback.Gui.Debug.AFTER.register((guiGraphics, window) -> c.accept(GuiDrawEvent.Element.DEBUG));
+            RenderCallback.Gui.BossInfo.AFTER.register((guiGraphics, window) -> c.accept(GuiDrawEvent.Element.BOSS_INFO));
+            RenderCallback.Gui.PlayerList.AFTER.register((guiGraphics, window) -> c.accept(GuiDrawEvent.Element.PLAYER_LIST));
             registeredEvents.add(c.hashCode());
         });
-
-
-
 
     }
 
     static void registerClientTickEvents() {
-        BalmEvents registry = Balm.getEvents();
-
         if (registeredEvents.add(Objects.hash("onClientTick"))) {
-            registry.onTickEvent(
-                net.blay09.mods.balm.api.event.TickType.Client,
-             TickPhase.End, events::onClientTick);
+            ClientTickCallback.AFTER.register(events::onClientTick);
         }
 
         if (registeredEvents.add(Objects.hash("onClientLevelTick"))) {
-            registry.onTickEvent(
-                net.blay09.mods.balm.api.event.TickType.ClientLevel,
-                 TickPhase.End, events::onClientLevelTick);
+            ClientTickCallback.ClientLevelTick.AFTER.register(events::onClientLevelTick);
         }
     }
 }

@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,13 +22,12 @@ public class PlayerInteractEventFabric {
         UseEntityCallback.EVENT.register(PlayerInteractEventFabric::onUseEntity);
     }
 
-    private static InteractionResultHolder<ItemStack> onUseItem(Player player, Level level, InteractionHand hand) {
+    private static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         boolean canceled = EventRegistrar.getInstance().onPlayerInteract(
             new PlayerInteractEvent.RightClickInteraction(player, level, hand, stack, null, null)
         );
-        if (canceled) return InteractionResultHolder.fail(stack);
-        return InteractionResultHolder.pass(stack);
+        return canceled ? InteractionResult.FAIL : InteractionResult.PASS;
     }
 
     private static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {

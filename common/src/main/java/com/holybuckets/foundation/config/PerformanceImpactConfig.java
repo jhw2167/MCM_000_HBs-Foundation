@@ -1,6 +1,6 @@
 package com.holybuckets.foundation.config;
 
-import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.Balm;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,11 +16,11 @@ public class PerformanceImpactConfig {
     public static final String CLASS_ID = "001";
 
     public static PerformanceImpactConfigData getActive() {
-        return Balm.getConfig().getActive(PerformanceImpactConfigData.class);
+        return Balm.config().getActiveConfig(PerformanceImpactConfigData.class);
     }
 
     public static void initialize() {
-        Balm.getConfig().registerConfig(PerformanceImpactConfigData.class, null);
+        Balm.config().registerConfig(PerformanceImpactConfigData.class);
     }
 
     PerformanceImpactLevel performanceImpactLevel;

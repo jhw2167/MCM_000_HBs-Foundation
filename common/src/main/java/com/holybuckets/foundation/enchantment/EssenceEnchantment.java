@@ -11,7 +11,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 
@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 public class EssenceEnchantment {
 
 
-    public static final ResourceLocation LOC = HBUtil.LOC("hbs_foundation", "essence");
+    public static final Identifier LOC = HBUtil.LOC("hbs_foundation", "essence");
     public static final ResourceKey<Enchantment> KEY = ResourceKey.create(
         Registries.ENCHANTMENT, LOC
     );

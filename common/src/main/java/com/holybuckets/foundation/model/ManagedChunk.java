@@ -11,7 +11,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import com.holybuckets.foundation.event.balm.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;

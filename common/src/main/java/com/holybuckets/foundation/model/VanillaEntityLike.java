@@ -1,7 +1,7 @@
 package com.holybuckets.foundation.model;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
@@ -41,7 +41,7 @@ public class VanillaEntityLike implements EntityLike {
     }
 
     @Override
-    public ResourceLocation dimension() {
+    public Identifier dimension() {
         return entity.level().dimension().location();
     }
 

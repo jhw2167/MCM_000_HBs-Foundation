@@ -3,13 +3,11 @@ package com.holybuckets.foundation.item;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.model.VanillaEntityLike;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.LivingDamageEvent;
+import com.holybuckets.foundation.event.balm.LivingDamageEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -31,12 +29,12 @@ public class WaypointStick extends Item {
     // first use yields colorId 0 (16 % 16), cleanly cycling through wool colors.
     private static int currentStickId = MovingWaypoint.MAX_COLORS;
 
-    public WaypointStick() {
-        super(Balm.getItems().itemProperties().stacksTo(1));
+    public WaypointStick(Item.Properties properties) {
+        super(properties.stacksTo(1));
     }
 
     public static void init(EventRegistrar reg) {
-        Balm.getEvents().onEvent(LivingDamageEvent.class, WaypointStick::livingEntityHurt);
+        reg.registerOnPlayerDamage(WaypointStick::livingEntityHurt);
     }
 
     private static void livingEntityHurt(LivingDamageEvent dmgEvent) {
@@ -71,10 +69,9 @@ public class WaypointStick extends Item {
      * nearest waypoint within {@link #DELETE_NEAR_HORIZ_DIST} blocks (xz only).
      */
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (level.isClientSide) return InteractionResultHolder.success(stack);
-        if (!(player instanceof ServerPlayer sp)) return InteractionResultHolder.pass(stack);
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        if (level.isClientSide) return InteractionResult.SUCCESS;
+        if (!(player instanceof ServerPlayer sp)) return InteractionResult.PASS;
 
         Vec3 pos = sp.position();
         MovingWaypoint.WaypointInfo nearest =
@@ -83,7 +80,7 @@ public class WaypointStick extends Item {
             // Remove by the map-key (colorId) since that's the canonical existing remove.
             MovingWaypoint.removeWaypoint(sp, nearest.colorId);
         }
-        return InteractionResultHolder.success(stack);
+        return InteractionResult.SUCCESS;
     }
 
     /** Allocate the next (colorId, waypointId) pair from the shared counter. */

@@ -1,40 +1,34 @@
 package com.holybuckets.foundation.item;
 
-
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.block.ModBlocks;
-import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.DeferredObject;
-import net.blay09.mods.balm.api.item.BalmItems;
+import com.holybuckets.foundation.util.DeferredObject;
 import net.blay09.mods.balm.world.item.BalmCreativeModeTabRegistrar;
+import net.blay09.mods.balm.world.item.BalmItemRegistrar;
+import net.blay09.mods.balm.world.item.DeferredItem;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ItemLike;
 
-import  com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.HBUtil;
 
 public class ModItems {
-    public static DeferredObject<CreativeModeTab> creativeModeTab;
-    public static ResourceLocation FOUNDATIONS_TAB = id(Constants.MOD_ID);
+    public static Identifier FOUNDATIONS_TAB = id(Constants.MOD_ID);
+
+    public static DeferredItem enchantedEssenceItem;
+    public static DeferredItem waypointStickItem;
 
     public static DeferredObject<Item> enchantedEssence;
     public static DeferredObject<Item> waypointStick;
 
-    public static void commonInitialize(BalmItems items)
+    public static void initialize(BalmItemRegistrar items)
     {
-        // Register the enchanted essence item (added to the creative tab manually below).
-        enchantedEssence = items.registerItem(rl -> new SimpleRewardItem(Constants.MOD_ID, "enchanted_essence"), id("enchanted_essence"),
-         id("hbs_traveler_rewards"));
-    }
+        enchantedEssenceItem = items.register("enchanted_essence", props -> new SimpleRewardItem("enchanted_essence", Constants.MOD_ID, props)).asDeferredItem();
+        enchantedEssence = DeferredObject.of(enchantedEssenceItem);
 
-    public static void initialize(BalmItems items) {
-        // Register the waypoint stick (added to the creative tab manually below).
-        waypointStick = items.registerItem(rl -> new WaypointStick(), id("waypoint_stick"), null);
-
-        Balm.getRuntime().creativeModeTabs(Constants.MOD_ID, ModItems::creativeTab);
+        waypointStickItem = items.register("waypoint_stick", WaypointStick::new).asDeferredItem();
+        waypointStick = DeferredObject.of(waypointStickItem);
     }
 
     public static void creativeTab(BalmCreativeModeTabRegistrar tabRegistrar) {
@@ -49,7 +43,7 @@ public class ModItems {
         ));
     }
 
-    private static ResourceLocation id(String name) {
+    private static Identifier id(String name) {
         return HBUtil.LOC(Constants.MOD_ID, name);
     }
 

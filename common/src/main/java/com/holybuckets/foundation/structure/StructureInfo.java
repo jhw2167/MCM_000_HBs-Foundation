@@ -5,7 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.apache.commons.lang3.text.WordUtils;
@@ -13,12 +13,12 @@ import org.apache.commons.lang3.text.WordUtils;
 public class StructureInfo {
 
     BlockPos origin;
-    ResourceLocation id;
+    Identifier id;
     int registryId;
     String commonName;
-    ResourceLocation structureLocation;
+    Identifier structureLocation;
 
-    public StructureInfo(BlockPos origin, ResourceLocation id, int rId, String commonName, ResourceLocation structureLocation) {
+    public StructureInfo(BlockPos origin, Identifier id, int rId, String commonName, Identifier structureLocation) {
         this.origin = origin;
         this.id = id;
         this.registryId = rId;
@@ -35,7 +35,7 @@ public class StructureInfo {
         return origin;
     }
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
 
@@ -47,7 +47,7 @@ public class StructureInfo {
         return commonName;
     }
 
-    public ResourceLocation getStructureLocation() {
+    public Identifier getStructureLocation() {
         return structureLocation;
     }
 
@@ -98,16 +98,16 @@ public class StructureInfo {
 
     //* Statics
 
-    public static StructureInfo of(Holder<Structure> holder, BlockPos structurePos, Registry<Structure> structureRegistry, ResourceLocation loc) {
-        ResourceLocation id = structureRegistry.getKey(holder.value());
+    public static StructureInfo of(Holder<Structure> holder, BlockPos structurePos, Registry<Structure> structureRegistry, Identifier loc) {
+        Identifier id = structureRegistry.getKey(holder.value());
         int rId = structureRegistry.getId(holder.value());
         String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
         return new StructureInfo(structurePos, id, rId, commonName, loc);
     }
 
-    public static StructureInfo of(int rId, String blockPos, Registry<Structure> structureRegistry, ResourceLocation loc) {
+    public static StructureInfo of(int rId, String blockPos, Registry<Structure> structureRegistry, Identifier loc) {
         Structure struct = structureRegistry.byId(rId);
-        ResourceLocation id = structureRegistry.getKey(struct);
+        Identifier id = structureRegistry.getKey(struct);
         String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
         return new StructureInfo(pos, id, rId, commonName, loc);

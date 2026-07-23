@@ -12,9 +12,9 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.ManagedPlayerSyncMessage;
-import net.blay09.mods.balm.api.event.*;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.event.balm.*;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
@@ -203,8 +203,8 @@ public class ManagedPlayer {
         int maxZ = playerPos.getZ() + radius;
 
         // Calculate Y bounds (full height range around player)
-        int yMax = Math.min(level.getMaxBuildHeight(), playerPos.getY() + radius);
-        int yMin = Math.max(level.getMinBuildHeight(), playerPos.getY() - radius);
+        int yMax = Math.min(level.getMaxY(), playerPos.getY() + radius);
+        int yMin = Math.max(level.getMinY(), playerPos.getY() - radius);
         AABB aabb = new AABB(minX, yMin, minZ, maxX, yMax, maxZ);
 
         // Query entities in this AABB

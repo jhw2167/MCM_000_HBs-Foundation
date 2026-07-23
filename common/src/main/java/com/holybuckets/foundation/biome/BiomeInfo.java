@@ -5,18 +5,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import org.apache.commons.lang3.text.WordUtils;
 
 public class BiomeInfo {
 
     BlockPos samplePos;   // one representative position inside the biome (chunk center)
-    ResourceLocation id;
+    Identifier id;
     int registryId;
     String commonName;
 
-    public BiomeInfo(BlockPos samplePos, ResourceLocation id, int registryId, String commonName) {
+    public BiomeInfo(BlockPos samplePos, Identifier id, int registryId, String commonName) {
         this.samplePos = samplePos;
         this.id = id;
         this.registryId = registryId;
@@ -33,7 +33,7 @@ public class BiomeInfo {
         return samplePos;
     }
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
 
@@ -76,7 +76,7 @@ public class BiomeInfo {
             samplePos = HBUtil.BlockUtil.stringToBlockPos(tag.getString("samplePos"));
         }
         if (tag.contains("id")) {
-            id = ResourceLocation.tryParse(tag.getString("id"));
+            id = Identifier.tryParse(tag.getString("id"));
         }
         registryId = tag.getInt("registryId");
         if (tag.contains("commonName")) {
@@ -87,7 +87,7 @@ public class BiomeInfo {
     //** STATICS
 
     public static BiomeInfo of(Holder<Biome> holder, BlockPos samplePos, Registry<Biome> biomeRegistry) {
-        ResourceLocation id = holder.unwrapKey()
+        Identifier id = holder.unwrapKey()
             .map(key -> key.location())
             .orElse(biomeRegistry.getKey(holder.value()));
         int rId = biomeRegistry.getId(holder.value());
@@ -99,7 +99,7 @@ public class BiomeInfo {
 
     public static BiomeInfo of(int rId, String blockPos, Registry<Biome> biomeRegistry) {
         Biome biome = biomeRegistry.byId(rId);
-        ResourceLocation id = biomeRegistry.getKey(biome);
+        Identifier id = biomeRegistry.getKey(biome);
         String commonName = id != null
             ? WordUtils.capitalizeFully(id.getPath().replace("_", " "))
             : "Unknown";

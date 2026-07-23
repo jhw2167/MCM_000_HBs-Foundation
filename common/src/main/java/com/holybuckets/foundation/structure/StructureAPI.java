@@ -1,7 +1,7 @@
 package com.holybuckets.foundation.structure;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nullable;
@@ -29,14 +29,14 @@ public class StructureAPI {
         return manager.getNearestStructures(pos, limit);
     }
 
-    public List<StructureInfo> nearestStructuresOfType(BlockPos pos, ResourceLocation sType,  int limit) {
-        Set<ResourceLocation> set = Set.of(sType);
+    public List<StructureInfo> nearestStructuresOfType(BlockPos pos, Identifier sType,  int limit) {
+        Set<Identifier> set = Set.of(sType);
         return manager.getNearestWhitelistedStructures(set, pos, limit);
     }
 
     public List<StructureInfo> nearestStructuresDistinct(BlockPos pos, int limit) {
         List<StructureInfo> nearest = manager.getNearestStructures(pos, limit);
-        Set<ResourceLocation> set = new HashSet<>();
+        Set<Identifier> set = new HashSet<>();
         List<StructureInfo> distinct = new ArrayList<>(nearest.size());
         for(StructureInfo info : nearest) {
             if(!set.contains(info.getId())) {
@@ -48,7 +48,7 @@ public class StructureAPI {
     }
 
 
-    public Set<ResourceLocation> getAllStructures() {
+    public Set<Identifier> getAllStructures() {
         return manager.getAllStructures();
     }
 

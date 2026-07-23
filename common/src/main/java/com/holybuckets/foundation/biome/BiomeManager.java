@@ -8,16 +8,16 @@ import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.ChunkLoadingEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -31,7 +31,7 @@ public class BiomeManager {
     private Level level;
     private Registry<Biome> biomeRegistry; // Nullable - only available on server side
     private Map<BlockPos, BiomeInfo> biomes;
-    private Map<ResourceLocation, Set<BlockPos>> biomesByType;
+    private Map<Identifier, Set<BlockPos>> biomesByType;
 
     private static Map<Level, BiomeManager> managers = new HashMap<>();
 
@@ -46,11 +46,11 @@ public class BiomeManager {
 
     //** GETTERS
 
-    public static ResourceLocation toLocation(String stringBiome) {
-        return ResourceLocation.tryParse(stringBiome);
+    public static Identifier toLocation(String stringBiome) {
+        return Identifier.tryParse(stringBiome);
     }
 
-    public Set<ResourceLocation> getAllBiomes() {
+    public Set<Identifier> getAllBiomes() {
         if (biomeRegistry == null) return Set.of();
         return biomeRegistry.keySet();
     }
@@ -59,12 +59,12 @@ public class BiomeManager {
         return biomes;
     }
 
-    public List<BlockPos> getBiomePosByType(ResourceLocation location) {
+    public List<BlockPos> getBiomePosByType(Identifier location) {
         if (!biomesByType.containsKey(location)) return List.of();
         return List.copyOf(biomesByType.get(location));
     }
 
-    public List<BiomeInfo> getBiomesByType(ResourceLocation location) {
+    public List<BiomeInfo> getBiomesByType(Identifier location) {
         if (!biomesByType.containsKey(location)) return List.of();
         return biomesByType.get(location).stream()
                 .map(pos -> biomes.get(pos))
@@ -72,7 +72,7 @@ public class BiomeManager {
                 .toList();
     }
 
-    public BiomeInfo getNearestBiomeOfType(ResourceLocation location, BlockPos center) {
+    public BiomeInfo getNearestBiomeOfType(Identifier location, BlockPos center) {
         if (!biomesByType.containsKey(location)) return null;
         return biomesByType.get(location).stream()
             .map(pos -> biomes.get(pos))
@@ -113,10 +113,10 @@ public class BiomeManager {
 
 
 
-    public List<BiomeInfo> getNearestWhitelistedBiomes(Set<ResourceLocation> whiteList, BlockPos center, int limit) {
+    public List<BiomeInfo> getNearestWhitelistedBiomes(Set<Identifier> whiteList, BlockPos center, int limit) {
         if (limit < 1) limit = biomes.size();
         List<BiomeInfo> allBiomes = new LinkedList<>();
-        for (ResourceLocation location : whiteList) {
+        for (Identifier location : whiteList) {
             var bs = getBiomesByType(location);
             if (bs == null) continue;
             allBiomes.addAll(bs.stream().map(pos -> biomes.get(pos)).filter(Objects::nonNull).toList());
@@ -127,7 +127,7 @@ public class BiomeManager {
             .toList();
     }
 
-    public List<BiomeInfo> getNearestBlacklistedBiomes(Set<ResourceLocation> blackList, BlockPos center, int limit) {
+    public List<BiomeInfo> getNearestBlacklistedBiomes(Set<Identifier> blackList, BlockPos center, int limit) {
         if (limit < 1) limit = biomes.size();
         List<BiomeInfo> allBiomes = new LinkedList<>();
         for (BiomeInfo info : biomes.values()) {
@@ -149,7 +149,7 @@ public class BiomeManager {
         if(ManagedChunkUtility.isChunkLoaded(level, chunk.getPos())) return; // already loaded this chunk
 
         LevelChunkSection[] sections = chunk.getSections();
-        Set<ResourceLocation> biomesInSection = new HashSet<>();
+        Set<Identifier> biomesInSection = new HashSet<>();
         for (int i : SECTIONS_INDICES)
         {
             if(i >= sections.length) continue;
@@ -161,7 +161,7 @@ public class BiomeManager {
             Holder<Biome> holder = HBUtil.LevelUtil.getBiomeFromSection(section, 8, 0, 8);
             if (holder == null) continue;
 
-            ResourceLocation biomeId = holder.unwrapKey()
+            Identifier biomeId = holder.unwrapKey()
                 .map(key -> key.location())
                 .orElse(null);
             if (biomeId == null) continue;
@@ -206,7 +206,7 @@ public class BiomeManager {
             for (JsonElement elem : arr) {
                 Biome biome = biomeRegistry.byId(registryId);
                 if (biome == null) continue;
-                ResourceLocation biomeId = biomeRegistry.getKey(biome);
+                Identifier biomeId = biomeRegistry.getKey(biome);
                 if (biomeId == null) continue;
 
                 BiomeInfo info = BiomeInfo.of(registryId, elem.getAsString(), biomeRegistry);

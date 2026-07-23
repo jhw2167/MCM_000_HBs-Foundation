@@ -18,15 +18,15 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 
@@ -83,12 +83,12 @@ public class CommandList {
         }
     }
 
-    private static final Set<ResourceLocation> validStructureTypes = new HashSet<>();
+    private static final Set<Identifier> validStructureTypes = new HashSet<>();
     private static final SuggestionProvider<CommandSourceStack> STRUCTURE_TYPE_SUGGESTIONS =
         (context, builder) -> {
             // Provide some common structure types as suggestions
             return SharedSuggestionProvider.suggest(
-                validStructureTypes.stream().map(ResourceLocation::toString)
+                validStructureTypes.stream().map(Identifier::toString)
                 , builder);
         };
 
@@ -249,7 +249,7 @@ public class CommandList {
             BlockPos playerPos = player.blockPosition();
 
             try {
-                ResourceLocation structureType = HBUtil.LOC(type);
+                Identifier structureType = HBUtil.LOC(type);
                 StructureAPI api = new StructureAPI(level);
                 List<StructureInfo> structures = api.nearestStructuresOfType(playerPos, structureType, limit);
 
@@ -332,7 +332,7 @@ public class CommandList {
             }
 
             List<String> sortedStructures = validStructureTypes.stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .collect(Collectors.toList());
 
@@ -349,10 +349,10 @@ public class CommandList {
     //**** BIOMES ****//
 
 
-    private static final Set<ResourceLocation> validBiomeTypes = new HashSet<>();
+    private static final Set<Identifier> validBiomeTypes = new HashSet<>();
     private static final SuggestionProvider<CommandSourceStack> BIOME_TYPE_SUGGESTIONS =
         (context, builder) -> SharedSuggestionProvider.suggest(
-            validBiomeTypes.stream().map(ResourceLocation::toString),
+            validBiomeTypes.stream().map(Identifier::toString),
             builder
         );
 
@@ -451,7 +451,7 @@ public class CommandList {
             BlockPos playerPos = player.blockPosition();
 
             try {
-                ResourceLocation biomeType = HBUtil.LOC(type);
+                Identifier biomeType = HBUtil.LOC(type);
                 BiomeAPI api = new BiomeAPI(level);
                 List<BiomeInfo> biomes = api.nearestBiomesOfType(playerPos, biomeType, limit);
 
@@ -536,7 +536,7 @@ public class CommandList {
             }
 
             List<String> sortedBiomes = validBiomeTypes.stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .collect(Collectors.toList());
 

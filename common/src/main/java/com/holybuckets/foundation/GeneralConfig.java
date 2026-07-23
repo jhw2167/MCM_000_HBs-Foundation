@@ -17,13 +17,13 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
-import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import com.holybuckets.foundation.event.balm.EventPriority;
+import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerLevel;
@@ -240,9 +240,9 @@ public class GeneralConfig {
 
     /** Level Events **/
 
-    public  static final ResourceLocation OVERWORLD_LOC = HBUtil.LOC("minecraft", "overworld");
-    public static final ResourceLocation NETHER_LOC = HBUtil.LOC("minecraft", "the_nether");
-    public static final ResourceLocation END_LOC = HBUtil.LOC("minecraft", "the_end");
+    public  static final Identifier OVERWORLD_LOC = HBUtil.LOC("minecraft", "overworld");
+    public static final Identifier NETHER_LOC = HBUtil.LOC("minecraft", "the_nether");
+    public static final Identifier END_LOC = HBUtil.LOC("minecraft", "the_end");
     public static Level LOCAL_LEVEL;
     public static ServerLevel OVERWORLD;
     public static ServerLevel NETHER;

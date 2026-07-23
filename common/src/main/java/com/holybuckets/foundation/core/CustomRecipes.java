@@ -10,7 +10,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
 import com.holybuckets.foundation.event.custom.ItemEntityTickEvent;
 import com.holybuckets.foundation.item.ModItems;
-import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;

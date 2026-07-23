@@ -1,24 +1,13 @@
 package com.holybuckets.foundation.client;
 
-import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.block.entity.ModBlockEntities;
 import com.holybuckets.foundation.client.render.SimpleBlockEntityRenderer;
-import net.blay09.mods.balm.api.client.rendering.BalmRenderers;
-import net.minecraft.client.renderer.RenderType;
+import net.blay09.mods.balm.client.renderer.blockentity.BalmBlockEntityRendererRegistrar;
 
 public class ModRenderers {
 
-    //public static ModelLayerLocation someModel;
-
-    public static void clientInitialize(BalmRenderers renderers) {
-        //waystoneModel = renderers.registerModel(HBUtil.LOC(Waystones.MOD_ID, "waystone"), () -> WaystoneModel.createLayer(CubeDeformation.NONE));
-
-        renderers.registerBlockEntityRenderer(ModBlockEntities.simpleBlockEntity::get, SimpleBlockEntityRenderer::new);
-
-        //renderers.registerBlockColorHandler((state, view, pos, tintIndex) -> Objects.requireNonNull(((SharestoneBlock) state.getBlock()).getColor()).getTextColor(), () -> ModBlocks.scopedSharestones);
-        //renderers.registerItemColorHandler((stack, tintIndex) -> Objects.requireNonNull(((SharestoneBlock) Block.byItem((stack.getItem()))).getColor()).getTextColor(), () -> ModBlocks.scopedSharestones);
-
-        renderers.setBlockRenderType(() -> ModBlocks.stoneBrickBlockEntity.get(), RenderType.cutout());
+    public static void clientInitialize(BalmBlockEntityRendererRegistrar renderers) {
+        renderers.register(ModBlockEntities.simpleBlockEntityType, SimpleBlockEntityRenderer::new);
     }
 
 }

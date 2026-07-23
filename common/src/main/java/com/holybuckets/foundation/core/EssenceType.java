@@ -7,7 +7,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -78,15 +78,15 @@ public class EssenceType {
         return displayName.toString().trim();
     }
 
-    private Set<ResourceLocation> getEssenceLocations() {
+    private Set<Identifier> getEssenceLocations() {
         return MOD_CONFIG.getEssenceData(essenceName);
     }
 
-    public static Set<ResourceLocation> getEssenceLocations(String essenceName) {
+    public static Set<Identifier> getEssenceLocations(String essenceName) {
         return MOD_CONFIG.getEssenceData(essenceName);
     }
 
-    public boolean matches(ResourceLocation loc) {
+    public boolean matches(Identifier loc) {
         return getEssenceLocations().contains(loc);
     }
 
@@ -101,7 +101,7 @@ public class EssenceType {
             return biomes;
         }
 
-        for (ResourceLocation loc : getEssenceLocations(essenceName)) {
+        for (Identifier loc : getEssenceLocations(essenceName)) {
             if (biomeRegistry.containsKey(loc)) {
                 Biome b = biomeRegistry.get(loc);
                 if(b != null) biomes.add(biomeRegistry.wrapAsHolder(b));
@@ -117,7 +117,7 @@ public class EssenceType {
             return entities;
         }
 
-        for (ResourceLocation loc : getEssenceLocations()) {
+        for (Identifier loc : getEssenceLocations()) {
             if (entityRegistry.containsKey(loc)) {
                 entities.add(entityRegistry.get(loc));
             }
@@ -132,7 +132,7 @@ public class EssenceType {
             return structures;
         }
 
-        for (ResourceLocation loc : getEssenceLocations()) {
+        for (Identifier loc : getEssenceLocations()) {
             if (structureRegistry.containsKey(loc)) {
                 structures.add(structureRegistry.get(loc));
             }
@@ -147,7 +147,7 @@ public class EssenceType {
             return dimensions;
         }
 
-        for (ResourceLocation loc : getEssenceLocations()) {
+        for (Identifier loc : getEssenceLocations()) {
             if (levelRegistry.containsKey(loc)) {
                 dimensions.add(levelRegistry.get(loc));
             }
@@ -168,7 +168,7 @@ public class EssenceType {
             return false;
         }
 
-        ResourceLocation biomeLoc = biomeRegistry.getKey(biome.value());
+        Identifier biomeLoc = biomeRegistry.getKey(biome.value());
         return biomeLoc != null && matches(biomeLoc);
     }
 
@@ -178,7 +178,7 @@ public class EssenceType {
             return false;
         }
 
-        ResourceLocation entityLoc = entityRegistry.getKey(entityType);
+        Identifier entityLoc = entityRegistry.getKey(entityType);
         return entityLoc != null && matches(entityLoc);
     }
 
@@ -188,7 +188,7 @@ public class EssenceType {
             return false;
         }
 
-        ResourceLocation structureLoc = structureRegistry.getKey(structure);
+        Identifier structureLoc = structureRegistry.getKey(structure);
         return structureLoc != null && matches(structureLoc);
     }
 

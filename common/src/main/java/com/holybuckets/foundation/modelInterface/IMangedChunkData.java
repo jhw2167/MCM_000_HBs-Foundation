@@ -1,6 +1,6 @@
 package com.holybuckets.foundation.modelInterface;
 
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import com.holybuckets.foundation.event.balm.ChunkLoadingEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.LevelAccessor;
 

@@ -18,13 +18,13 @@ import java.util.stream.Stream;
 
 public class SimpleBlockEntityBlock extends BaseEntityBlock {
 
-    protected SimpleBlockEntityBlock(BlockBehaviour.Properties $$0) {
+    public SimpleBlockEntityBlock(BlockBehaviour.Properties $$0) {
         super($$0);
     }
 
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
-       return null;
+       return simpleCodec(SimpleBlockEntityBlock::new);
     }
 
     @Nullable
@@ -33,7 +33,7 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
         return new SimpleBlockEntity(blockPos, blockState);
     }
 
-    static BlockBehaviour.Properties stoneBrickProperties() {
+    public static BlockBehaviour.Properties stoneBrickProperties() {
         BlockBehaviour.Properties props = BlockBehaviour.Properties.ofFullCopy(Blocks.STONE_BRICKS);  //default properties
         return props;
     }

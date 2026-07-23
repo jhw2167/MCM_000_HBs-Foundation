@@ -400,7 +400,7 @@ public class MovingWaypoint {
                 String nameTag = c.contains("nameTag") ? c.getString("nameTag") : null;
                 String levelId = c.contains("levelId") ? c.getString("levelId") : "";
 
-                map.put(colorId, new Waypoint(levelId, targetPos, colorId, waypointId,
+                map.put(waypointId, new Waypoint(levelId, targetPos, colorId, waypointId,
                     isPermanent, linkedEntityUuid, nameTag));
             }
         }

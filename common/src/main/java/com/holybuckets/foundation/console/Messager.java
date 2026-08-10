@@ -59,7 +59,7 @@ public class Messager implements IMessager {
                 if(player instanceof ServerPlayer )
                     player.sendSystemMessage(Component.literal(line));
                 else
-                    player.displayClientMessage(Component.literal(line), false);
+                    player.sendSystemMessage(Component.literal(line));
             }
         }
     }

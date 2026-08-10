@@ -54,16 +54,16 @@ public class ClientInput {
         }
 
         // Movement keys
-        if (player.input.up) {
+        if (player.input.keyPresses.forward()) {
             keys.add(InputConstants.KEY_W);
         }
-        if (player.input.down) {
+        if (player.input.keyPresses.backward()) {
             keys.add(InputConstants.KEY_S);
         }
-        if (player.input.left) {
+        if (player.input.keyPresses.left()) {
             keys.add(InputConstants.KEY_A);
         }
-        if (player.input.right) {
+        if (player.input.keyPresses.right()) {
             keys.add(InputConstants.KEY_D);
         }
 

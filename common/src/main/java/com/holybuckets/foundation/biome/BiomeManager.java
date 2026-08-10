@@ -40,7 +40,7 @@ public class BiomeManager {
         this.biomes = new HashMap<>();
         this.biomesByType = new HashMap<>();
         if (!level.isClientSide()) {
-            this.biomeRegistry = level.registryAccess().registryOrThrow(Registries.BIOME);
+            this.biomeRegistry = level.registryAccess().lookupOrThrow(Registries.BIOME);
         }
     }
 
@@ -100,7 +100,7 @@ public class BiomeManager {
     //locates nearest biomes with 5 chunks of a point
     public List<BiomeInfo> getBiomesInChunkRange(BlockPos point, int chunkrange) {
         List<BiomeInfo> nearbyBiomes = new LinkedList<>();
-        ChunkPos init = new ChunkPos(point);
+        ChunkPos init = new ChunkPos(point.getX() >> 4, point.getZ() >> 4);
         List<ChunkPos> localPoints = HBUtil.ChunkUtil.getLocalChunkPos(init, chunkrange);
         for (ChunkPos local : localPoints) {
             for(int i : SECTIONS_INDICES) {
@@ -162,7 +162,7 @@ public class BiomeManager {
             if (holder == null) continue;
 
             Identifier biomeId = holder.unwrapKey()
-                .map(key -> key.location())
+                .map(key -> key.identifier())
                 .orElse(null);
             if (biomeId == null) continue;
             if(biomesInSection.contains(biomeId)) continue; // already sampled this biome in another section of the same chunk
@@ -223,9 +223,9 @@ public class BiomeManager {
         for (BiomeInfo info : biomes.values())
         {
             CompoundTag tag = info.serialize();
-            String key = tag.getInt("registryId") + "";
+            String key = tag.getIntOr("registryId", 0) + "";
             if (!root.has(key)) root.add(key, new JsonArray());
-            root.getAsJsonArray(key).add(tag.getString("samplePos"));
+            root.getAsJsonArray(key).add(tag.getStringOr("samplePos", ""));
         }
 
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("biomes", root);

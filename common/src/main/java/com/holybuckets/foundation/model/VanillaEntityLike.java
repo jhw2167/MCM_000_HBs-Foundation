@@ -42,7 +42,7 @@ public class VanillaEntityLike implements EntityLike {
 
     @Override
     public Identifier dimension() {
-        return entity.level().dimension().location();
+        return entity.level().dimension().identifier();
     }
 
     @Override

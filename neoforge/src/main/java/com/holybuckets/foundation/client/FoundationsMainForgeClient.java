@@ -14,5 +14,8 @@ public class FoundationsMainForgeClient {
     public FoundationsMainForgeClient(ModContainer modContainer, IEventBus modEventBus) {
         final var context = new NeoForgeLoadContext(modContainer, modEventBus);
         BalmClient.initializeMod(Constants.MOD_ID, context, CommonClassClient::initClient);
+        // 26.1.2: in-world render stages come from NeoForge's RenderLevelStageEvent (game bus),
+        // not the old LevelRenderer mixin.
+        FoundationRenderEvents.init();
     }
 }

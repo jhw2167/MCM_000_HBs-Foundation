@@ -19,7 +19,7 @@ import java.util.Map;
 public class EssenceCauldronBlock extends LayeredCauldronBlock {
 
     public EssenceCauldronBlock(BlockBehaviour.Properties properties) {
-        super(Biome.Precipitation.NONE, new CauldronInteraction.InteractionMap("", Map.of()), properties);
+        super(Biome.Precipitation.NONE, new CauldronInteraction.Dispatcher() , properties);
     }
 
     public static BlockBehaviour.Properties cauldronProperties() {

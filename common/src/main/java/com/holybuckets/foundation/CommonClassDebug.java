@@ -221,7 +221,7 @@ public class CommonClassDebug {
     }
 
     private static void onDailyTick(ServerTickEvent.DailyTickEvent event) {
-        LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getLevel().dimension().location() );
+        LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getLevel().dimension().identifier() );
         LoggerBase.logDebug(null, "001100", "Daily tick: " + event.getTickCountWithSleeps());
         LoggerBase.logDebug(null, "001100", "Daily tick: " + event.isTriggeredByWakeUp() );
     }
@@ -233,7 +233,7 @@ public class CommonClassDebug {
     }
 
     private static void onPlayerLogin(PlayerLoginEvent event) {
-        Constants.LOG.info("Player connected CONNECTED: " + event.getPlayer().getGameProfile().getName());
+        Constants.LOG.info("Player connected CONNECTED: " + event.getPlayer().getGameProfile().name());
         //Print out the location of each dimension by converting the resourceLocation to Level using HBUtil.LevelUtil
     }
 
@@ -242,7 +242,7 @@ public class CommonClassDebug {
     }
 
     private static void onPlayerLoad(PlayerLoginEvent event) {
-        Constants.LOG.info("Player loaded: " + event.getPlayer().getGameProfile().getName());
+        Constants.LOG.info("Player loaded: " + event.getPlayer().getGameProfile().name());
     }
 
 

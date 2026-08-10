@@ -77,7 +77,7 @@ public class MessagerClient implements IMessager {
         if (player == null || message == null || message.isEmpty()) return;
         
         // On client side, display as client message
-        player.displayClientMessage(net.minecraft.network.chat.Component.literal(message), false);
+        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(message));
     }
     
     /**
@@ -208,13 +208,13 @@ public class MessagerClient implements IMessager {
      */
     private void drawTextWithOutline(GuiGraphicsExtractor guiGraphics, Font font, String text, int x, int y, int color, int outlineColor) {
         // Draw outline (4 cardinal directions only - thinner)
-        guiGraphics.drawString(font, text, x - 1, y, outlineColor, false);     // Left
-        guiGraphics.drawString(font, text, x + 1, y, outlineColor, false);     // Right
-        guiGraphics.drawString(font, text, x, y - 1, outlineColor, false);     // Top
-        guiGraphics.drawString(font, text, x, y + 1, outlineColor, false);     // Bottom
+        guiGraphics.text(font, text, x - 1, y, outlineColor);     // Left
+        guiGraphics.text(font, text, x + 1, y, outlineColor);     // Right
+        guiGraphics.text(font, text, x, y - 1, outlineColor);     // Top
+        guiGraphics.text(font, text, x, y + 1, outlineColor);     // Bottom
 
         // Draw main text
-        guiGraphics.drawString(font, text, x, y, color, false);
+        guiGraphics.text(font, text, x, y, color);
     }
     
     /**

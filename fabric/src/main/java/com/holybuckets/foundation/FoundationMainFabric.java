@@ -19,9 +19,14 @@ public class FoundationMainFabric implements ModInitializer {
             )
         );
 
-        Balm.initializeMod(Constants.MOD_ID, FabricLoadContext.INSTANCE, CommonClass::init);
+        // Mirror the NeoForge structure: static-init the Fabric-native player attachment type first,
+        // then run Balm-bound registration/callbacks inside the initializer (event mappings are bound
+        // there — registering them outside previously risked "LevelCallback.Chunk.LOAD unbound").
         FoundationAttachments.init();
-
+        Balm.initializeMod(Constants.MOD_ID, FabricLoadContext.INSTANCE, registrars -> {
+            CommonClass.init(registrars);
+            FoundationAttachments.registerBalmAndEvents(registrars);
+        });
     }
 
 

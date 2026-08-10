@@ -93,7 +93,7 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
 
         INITIALIZED_CHUNKS.get(this.level).add(this.id);
-        INITIALIZED_LONG_CHUNKS.get(this.level).add(HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
+        INITIALIZED_LONG_CHUNKS.get(this.level).add(HBUtil.ChunkUtil.getChunkPos1DMap(pos.x(), pos.z()));
     }
 
 
@@ -133,9 +133,9 @@ public class ManagedChunk implements IMangedChunkData {
             return (LevelChunk) this.levelChunk;
         else if( util.isChunkFullyLoaded(id) ) {
             if(this.level.isClientSide())
-                return (LevelChunk) this.level.getChunk(this.pos.x, this.pos.z);
+                return (LevelChunk) this.level.getChunk(this.pos.x(), this.pos.z());
 
-            ChunkAccess c = this.level.getChunk(this.pos.x, this.pos.z);
+            ChunkAccess c = this.level.getChunk(this.pos.x(), this.pos.z());
             if(c instanceof LevelChunk) this.levelChunk = c;
             return (LevelChunk) this.levelChunk;
         }
@@ -185,7 +185,7 @@ public class ManagedChunk implements IMangedChunkData {
             else
             {
                 try {
-                    CompoundTag subTag = tag.getCompound(className);
+                    CompoundTag subTag = tag.getCompoundOrEmpty(className);
                     subData.deserializeNBT(subTag);
                 } catch (Exception e) {
                     errors.put(data.getKey().getName(), e.getMessage());
@@ -215,10 +215,10 @@ public class ManagedChunk implements IMangedChunkData {
     private void init(CompoundTag tag)
     {
         //print tag as string, info
-        this.id = tag.getString("id");
+        this.id = tag.getString("id").orElse(null);
 
-        this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getString("level"));
-        this.tickWritten = tag.getLong("tickWritten");
+        this.level = HBUtil.LevelUtil.toLevel( HBUtil.LevelUtil.LevelNameSpace.SERVER, tag.getStringOr("level", ""));
+        this.tickWritten = tag.getLongOr("tickWritten", 0L);
 
         /** If tickWritten is < tickLoaded, then this data
          * was written previously and removed from memory. Replace the dummy

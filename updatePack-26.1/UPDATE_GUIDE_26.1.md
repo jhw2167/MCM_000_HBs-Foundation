@@ -168,11 +168,21 @@ The mixin was ported **best-effort**: it now injects at the frame-pass name cons
 
 ---
 
-## 6. Remaining work — vanilla NBT `Optional` migration (NOT yet done)
+## 6. Vanilla NBT `Optional` migration (applied)
 
-Minecraft's `CompoundTag` accessor API changed: the getters now return `Optional`s and some helpers were renamed. This is a purely vanilla, mechanical migration that still needs to be applied across Foundation's custom serialization code (its datastore uses raw `CompoundTag`, not the block-entity `ValueInput` system). Affected files (~25), heaviest in: `HBUtil`, `ManagedPlayer`, `ManagedChunk`, `ManagedChunkUtility`, `DataStore`, `StructureInfo`/`StructureManager`, `BiomeInfo`, `core/MovingWaypoint`, `AnvilUpdateEvent`, `SamplePlayerData`, `LoggerBase`, `config/ModConfig`.
+Minecraft's `CompoundTag` accessor API changed: the getters now return `Optional`s and some helpers were renamed. This purely-vanilla migration has been **applied** across Foundation's custom serialization code (its datastore uses raw `CompoundTag`, not the block-entity `ValueInput` system). Files actually touched: `core/MovingWaypoint` (incl. UUID storage — see below), `player/ManagedPlayer`, `model/ManagedChunk`, `structure/StructureInfo`, `structure/StructureManager`, `biome/BiomeInfo`, `biome/BiomeManager`, `sample/SamplePlayerData`. (`HBUtil`, `ManagedChunkUtility`, `command/CommandList`, `LoggerBase`, `CommonClassDebug`, `core/EssenceCauldronManager`, `item/WaypointStick` matched the search only via `String`/collection `.contains(...)` or `Component.getString()` — no real NBT reads, left unchanged.)
 
-Transformation patterns:
+Special case — **`CompoundTag.putUUID`/`getUUID`/`hasUUID` were removed**. In `MovingWaypoint`'s raw-`CompoundTag` waypoint serialization these were replaced with int-array storage:
+```java
+// write
+c.putIntArray("linkedEntityUuid", net.minecraft.core.UUIDUtil.uuidToIntArray(uuid));
+// read
+UUID uuid = c.getIntArray("linkedEntityUuid")
+             .map(net.minecraft.core.UUIDUtil::uuidFromIntArray).orElse(null);
+```
+(Block-entity code that has a `ValueInput`/`ValueOutput` should instead use `store/read("k", UUIDUtil.CODEC, …)`, as Waystones does.)
+
+Transformation patterns used:
 
 | 1.21.1 | 26.1 |
 |---|---|
@@ -186,9 +196,9 @@ Transformation patterns:
 | `if (tag.contains("k")) {…}` | `tag.getX("k").ifPresent(…)` or `tag.contains("k")` (still exists for presence, but the typed `contains(k, TYPE)` overload is gone) |
 | `for (String k : tag.getAllKeys())` | `for (String k : tag.keySet())` |
 
-The `…Or(key, default)` convenience overloads exist on `CompoundTag` in 26.1 and are the least invasive choice for most sites. Once applied, run `./gradlew :fabric:build :neoforge:build`.
+The `…Or(key, default)` convenience overloads on `CompoundTag`/`ListTag` (`getStringOr`, `getIntOr`, `getBooleanOr`, `getLongOr`, `getCompoundOrEmpty`, `getListOrEmpty`) were the least-invasive choice and are what was used; `Optional`-returning `getString(k).orElse(null)` was used where `null` is the intended absent-value.
 
-> The sandbox used for this migration had no JDK 25 and no access to the NeoForge/Fabric/Balm Maven repositories, so a full `gradle build` could not be executed here. The Balm-layer and vanilla renames above are complete; the NBT pass in this section and the two render items in §5/§4 are the items to finish + verify locally.
+> The sandbox used for this migration had no JDK 25 and no access to the NeoForge/Fabric/Balm Maven repositories, so a full `gradle build` could not be executed here — the changes are verified by static review, not compilation. Run `./gradlew :fabric:build :neoforge:build` locally to confirm, then in-game test the two render items in §5/§4 (level-render mixin injection points + waypoint beam/fog).
 
 ---
 
@@ -201,3 +211,9 @@ The `…Or(key, default)` convenience overloads exist on `CompoundTag` in 26.1 a
 **Rewritten**: `event/BalmEventRegister.java`, `client/ClientBalmEventRegister.java`, `FoundationInitializers.java`, `CommonClass.java`, `client/CommonClassClient.java` (signatures), `block/ModBlocks.java`, `block/entity/ModBlockEntities.java`, `item/ModItems.java`, `block/entity/SimpleBlockEntity.java`, `client/render/SimpleBlockEntityRenderer.java`, `client/ModRenderers.java`, `mixin/LevelRendererMixin.java`, fabric+neoforge `FoundationMain*`, fabric+neoforge `capability/FoundationAttachments.java`, fabric `mixin/MixinMinecraft.java`, neoforge `mixin/MinecraftMixin.java`.
 
 **Patched (imports / single-API)**: `HBUtil.java`, `EventRegistrar.java`, `client/ClientEventRegistrar.java`, `client/MessagerClient.java`, `config/PerformanceImpactConfig*.java`, `item/SimpleRewardItem.java`, `item/EnchantedEssence.java`, `item/WaypointStick.java`, `block/EmptyBlock.java`, `block/SimpleBlockEntityBlock.java`, `block/EssenceCauldronBlock.java`, `enchantment/ModEnchantments.java`, `datacomponent/ModDataComponents.java`, `client/core/MovingWaypoint.java`, `core/EssenceCauldronManager.java`, `player/ManagedPlayer.java`, fabric `event/PlayerInteractEventFabric.java`, plus the global `ResourceLocation`→`Identifier` sweep.
+
+## 8. Misc method mappings
+
+level.dayTime() -> level.getDefaultClockTime()
+guiGraphics.drawString(...) ->  guiGraphics.text(...)
+

@@ -11,6 +11,9 @@ public class FoundationMainClientFabric implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BalmClient.initializeMod(Constants.MOD_ID, FabricLoadContext.INSTANCE, CommonClassClient::initClient);
+        // 26.1.2: currently a no-op — Fabric API removed WorldRenderEvents in 1.21.9 (see
+        // FoundationRenderEvents). In-world render stages don't fire on Fabric until a mixin is added.
+        com.holybuckets.foundation.client.FoundationRenderEvents.init();
     }
 
 }

@@ -215,7 +215,7 @@ public class EventRegistrar {
         }
     }
 
-    void onLevelLoad(LevelLoadingEvent.Load event) {
+    public void onLevelLoad(LevelLoadingEvent.Load event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
@@ -228,7 +228,7 @@ public class EventRegistrar {
         }
     }
 
-    void onLevelUnload(LevelLoadingEvent.Unload event) {
+    public void onLevelUnload(LevelLoadingEvent.Unload event) {
         // Sort consumers by priority
         List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
             .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
@@ -542,7 +542,7 @@ public class EventRegistrar {
     public boolean onPlayerInteract(PlayerInteractEvent event)
     {
         if (ON_PLAYER_INTERACT_BY_TYPE.isEmpty()) return false;
-        if (GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide) return false;
+        if (GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide()) return false;
 
         Class<? extends PlayerInteractEvent> eventClass = event.getClass();
         for (Map.Entry<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> entry : ON_PLAYER_INTERACT_BY_TYPE.entrySet()) {
@@ -660,10 +660,10 @@ public class EventRegistrar {
 
         for( Level l : config.getLevels().values())
         {
-            if(l.isClientSide) continue;
+            if(l.isClientSide()) continue;
             if (config.getNextDailyTick(l) > totalTicks) continue;
 
-            Identifier dimLoc = l.dimension().location();
+            Identifier dimLoc = l.dimension().identifier();
             long sleepTicks = config.getTotalTickCountWithSleep(l);
             cache.put(dimLoc, new DailyTickEvent(totalTicks, sleepTicks, l, false));
         }
@@ -718,7 +718,7 @@ public class EventRegistrar {
 
         GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent);
         DAILY_TICK_EVENTS.get(EMPTY_LOC).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
-        Identifier levelId = level.dimension().location();
+        Identifier levelId = level.dimension().identifier();
         DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
 
         cleanupOnNewDay();

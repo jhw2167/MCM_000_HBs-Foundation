@@ -58,7 +58,7 @@ public class StructureManager {
         this.existingStructures = new HashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
-            this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+            this.structureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
         }
     }
 
@@ -254,7 +254,7 @@ public class StructureManager {
         if (structureRegistry == null) return;
 
         Identifier structureLocation = structureRegistry.getKey(structure);
-        ChunkPos cp = new ChunkPos(start.getBoundingBox().getCenter());
+        ChunkPos cp = new ChunkPos(start.getBoundingBox().getCenter().getX() >> 4, start.getBoundingBox().getCenter().getZ() >> 4);
 
         if (structureLocation == null) return;
         String key = "" + cp + ":" + structureLocation;
@@ -271,7 +271,7 @@ public class StructureManager {
 
 
         ResourceKey<Structure> structureKey = ResourceKey.create(Registries.STRUCTURE, structureLocation);
-        Holder<Structure> holder = structureRegistry.getHolder(structureKey).orElse(null);
+        Holder<Structure> holder = structureRegistry.get(structureKey).orElse(null);
         if (holder == null) return;
 
         StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
@@ -301,7 +301,7 @@ public class StructureManager {
         this.structures.put(pos, info);
         this.structuresByType.computeIfAbsent(loc, k -> new HashSet<>()).add(pos);
         this.currentlyLoadedStructures.add(pos);
-        this.existingStructures.put(new ChunkPos(pos) + ":" + loc, pos);
+        this.existingStructures.put(new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4) + ":" + loc, pos);
     }
 
     public void removePseudoStructure(BlockPos pos)
@@ -319,7 +319,7 @@ public class StructureManager {
             }
         }
         this.currentlyLoadedStructures.remove(pos);
-        this.existingStructures.remove(new ChunkPos(pos) + ":" + loc);
+        this.existingStructures.remove(new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4) + ":" + loc);
     }
 
     private void load(DataStore ds)
@@ -342,7 +342,7 @@ public class StructureManager {
                     this.structures.put(info.origin, info);
                     this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
                     this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
-                    ChunkPos cp = new ChunkPos(info.origin);
+                    ChunkPos cp = new ChunkPos(info.origin.getX() >> 4, info.origin.getZ() >> 4);
                     this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
                 }
             }
@@ -355,9 +355,9 @@ public class StructureManager {
         for(StructureInfo struct : structures.values() )
         {
             CompoundTag tag = struct.serialize();
-            String key = tag.getInt("registryId")+"";
+            String key = tag.getIntOr("registryId", 0)+"";
             if(!root.has(key)) { root.add(key, new JsonArray()); }
-            root.getAsJsonArray(key).add(tag.getString("origin"));
+            root.getAsJsonArray(key).add(tag.getStringOr("origin", ""));
         }
 
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("structures", root);
@@ -586,7 +586,7 @@ public class StructureManager {
 
         @Override
         public void deserializeNBT(CompoundTag nbt) {
-            String json = nbt.getString("syncedStructuresCount");
+            String json = nbt.getStringOr("syncedStructuresCount", "");
             for(var entry : deserialize(json).entrySet()) {
                 this.syncedStructureCounts.put(entry.getKey(), entry.getValue());
             }

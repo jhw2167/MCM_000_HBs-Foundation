@@ -25,10 +25,7 @@ import com.holybuckets.foundation.event.balm.client.GuiDrawEvent;
 import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
 import com.holybuckets.foundation.event.balm.server.ServerStoppedEvent;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -109,6 +106,34 @@ public class ClientEventRegistrar {
     private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {
         set.add(function);
         PRIORITIES.put(function.hashCode(), priority);
+    }
+
+
+    //** ENTITY EVENTS (client mirror)
+    // These Balm callbacks (PlayerAttackEvent, LivingDamage/Death/Fall/Heal, BreakBlock, UseBlock,
+    // DigSpeed, TossItem, ...) are handled server-side by EventRegistrar/BalmEventRegister. Balm can
+    // also fire them on the client though, and the server registrar rejects client-side firings, so
+    // this generic map lets client-only code still react to the client variant of those events.
+    // ClientBalmEventRegister wires the Balm callbacks (guarded to client side) into fireEntityEvent().
+    private final Map<Class<?>, Set<Consumer<?>>> ENTITY_EVENT_CONSUMERS = new ConcurrentHashMap<>();
+
+    public <T> void registerOnEntityEvent(Class<T> eventType, Consumer<T> function) {
+        registerOnEntityEvent(eventType, function, EventPriority.Normal);
+    }
+
+    public <T> void registerOnEntityEvent(Class<T> eventType, Consumer<T> function, EventPriority priority) {
+        ENTITY_EVENT_CONSUMERS.computeIfAbsent(eventType, k -> new ConcurrentSet<>()).add(function);
+        PRIORITIES.put(function.hashCode(), priority);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> void fireEntityEvent(T event) {
+        if (event == null) return;
+        Set<Consumer<?>> consumers = ENTITY_EVENT_CONSUMERS.get(event.getClass());
+        if (consumers == null || consumers.isEmpty()) return;
+        for (Consumer<?> c : consumers) {
+            tryEvent((Consumer<T>) c, event);
+        }
     }
 
 
@@ -310,7 +335,7 @@ public class ClientEventRegistrar {
 
     public void onClientLevelTick(Level level) {
         if(level == null) return; //not in game
-        long totalTicks = level.getDayTime();
+        long totalTicks = level.getDefaultClockTime();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
 
         ManagedChunkEvents.onWorldTickStart(level);
@@ -350,9 +375,9 @@ public class ClientEventRegistrar {
         }
     }
 
-    public void onRenderLevel(RenderLevelEvent.RenderStage stage, DeltaTracker deltaTracker,
-                              boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
-                              LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix)
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, float partialTick,
+                              boolean renderBlockOutline, Camera camera,
+                              PoseStack poseStack, Matrix4f projectionMatrix)
     {
         // Skip this stage if it has previously thrown an exception
         if (renderLevelErrorStages.contains(stage)) return;
@@ -360,9 +385,8 @@ public class ClientEventRegistrar {
         if(consumers.isEmpty()) return;
 
         // Update the static event instance with new values
-        RENDER_LEVEL_EVENT.updateValues(stage, deltaTracker,
-            renderBlockOutline, camera, gameRenderer,
-            lightTexture, modelViewMatrix, projectionMatrix);
+        RENDER_LEVEL_EVENT.updateValues(stage, partialTick,
+            renderBlockOutline, camera, poseStack, projectionMatrix);
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
             try {

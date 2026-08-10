@@ -73,14 +73,14 @@ public class BiomeInfo {
 
     public void deserialize(CompoundTag tag) {
         if (tag.contains("samplePos")) {
-            samplePos = HBUtil.BlockUtil.stringToBlockPos(tag.getString("samplePos"));
+            samplePos = HBUtil.BlockUtil.stringToBlockPos(tag.getStringOr("samplePos", ""));
         }
         if (tag.contains("id")) {
-            id = Identifier.tryParse(tag.getString("id"));
+            id = Identifier.tryParse(tag.getStringOr("id", ""));
         }
-        registryId = tag.getInt("registryId");
+        registryId = tag.getIntOr("registryId", 0);
         if (tag.contains("commonName")) {
-            commonName = tag.getString("commonName");
+            commonName = tag.getStringOr("commonName", "");
         }
     }
 
@@ -88,7 +88,7 @@ public class BiomeInfo {
 
     public static BiomeInfo of(Holder<Biome> holder, BlockPos samplePos, Registry<Biome> biomeRegistry) {
         Identifier id = holder.unwrapKey()
-            .map(key -> key.location())
+            .map(key -> key.identifier())
             .orElse(biomeRegistry.getKey(holder.value()));
         int rId = biomeRegistry.getId(holder.value());
         String commonName = id != null

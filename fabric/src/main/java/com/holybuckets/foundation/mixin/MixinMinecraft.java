@@ -3,7 +3,6 @@ package com.holybuckets.foundation.mixin;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,8 +28,10 @@ public class MixinMinecraft {
         }
     }
 
-    @Inject(method = "setLevel(Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/client/gui/screens/ReceivingLevelScreen$Reason;)V", at = @At("TAIL"))
-    public void setLevel(ClientLevel clientLevel, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
+    // 26.1.2: Minecraft#setLevel dropped the ReceivingLevelScreen.Reason parameter — it now takes
+    // only the ClientLevel (confirmed against Balm's fabric MinecraftMixin).
+    @Inject(method = "setLevel(Lnet/minecraft/client/multiplayer/ClientLevel;)V", at = @At("TAIL"))
+    public void setLevel(ClientLevel clientLevel, CallbackInfo ci) {
         if (clientLevel != null && EventRegistrar.getInstance() != null) {
             EventRegistrar.getInstance().onLevelLoad(new LevelLoadingEvent.Load(clientLevel));
         }

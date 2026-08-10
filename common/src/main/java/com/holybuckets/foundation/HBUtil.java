@@ -32,7 +32,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -161,7 +161,7 @@ public class HBUtil {
             if( p instanceof ServerPlayer || GeneralConfig.getInstance().isIntegrated() ) {
                 prefix = "SERVER:";
             }
-            return prefix + gp.getName().toString();
+            return prefix + gp.name();
         }
 
     //create a PlayerNameSpace for CLIENT and SERVER
@@ -212,7 +212,7 @@ public class HBUtil {
             }
 
             Identifier itemKey = HBUtil.LOC(nameSpace.trim(), itemName.trim());
-            Item item = BuiltInRegistries.ITEM.get(itemKey);
+            Item item = BuiltInRegistries.ITEM.getValue(itemKey);
 
             if( item == null ) {
                 LoggerBase.logError( null, "004002", "Error parsing item name as string into a Minecraft Item type, " +
@@ -263,14 +263,14 @@ public class HBUtil {
         public static Holder<Enchantment> enchantNameToEnchant(Identifier key) {
             if(GeneralConfig.LOCAL_LEVEL ==null) return null;
             return GeneralConfig.LOCAL_LEVEL.registryAccess()
-                .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
+                .lookupOrThrow(Registries.ENCHANTMENT).get(key).orElse(null);
         }
 
         @Nullable
         public static Holder<Enchantment> enchantNameToEnchant(ResourceKey<Enchantment> key) {
             if(GeneralConfig.LOCAL_LEVEL ==null) return null;
             return GeneralConfig.LOCAL_LEVEL.registryAccess()
-                .registry(Registries.ENCHANTMENT).get().getHolder(key).orElse(null);
+                .lookupOrThrow(Registries.ENCHANTMENT).get(key).orElse(null);
         }
 
         public static int getEnchantLevel(String enchant) {
@@ -690,7 +690,7 @@ public class HBUtil {
         }
 
         public static Level toLevel(LevelNameSpace nameSpace, ResourceKey<Level> key) {
-            return toLevel(nameSpace, key.location());
+            return toLevel(nameSpace, key.identifier());
         }
 
         public static Level toLevel(LevelNameSpace nameSpace, Identifier loc) {
@@ -721,7 +721,7 @@ public class HBUtil {
             if (levelIdCache.containsKey(level)) return levelIdCache.get(level);
 
             String id;
-            String levelName = ((Level) level).dimension().location().toString();
+            String levelName = ((Level) level).dimension().identifier().toString();
             if(level.isClientSide()) {
                 id = "CLIENT:" + levelName;
             } else {
@@ -753,7 +753,7 @@ public class HBUtil {
         }
 
         public static boolean testLevel(Level level, Identifier location) {
-            return level.dimension().location().equals(location);
+            return level.dimension().identifier().equals(location);
         }
 
         /**
@@ -780,7 +780,7 @@ public class HBUtil {
             if (level == null) {
                 return null;
             }
-            return level.dimension().location();
+            return level.dimension().identifier();
         }
 
         /**
@@ -815,7 +815,7 @@ public class HBUtil {
             if (biome == null) return null;
             MinecraftServer server = GeneralConfig.getInstance().getServer();
             if (server == null) return null;
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            Registry<Biome> biomeRegistry = server.registryAccess().lookupOrThrow(Registries.BIOME);
             return biomeRegistry.getKey(biome);
         }
 
@@ -823,7 +823,7 @@ public class HBUtil {
             if (holderBiome == null) return null;
             if( !holderBiome.unwrapKey().isPresent() ) return null;
 
-            return holderBiome.unwrapKey().get().location();
+            return holderBiome.unwrapKey().get().identifier();
         }
 
         /**
@@ -839,8 +839,8 @@ public class HBUtil {
             if (server == null) {
                 return null;
             }
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
-            return biomeRegistry.get(location);
+            Registry<Biome> biomeRegistry = server.registryAccess().lookupOrThrow(Registries.BIOME);
+            return biomeRegistry.getValue(location);
         }
 
         public static Identifier getBiomeName(Biome b) {
@@ -849,7 +849,7 @@ public class HBUtil {
             MinecraftServer server = GeneralConfig.getInstance().getServer();
             if (server == null) return null;
 
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
+            Registry<Biome> biomeRegistry = server.registryAccess().lookupOrThrow(Registries.BIOME);
             return biomeRegistry.getKey(b);
         }
 
@@ -885,7 +885,7 @@ public class HBUtil {
             if( h == null ) return null;
             if( !h.unwrapKey().isPresent() ) return null;
 
-            String name = h.unwrapKey().get().location().getPath();
+            String name = h.unwrapKey().get().identifier().getPath();
             String[] parts = name.split("_");
             StringBuilder simpleName = new StringBuilder();
             for(String part : parts) {
@@ -923,7 +923,7 @@ public class HBUtil {
         }
 
         public static String getId(ChunkAccess chunk) {
-            return chunk.getPos().x + "," + chunk.getPos().z;
+            return chunk.getPos().x() + "," + chunk.getPos().z();
         }
 
         public static String getId(int x, int z) {
@@ -931,7 +931,7 @@ public class HBUtil {
         }
 
         public static String getId( ChunkPos pos ) {
-            return pos.x + "," + pos.z;
+            return pos.x() + "," + pos.z();
         }
 
         public static String getId( BlockPos pos ) {
@@ -949,16 +949,16 @@ public class HBUtil {
         }
 
         public static ChunkPos getChunkPos(BlockPos pos) {
-            return new ChunkPos(pos);
+            return new ChunkPos(pos.getX() >> 4, pos.getZ() >> 4);
         }
 
         /** Check if chunk is within [-x, x] and [-z, z] **/
         public static boolean checkInBounds(ChunkAccess chunk, int x, int z) {
-            return chunk.getPos().x >= -x && chunk.getPos().x <= x && chunk.getPos().z >= -z && chunk.getPos().z <= z;
+            return chunk.getPos().x() >= -x && chunk.getPos().x() <= x && chunk.getPos().z() >= -z && chunk.getPos().z() <= z;
         }
 
         public static int chunkDistSquared(ChunkPos p1, ChunkPos p2) {
-            return (p1.x - p2.x) * (p1.x - p2.x) + (p1.z - p2.z) * (p1.z - p2.z);
+            return (p1.x() - p2.x()) * (p1.x() - p2.x()) + (p1.z() - p2.z()) * (p1.z() - p2.z());
         }
 
         public static float chunkDist(ChunkPos p1, ChunkPos p2) {
@@ -971,15 +971,15 @@ public class HBUtil {
         }
 
         public static ChunkPos posAdd(ChunkPos p, int x, int z) {
-            return new ChunkPos(p.x + x, p.z + z);
+            return new ChunkPos(p.x() + x, p.z() + z);
         }
 
         public static ChunkPos posAdd(ChunkPos p1, ChunkPos p2) {
-            return new ChunkPos(p1.x + p2.x, p1.z + p2.z);
+            return new ChunkPos(p1.x() + p2.x(), p1.z() + p2.z());
         }
 
         public static ChunkPos posAdd(ChunkPos p1,  int[] dir ) {
-            return new ChunkPos(p1.x + dir[0], p1.z + dir[1]);
+            return new ChunkPos(p1.x() + dir[0], p1.z() + dir[1]);
         }
 
         public static Long getChunkPos1DMap(String id) {
@@ -988,12 +988,12 @@ public class HBUtil {
         }
 
         public static Long getChunkPos1DMap(ChunkPos pos ) {
-            return getChunkPos1DMap(pos.x, pos.z);
+            return getChunkPos1DMap(pos.x(), pos.z());
         }
 
         //override with integer arguments
         public static Long getChunkPos1DMap(int x, int z) {
-           return ChunkPos.asLong(x, z);
+           return ((long) z << 32) | (x & 0xFFFFFFFFL);
         }
 
         /**
@@ -1109,8 +1109,12 @@ public class HBUtil {
 
         private static final int MAX_AXIS = 30_000_000;
         private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
-        private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
-         Comparator.comparingInt( s -> s.hashCode() ) );
+        // 26.1 PORT (author decision): the region-ticket API (TicketType/addRegionTicket) was
+        // overhauled and TicketType is no longer generic. Force-loading now uses vanilla's
+        // persistent forceload (ServerLevel.setChunkForced). BEHAVIOR CHANGE: only the single
+        // target chunk is loaded at FULL status — the previous chunkMinStatus/TICKET_RADIUS
+        // (e.g. a 2-chunk feature-generation radius) is no longer applied. Ownership is still
+        // tracked per-chunk via forceLoadedChunkTicketIds so a non-owner unforce is a no-op.
         private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
         private static LongObjectMap<String> forceLoadedChunkTicketIds = new LongObjectHashMap<>();
 
@@ -1133,7 +1137,7 @@ public class HBUtil {
 
         public static void forceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId, int chunkMinStatus)
         {
-            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+            if (Math.abs(chunkPos.x()) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z()) > MAX_CHUNK_VALUE) {
                 return;
             }
 
@@ -1141,19 +1145,16 @@ public class HBUtil {
             Long chunkId = getChunkPos1DMap(chunkPos);
             if (forceLoadedChunkTicketIds.get(chunkId) == null) {}
             else if (forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) return;
-            else {
-                // Remove orphaned ticket before overwriting
-                String existingId = forceLoadedChunkTicketIds.get(chunkId);
-                level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, existingId);
-            }
+            // else: a different owner already force-loaded this chunk; overwrite ownership below.
+            // (vanilla forceload is a simple on/off per chunk, so no orphaned ticket to remove.)
 
-            level.getChunkSource().addRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
+            level.setChunkForced(chunkPos.x(), chunkPos.z(), true);
             loadedChunkIds.add(chunkId);
             forceLoadedChunkTicketIds.put(chunkId, ticketId);
 
             //Log total loaded chunks in chunkSource
             int totalChunks = level.getChunkSource().getLoadedChunksCount();
-            int totalForceChunks = level.getForcedChunks().size();
+            int totalForceChunks = forceLoadedChunkTicketIds.size(); // 26.1: ServerLevel.getForcedChunks() removed; use mod-tracked count (debug only)
             LoggerBase.logDebug(null, "004003", "LOAD: Total chunkSource loaded: " + totalChunks + ", total force loaded: " + totalForceChunks);
         }
 
@@ -1165,7 +1166,7 @@ public class HBUtil {
 
         public static void unforceLoadChunk(ServerLevel level, ChunkPos chunkPos, String ticketId, int chunkMinStatus)
         {
-            if (Math.abs(chunkPos.x) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z) > MAX_CHUNK_VALUE) {
+            if (Math.abs(chunkPos.x()) > MAX_CHUNK_VALUE || Math.abs(chunkPos.z()) > MAX_CHUNK_VALUE) {
                 return;
             }
 
@@ -1173,16 +1174,19 @@ public class HBUtil {
             Long chunkId = getChunkPos1DMap(chunkPos);
             if (!loadedChunkIds.contains(chunkId)) return;
 
-            level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
-
+            // Ownership check first: with vanilla forceload there is no per-owner ticket, so a
+            // non-owner must NOT actually unload the chunk (previously a mismatched ticketId
+            // removeRegionTicket was a harmless no-op — we reproduce that safe behavior here).
             if (forceLoadedChunkTicketIds.containsKey(chunkId) && !forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) {
                 return;
             }
+
+            level.setChunkForced(chunkPos.x(), chunkPos.z(), false);
             loadedChunkIds.remove(chunkId);
             forceLoadedChunkTicketIds.remove(chunkId);
 
             int totalChunks = level.getChunkSource().getLoadedChunksCount();
-            int totalForceChunks = level.getForcedChunks().size();
+            int totalForceChunks = forceLoadedChunkTicketIds.size(); // 26.1: ServerLevel.getForcedChunks() removed; use mod-tracked count (debug only)
             LoggerBase.logDebug(null, "004004", "UNLOAD: Total chunkSource loaded: " + totalChunks + ", total force loaded: " + totalForceChunks);
         }
 
@@ -1192,7 +1196,7 @@ public class HBUtil {
         }
 
         public static CompletableFuture<ChunkResult<ChunkAccess>> softLoadChunk(ServerLevel level, ChunkPos chunkPos) {
-            return level.getChunkSource().getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+            return level.getChunkSource().getChunkFuture(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false);
         }
 
     }
@@ -1218,7 +1222,7 @@ public class HBUtil {
 
         public static EntityType<?> entityNameToEntityType(String namespace, String entityName) {
             Identifier key = HBUtil.LOC(namespace.trim(), entityName.trim());
-            return BuiltInRegistries.ENTITY_TYPE.get(key);
+            return BuiltInRegistries.ENTITY_TYPE.getValue(key);
         }
 
         public static String entityTypeToCommonName(EntityType<?> entityType) {
@@ -1255,7 +1259,7 @@ public class HBUtil {
                 world,
                 m -> {},              // empty consumer
                 pos,                 // The target block position for spawning the entity
-                MobSpawnType.COMMAND,            // The reason/type of spawn (e.g., NATURAL, SPAWNER, COMMAND)
+                EntitySpawnReason.COMMAND,       // The reason/type of spawn (e.g., NATURAL, SPAWNER, COMMAND)
             true,               // Whether to position the entity above the block center (usually true)
             true              // Whether to adjust the entity’s Y offset based on the terrain
             );

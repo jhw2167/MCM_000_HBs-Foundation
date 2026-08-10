@@ -17,14 +17,18 @@ import com.holybuckets.foundation.event.custom.SimpleMessageEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.holybuckets.foundation.event.balm.client.ConnectedToServerEvent;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import com.holybuckets.foundation.event.balm.client.DisconnectedFromServerEvent;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.blockentity.BeaconRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import com.mojang.math.Axis;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -322,19 +326,28 @@ public class MovingWaypoint {
         }
     }
 
+    // Vanilla beacon-beam texture + radii (mirrors net.minecraft.client.renderer.blockentity.BeaconRenderer).
+    private static final Identifier BEAM_LOCATION = Identifier.withDefaultNamespace("textures/entity/beacon/beacon_beam.png");
+    private static final float BEAM_SOLID_RADIUS = 0.2f;
+    private static final float BEAM_GLOW_RADIUS = 0.25f;
+
     private static void renderWaypointFlare(RenderLevelEvent event) {
         if (activeWaypoints.isEmpty()) return;
 
-        PoseStack poseStack = new PoseStack();
-        Camera camera = event.getCamera();
-        Vec3 cameraPos = camera.getPosition();
-        long gameTime = Minecraft.getInstance().level.getGameTime();
+        PoseStack poseStack = event.getPoseStack();
+        if (poseStack == null) return;
 
+        Level level = Minecraft.getInstance().level;
+        if (level == null) return;
+
+        Vec3 cameraPos = event.getCamera().position();
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance()
             .renderBuffers().bufferSource();
 
-        // 26.1 PORT NOTE: RenderSystem shader fog overrides were removed with the fog
-        // rework; beams now respect world fog. Needs in-game verification.
+        // Beacon beams animate/scroll on gameTime; distance scale keeps the beam readable from afar.
+        float animationTime = Math.floorMod(level.getGameTime(), 40) + event.getPartialTick();
+        int worldTop = level.getMaxY();
+
         try {
             int renderedCount = 0;
             for (IntObjectMap.PrimitiveEntry<Waypoint> entry : activeWaypoints.entries()) {
@@ -345,42 +358,83 @@ public class MovingWaypoint {
 
                 BlockPos targetPos = wp.getTargetPos();
 
-                // Distance from camera to the beam base (xz-aware, but Y matters here for
-                // angular sizing of the halo when the camera is well above/below the floor-
-                // anchored target).
-                double cameraDist = cameraPos.distanceTo(Vec3.atCenterOf(targetPos));
-                float glowRadius = (float) Math.max(GLOW_RADIUS_BASE,
-                    GLOW_RADIUS_BASE * (cameraDist / GLOW_SCALE_REF));
+                double dist = cameraPos.distanceTo(Vec3.atCenterOf(targetPos));
+                float scale = (float) Math.max(1.0, dist / GLOW_SCALE_REF);
+                int rgb = WoolColorHelper.getWoolColorRGBInt(wp.colorId) & 0xFFFFFF;
+                int height = worldTop - targetPos.getY();
 
+                // The beam helper adds the (0.5, 0, 0.5) block-center offset itself (like vanilla),
+                // so translate to the block corner relative to the (camera-relative) render pose.
                 poseStack.pushPose();
-
                 poseStack.translate(
-                    targetPos.getX() - cameraPos.x + 0.5,
+                    targetPos.getX() - cameraPos.x,
                     targetPos.getY() - cameraPos.y,
-                    targetPos.getZ() - cameraPos.z + 0.5
+                    targetPos.getZ() - cameraPos.z
                 );
-
-                int colors = WoolColorHelper.getWoolColorRGBInt(wp.colorId);
-
-                BeaconRenderer.renderBeaconBeam(
-                    poseStack,
-                    bufferSource,
-                    BeaconRenderer.BEAM_LOCATION,
-                    event.getPartialTick(),
-                    1.0f,
-                    gameTime,
-                    0,
-                    Minecraft.getInstance().level.getMaxY() - targetPos.getY(),
-                    colors,
-                    BEAM_RADIUS,
-                    glowRadius
-                );
-
+                renderBeaconBeam(poseStack, bufferSource, animationTime, 0, height, rgb,
+                    BEAM_SOLID_RADIUS * scale, BEAM_GLOW_RADIUS * scale);
                 poseStack.popPose();
                 renderedCount++;
             }
         } finally {
             bufferSource.endBatch();
         }
+    }
+
+    // ---- Beacon-beam rendering, adapted from vanilla BeaconRenderer#submitBeaconBeam for immediate
+    // mode. Vanilla uses SubmitNodeCollector#submitCustomGeometry, but that collector isn't available
+    // in a RenderLevelStageEvent, so we draw the same quads directly to RenderTypes.beaconBeam buffers.
+    private static void renderBeaconBeam(PoseStack poseStack, MultiBufferSource bufferSource,
+                                         float animationTime, int beamStart, int height, int rgb,
+                                         float solidRadius, float glowRadius) {
+        int beamEnd = beamStart + height;
+        poseStack.pushPose();
+        poseStack.translate(0.5, 0.0, 0.5);
+        float scroll = -animationTime; // height >= 0
+        float texVOff = Mth.frac(scroll * 0.2f - Mth.floor(scroll * 0.1f));
+
+        // Solid inner beam (opaque texture layer), rotates over time.
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(animationTime * 2.25f - 45.0f));
+        float sVv2 = -1.0f + texVOff;
+        float sVv1 = height * (0.5f / solidRadius) + sVv2;
+        VertexConsumer solid = bufferSource.getBuffer(RenderTypes.beaconBeam(BEAM_LOCATION, false));
+        renderPart(poseStack.last(), solid, 0xFF000000 | rgb, beamStart, beamEnd,
+            0.0f, solidRadius, solidRadius, 0.0f, -solidRadius, 0.0f, 0.0f, -solidRadius, 0.0f, 1.0f, sVv1, sVv2);
+        poseStack.popPose();
+
+        // Outer glow beam (translucent, static).
+        float gVv2 = -1.0f + texVOff;
+        float gVv1 = height + gVv2;
+        VertexConsumer glow = bufferSource.getBuffer(RenderTypes.beaconBeam(BEAM_LOCATION, true));
+        renderPart(poseStack.last(), glow, (32 << 24) | rgb, beamStart, beamEnd,
+            -glowRadius, -glowRadius, glowRadius, -glowRadius, -glowRadius, glowRadius, glowRadius, glowRadius, 0.0f, 1.0f, gVv1, gVv2);
+        poseStack.popPose();
+    }
+
+    private static void renderPart(PoseStack.Pose pose, VertexConsumer builder, int color, int beamStart, int beamEnd,
+                                   float wnx, float wnz, float enx, float enz, float wsx, float wsz, float esx, float esz,
+                                   float uu1, float uu2, float vv1, float vv2) {
+        renderQuad(pose, builder, color, beamStart, beamEnd, wnx, wnz, enx, enz, uu1, uu2, vv1, vv2);
+        renderQuad(pose, builder, color, beamStart, beamEnd, esx, esz, wsx, wsz, uu1, uu2, vv1, vv2);
+        renderQuad(pose, builder, color, beamStart, beamEnd, enx, enz, esx, esz, uu1, uu2, vv1, vv2);
+        renderQuad(pose, builder, color, beamStart, beamEnd, wsx, wsz, wnx, wnz, uu1, uu2, vv1, vv2);
+    }
+
+    private static void renderQuad(PoseStack.Pose pose, VertexConsumer builder, int color, int beamStart, int beamEnd,
+                                   float xa, float za, float xb, float zb, float uu1, float uu2, float vv1, float vv2) {
+        addVertex(pose, builder, color, beamEnd, xa, za, uu2, vv1);
+        addVertex(pose, builder, color, beamStart, xa, za, uu2, vv2);
+        addVertex(pose, builder, color, beamStart, xb, zb, uu1, vv2);
+        addVertex(pose, builder, color, beamEnd, xb, zb, uu1, vv1);
+    }
+
+    private static void addVertex(PoseStack.Pose pose, VertexConsumer builder, int color, int y, float x, float z, float u, float v) {
+        builder.addVertex(pose, x, (float) y, z)
+            .setColor(color)
+            .setUv(u, v)
+            .setOverlay(OverlayTexture.NO_OVERLAY)
+            .setLight(15728880)
+            .setNormal(pose, 0.0f, 1.0f, 0.0f);
     }
 }

@@ -28,7 +28,7 @@ public class EssenceEnchantment {
 
     public static final Holder<Enchantment> GET(RegistryAccess registryAccess) {
         return registryAccess
-            .registryOrThrow(Registries.ENCHANTMENT).getHolder(KEY)
+            .lookupOrThrow(Registries.ENCHANTMENT).get(KEY)
             .orElse(null);
     }
 

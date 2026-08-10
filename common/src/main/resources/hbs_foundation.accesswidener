@@ -1,0 +1,5 @@
+# Intentionally empty. 26.1: no Fabric access widener is required — CreativeModeTab.Output is
+# public in vanilla/Fabric mojmap and only protected under NeoForge, handled by the NeoForge
+# access transformer (common/src/main/resources/META-INF/accesstransformer.cfg). The Fabric build
+# no longer wires this file (see fabric/build.gradle); this stub remains only because the file
+# could not be deleted in the editing environment.

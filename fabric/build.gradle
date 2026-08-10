@@ -1,28 +1,25 @@
 plugins {
     id 'multiloader-loader'
-    id 'fabric-loom'
+    id 'net.fabricmc.fabric-loom'
 }
 version = "${mod_version}"
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings loom.layered {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip")
-    }
-    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 
-    modImplementation("net.blay09.mods:balm-fabric:${balm_version}") {
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+
+    implementation("net.blay09.mods:balm-fabric:${balm_version}") {
         transitive = false
     }
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 }
 
 loom {
-    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
-    if (aw.exists()) {
-        accessWidenerPath.set(aw)
-    }
+    // 26.1: no access widener needed on Fabric. CreativeModeTab.Output is public in vanilla/Fabric
+    // mojmap; it is only protected under NeoForge's patches, which the NeoForge access transformer
+    // (common/src/main/resources/META-INF/accesstransformer.cfg) handles. Do NOT wire an .accesswidener
+    // here — Loom rejects a named-namespace widener for this setup ("Expected official namespace").
     mixin {
         defaultRefmapName.set("${mod_id}.refmap.json")
     }

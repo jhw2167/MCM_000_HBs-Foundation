@@ -55,7 +55,7 @@ public class WaypointStick extends Item {
         Player player = context.getPlayer();
         if (player == null) return InteractionResult.PASS;
         // All waypoint state lives server-side; let the client just play the swing.
-        if (context.getLevel().isClientSide) return InteractionResult.SUCCESS;
+        if (context.getLevel().isClientSide()) return InteractionResult.SUCCESS;
         if (!(player instanceof ServerPlayer sp)) return InteractionResult.PASS;
 
         BlockPos hit = context.getClickedPos();
@@ -70,7 +70,7 @@ public class WaypointStick extends Item {
      */
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        if (level.isClientSide) return InteractionResult.SUCCESS;
+        if (level.isClientSide()) return InteractionResult.SUCCESS;
         if (!(player instanceof ServerPlayer sp)) return InteractionResult.PASS;
 
         Vec3 pos = sp.position();

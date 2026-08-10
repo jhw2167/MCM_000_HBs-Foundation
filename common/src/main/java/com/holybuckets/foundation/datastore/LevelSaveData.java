@@ -128,14 +128,14 @@ public class LevelSaveData {
             props.put("totalTicksWithSleep", new JsonPrimitive(currentTick));
         }
         if( !props.containsKey("nextDailyTick")) {
-            long nextDailyTick = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            long nextDailyTick = TICKS_PER_DAY /* 26.1: DimensionType.fixedTime() removed; overworld default */;
             if(nextDailyTick <= 0) nextDailyTick = TICKS_PER_DAY;
             long currentTick = worldData.get("totalTicks").getAsLong();
             props.put("nextDailyTick", new JsonPrimitive(nextDailyTick+currentTick));
         }
         try {
             if( !props.containsKey("totalDays")) {
-                long dayLength = data.level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+                long dayLength = TICKS_PER_DAY /* 26.1: DimensionType.fixedTime() removed; overworld default */;
                 if(dayLength <= 0) dayLength = TICKS_PER_DAY;
                 long totalDays = data.level.getGameTime() / dayLength;
                 props.put("totalDays", new JsonPrimitive(totalDays));

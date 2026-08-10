@@ -137,7 +137,7 @@ public class GeneralConfig {
         {
             Level level = event.getLevel();
             LevelSaveData lsd = dataStore.getOrCreateLevelSaveData(Constants.MOD_ID, level);
-            long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+            long dayTickLength = TICKS_PER_DAY /* 26.1: DimensionType.fixedTime() removed; overworld default (see updatePack) */;
             if(dayTickLength <= 0) dayTickLength = TICKS_PER_DAY;
             //long dayTickLength = 500;
             long nextDailyTick = event.getTickCount() + dayTickLength;
@@ -215,17 +215,13 @@ public class GeneralConfig {
 
         if( !this.isWorldConfigInit)
         {
-            this.worldSeed = server.getWorldData().worldGenOptions().seed();
-
-            if( this.worldSeed != null ) {
-                this.isWorldConfigInit = true;
-                LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
-            }
-
+            this.worldSeed = server.getWorldGenSettings().options().seed();
+            this.isWorldConfigInit = true;
+            LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
         }
         
         WoolColorHelper.initWoolColors();
-        this.dataStore.onBeforeServerStarted(event);
+        DataStore.onBeforeServerStarted(event);
         this.playerSaveData = dataStore.getPlayerSaveData();
     }
 
@@ -252,7 +248,7 @@ public class GeneralConfig {
     {
         Level level = (Level) event.getLevel();
         LevelData data = level.getLevelData();
-        BlockPos spawn = data.getSpawnPos();
+        BlockPos spawn = (level instanceof ServerLevel sl) ? sl.getRespawnData().pos() : BlockPos.ZERO; /* 26.1: LevelData.getSpawnPos() removed */
         this.WORLD_SPAWNS.put(level, spawn);
         //if( level.isClientSide() ) return;
 
@@ -351,10 +347,10 @@ public class GeneralConfig {
     public static long TICKS_PER_DAY = 24000;
     public long getTotalTickCountWithSleep(Level level) {
         int totalDays = this.getTotalDays(level);
-        long dayTickLength = level.dimensionType().fixedTime().orElse(TICKS_PER_DAY);
+        long dayTickLength = TICKS_PER_DAY;
         if(dayTickLength <= 0) dayTickLength = TICKS_PER_DAY;
         dayTickLength+=1; //need that last tick to fire
-        return (dayTickLength * totalDays) + (level.getDayTime() % dayTickLength);
+        return (dayTickLength * totalDays) + (level.getDefaultClockTime() % dayTickLength);
     }
 
     public long getSessionTickCount() {

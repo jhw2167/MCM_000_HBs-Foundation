@@ -53,7 +53,7 @@ public class CustomRecipes {
         {
             BlockPos blockPos = entity.blockPosition();
             Level level = entity.level();
-            boolean randomTick = level.random.nextFloat() < 0.07f; // 5% chance each tick to process the essence
+            boolean randomTick = level.getRandom().nextFloat() < 0.07f; // 5% chance each tick to process the essence
             //if(!randomTick) return;
 
             if( level.getBlockState(blockPos).getBlock() instanceof LayeredCauldronBlock cauldronBlock)

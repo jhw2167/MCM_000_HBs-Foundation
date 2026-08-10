@@ -77,21 +77,21 @@ public class StructureInfo {
 
     public void deserialize(CompoundTag tag) {
         if(tag.contains("origin")) {
-            String pos = tag.getString("origin");
+            String pos = tag.getStringOr("origin", "");
             origin = HBUtil.BlockUtil.stringToBlockPos (pos);
         }
         if(tag.contains("id")) {
-            id = HBUtil.LOC(tag.getString("id"));
+            id = HBUtil.LOC(tag.getStringOr("id", ""));
         }
 
-        registryId = tag.getInt("registryId");
+        registryId = tag.getIntOr("registryId", 0);
 
         if(tag.contains("commonName")) {
-            commonName = tag.getString("commonName");
+            commonName = tag.getStringOr("commonName", "");
         }
-        
+
         if(tag.contains("structureLocation")) {
-            structureLocation = HBUtil.LOC(tag.getString("structureLocation"));
+            structureLocation = HBUtil.LOC(tag.getStringOr("structureLocation", ""));
         }
     }
 

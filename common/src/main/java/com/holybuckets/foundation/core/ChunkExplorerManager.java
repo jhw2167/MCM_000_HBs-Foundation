@@ -134,7 +134,7 @@ public class ChunkExplorerManager {
         for (Player player : players)
         {
             ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
-            //ChunkPos playerChunk = new ChunkPos(player.blockPosition());
+            //ChunkPos playerChunk = new ChunkPos(player.blockPosition().getX() >> 4, player.blockPosition().getZ() >> 4);
             final int maxPerPlayer = CHUNK_EXPLORER_MAX / chunkGenerators.size();
             int count = 0;
             while(true)
@@ -221,7 +221,7 @@ public class ChunkExplorerManager {
         Map<Level, List<Player>> playersByLevel = new HashMap<>();
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
             playersByLevel
-                .computeIfAbsent(player.serverLevel(), k -> new ArrayList<>())
+                .computeIfAbsent((ServerLevel) player.level(), k -> new ArrayList<>())
                 .add(player);
         }
 
@@ -239,12 +239,12 @@ public class ChunkExplorerManager {
 
         for(Player player : players) {
             if(!chunkGenerators.containsKey(player)) {
-                ChunkPos p = new ChunkPos(player.blockPosition());
+                ChunkPos p = new ChunkPos(player.blockPosition().getX() >> 4, player.blockPosition().getZ() >> 4);
                 chunkGenerators.put(player, new ChunkGenerationOrderHandler(p, 0, SCAN_RADIUS_CHUNKS) );
             }
             ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
             if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) {
-                ChunkPos p = new ChunkPos(player.blockPosition());
+                ChunkPos p = new ChunkPos(player.blockPosition().getX() >> 4, player.blockPosition().getZ() >> 4);
                 double skipRatio = (double) PLAYER_RENDER_DIST_SQ / handler.getSkippedChunks()*SKIP_CHUNKS;
                 int radialOffset = Math.max(0, (int) skipRatio );
                 chunkGenerators.put(player, new ChunkGenerationOrderHandler(p, radialOffset, SCAN_RADIUS_CHUNKS) );
@@ -332,21 +332,21 @@ public class ChunkExplorerManager {
             }
 
             int totalStart = total;
-            int nextPosX = currentPos.x + dir[0]*skipChunks;
-            int nextPosZ = currentPos.z + dir[1]*skipChunks;
+            int nextPosX = currentPos.x() + dir[0]*skipChunks;
+            int nextPosZ = currentPos.z() + dir[1]*skipChunks;
             while(util.isChunkInitialized(nextPosX, nextPosZ))
             {
                 //check if nextPosX is outside of radius from startPos
-                if(nextPosX > startPos.x) {
-                    if(nextPosX - startPos.x > radius) break;
+                if(nextPosX > startPos.x()) {
+                    if(nextPosX - startPos.x() > radius) break;
                 } else {
-                    if(startPos.x - nextPosX > radius) break;
+                    if(startPos.x() - nextPosX > radius) break;
                 }
 
-                if(nextPosZ > startPos.z) {
-                    if(nextPosZ - startPos.z > radius) break;
+                if(nextPosZ > startPos.z()) {
+                    if(nextPosZ - startPos.z() > radius) break;
                 } else {
-                    if(startPos.z - nextPosZ > radius) break;
+                    if(startPos.z() - nextPosZ > radius) break;
                 }
 
 

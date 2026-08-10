@@ -84,6 +84,7 @@ public abstract class AnvilMenuMixin {
         ItemEntity newEntity = new ItemEntity(p.level(), pPos.getX() + 0.5, pPos.getY(), pPos.getZ() + 0.5, stack.copy());
 
         p.level().addFreshEntity(newEntity);
-        if(stack.getEntityRepresentation()!=null) stack.getEntityRepresentation().discard();
+        // 26.1 PORT: ItemStack.getEntityRepresentation() was removed; the dropped-item entity is
+        // spawned above via addFreshEntity, so the extra discard of a backing entity is dropped.
     }
 }

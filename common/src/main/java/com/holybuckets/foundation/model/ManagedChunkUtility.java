@@ -82,7 +82,7 @@ public class ManagedChunkUtility {
 
     public boolean isChunkInitialized(ChunkPos p) {
         if(p == null) return false;
-        return isChunkInitialized(p.x, p.z);
+        return isChunkInitialized(p.x(), p.z());
     }
 
     public boolean isChunkInitialized(int x, int z) {
@@ -302,7 +302,7 @@ public class ManagedChunkUtility {
             }
             else if( isFullyLoaded  && !hasLevelChunk ) {
                 ChunkPos cp = m.getChunkPos();
-                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x, cp.z, false);
+                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x(), cp.z(), false);
             }
 
         }

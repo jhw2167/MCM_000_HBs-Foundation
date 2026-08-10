@@ -59,7 +59,7 @@ public class SimpleBlockEntityBlock extends BaseEntityBlock {
     @Override
     public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
         this.spawnDestroyParticles(world, player, pos, state);
-        if (world.isClientSide) return state;
+        if (world.isClientSide()) return state;
 
         // Don't drop anything in creative mode
         if (!player.isCreative()) {

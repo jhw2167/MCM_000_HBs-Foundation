@@ -125,13 +125,6 @@ public class BalmEventRegister {
                 return InteractionEventResult.DEFAULT;
             }));
 
-        drainAndRegister(registrar.ON_PLAYER_ATTACK_EVENT, "ON_PLAYER_ATTACK_EVENT", c ->
-            PlayerCallback.Attack.Before.EVENT.register(p(c).toPhase(), (player, target) -> {
-                if (player.level().isClientSide()) return true; // server-only; client mirror in ClientBalmEventRegister
-                PlayerAttackEvent event = new PlayerAttackEvent(player, target);
-                c.accept(event);
-                return !event.isCanceled();
-            }));
 
         drainAndRegister(registrar.ON_DIG_SPEED_EVENT, "ON_DIG_SPEED_EVENT", c ->
             BlockCallback.DigSpeed.EVENT.register(p(c).toPhase(), (blockGetter, pos, state, player, digSpeed) -> {

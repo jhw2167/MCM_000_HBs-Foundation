@@ -23,6 +23,7 @@ import net.blay09.mods.balm.network.BalmNetworking;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -38,6 +39,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -92,6 +94,10 @@ public class HBUtil {
             return HBUtil.LOC(split[0], split[1]);
         }
         return HBUtil.LOC("minecraft", path);
+    }
+
+    public static String READ(String group, String modId, String enUsField) {
+        return Component.translatable(group + "." + modId + "." + enUsField).getString();
     }
 
 
@@ -164,7 +170,14 @@ public class HBUtil {
             return prefix + gp.name();
         }
 
-    //create a PlayerNameSpace for CLIENT and SERVER
+        public static ServerPlayer getServerPlayer(Player p) {
+            if (p instanceof ServerPlayer) {
+                return (ServerPlayer) p;
+            }
+            return (ServerPlayer) getPlayer(getId(p), PlayerNameSpace.SERVER);
+        }
+
+        //create a PlayerNameSpace for CLIENT and SERVER
         public enum PlayerNameSpace {
             SERVER,
             CLIENT
@@ -220,6 +233,13 @@ public class HBUtil {
             }
 
             return item;
+        }
+
+        public static boolean itemHasEnchant(ItemStack stack, ResourceKey<Enchantment> key) {
+            if( stack == null || stack.isEmpty() || key == null ) return false;
+            Holder<Enchantment> enchant = enchantNameToEnchant(key);
+            if( enchant == null ) return false;
+            return stack.getEnchantments().keySet().contains(enchant);
         }
 
 
@@ -286,12 +306,12 @@ public class HBUtil {
         }
 
         // Maps each distinct Item to the first slot index it occupies (0-35 main, 36-39 armor, 40 offhand)
-        public static HashMap<Item, Integer> parseInventory(Inventory inventory) {
-            HashMap<Item, Integer> itemSlotMap = new HashMap<>();
+        public static HashMap<ItemStack, Integer> parseInventory(Inventory inventory) {
+            HashMap<ItemStack, Integer> itemSlotMap = new HashMap<>();
             for (int i = 0; i < inventory.getContainerSize(); i++) {
                 ItemStack stack = inventory.getItem(i);
                 if (stack.isEmpty()) continue;
-                itemSlotMap.putIfAbsent(stack.getItem(), i);
+                itemSlotMap.put(stack, i);
             }
             return itemSlotMap;
         }

@@ -15,7 +15,9 @@ import com.holybuckets.foundation.event.balm.ChunkLoadingEvent;
 import com.holybuckets.foundation.event.balm.LevelLoadingEvent;
 import com.holybuckets.foundation.event.balm.PlayerLoginEvent;
 import com.holybuckets.foundation.event.balm.TossItemEvent;
+import com.holybuckets.foundation.event.balm.server.ServerStartingEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -35,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Thread.sleep;
@@ -113,6 +116,54 @@ public class CommonClassDebug {
         reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
         reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
         reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+
+        testPlayerMatchesItem(reg);
+    }
+
+
+    /* PLAYER_MATCHES_ITEM */
+
+    private static void testPlayerMatchesItem(EventRegistrar reg) {
+        reg.registerOnPlayerMatchesItem(SHARPENED, CommonClassDebug::onPlayerHasSharpness);
+        reg.registerOnBeforeServerStarted(CommonClassDebug::registerAppleCounterAtRuntime);
+    }
+
+    /**
+     * The predicate only receives the Item, and enchantments live on the ItemStack, so the closest
+     * a Predicate&lt;Item&gt; can get to "has Sharpness" is "could carry Sharpness".
+     */
+    private static final Predicate<ItemStack> SHARPENED =
+        stack -> HBUtil.ItemUtil.itemHasEnchant(stack, Enchantments.SHARPNESS);
+
+    // The consumer fires once per matching item key, so a player holding five enchantable items
+    // triggers five calls for one event. Track the last event handled and report it once.
+    private static PlayerHasItemEvent lastSharpnessEvent = null;
+
+    private static void onPlayerHasSharpness(PlayerHasItemEvent event) {
+        if (event == lastSharpnessEvent) return;
+        lastSharpnessEvent = event;
+        if (event.getPlayer() == null) return;
+
+        LoggerBase.logInfo(null, "001310", "PLAYER_MATCHES_ITEM enchantable: SHARPNESS");
+    }
+
+    private static void registerAppleCounterAtRuntime(ServerStartingEvent event) {
+        EventRegistrar.getInstance()
+            .runtimeOnPlayerMatchesItem(stack -> stack.getItem()==Items.APPLE, CommonClassDebug::onPlayerHasApples);
+        LoggerBase.logInfo(null, "001311", "PLAYER_MATCHES_ITEM apple counter registered at runtime");
+    }
+
+    private static final int APPLE_THRESHOLD = 2;
+
+    private static void onPlayerHasApples(PlayerHasItemEvent event) {
+        if (event.getPlayer() == null) return;
+
+        Integer apples = event.getInventoryMap().get(Items.APPLE);
+        if (apples == null || apples < APPLE_THRESHOLD) return;
+
+        LoggerBase.logInfo(null, "001312",
+            "PLAYER_MATCHES_ITEM apples: " + event.getPlayer().getName().getString()
+            + " has " + apples + " apples");
     }
 
     private static void onRightClickInteraction(PlayerInteractEvent.RightClickInteraction event) {

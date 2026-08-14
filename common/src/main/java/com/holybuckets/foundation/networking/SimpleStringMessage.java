@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import static com.holybuckets.foundation.FoundationInitializers.id;
 
+import com.holybuckets.foundation.HBUtil.PlayerUtil;
 /**
  * Description: SimpleStringMessage
  * A simple message type for sending string data with a maximum size of 4096 characters
@@ -102,7 +103,7 @@ public class SimpleStringMessage {
             : new SimpleStringMessage(p.getUUID(), messageId, content);
 
         if (GeneralConfig.getInstance().isIntegrated()) {
-            EventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
+            EventRegistrar.getInstance().onSimpleMessage(PlayerUtil.getServerPlayer(p), message, message.messageId);
             ClientEventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
             return message;
         } else if (GeneralConfig.getInstance().isServerSide()) {

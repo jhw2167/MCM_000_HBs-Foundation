@@ -29,17 +29,21 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import javax.annotation.Nullable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTickEvent;
 
@@ -96,7 +100,6 @@ public class EventRegistrar {
     final Set<Consumer<LivingFallEvent>> ON_PLAYER_FALL = new ConcurrentSet<>();
     final Set<Consumer<LivingHealEvent>> ON_PLAYER_HEAL = new ConcurrentSet<>();
     final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
-    final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK_EVENT = new ConcurrentSet<>();
     final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
     final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
     final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
@@ -118,6 +121,7 @@ public class EventRegistrar {
     final List<Supplier<Item>> PLAYER_HAS_ITEM_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<PlayerHasItemEvent>> PLAYER_HAS_ITEM_CONSUMER_LIST = Collections.synchronizedList(new ArrayList<>());
     final Map<Item, List<Consumer<PlayerHasItemEvent>>> PLAYER_HAS_ITEM_MAP = new ConcurrentHashMap<>();
+    final List<Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>>> PLAYER_MATCHES_ITEM_LIST = Collections.synchronizedList(new ArrayList<>());
 
     // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
     private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
@@ -486,14 +490,6 @@ public class EventRegistrar {
         generalRegister(function, ON_USE_BLOCK, priority);
     }
 
-    public void registerOnPlayerAttackEvent(Consumer<PlayerAttackEvent> function) {
-        registerOnPlayerAttackEvent(function, EventPriority.Normal);
-    }
-
-    public void registerOnPlayerAttackEvent(Consumer<PlayerAttackEvent> function, EventPriority priority) {
-        generalRegister(function, ON_PLAYER_ATTACK_EVENT, priority);
-    }
-
     public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function) {
         registerOnDigSpeedEvent(function, EventPriority.Normal);
     }
@@ -616,15 +612,45 @@ public class EventRegistrar {
         PRIORITIES.put(function, priority);
     }
 
+    //add register methods for player matches item, which takes a predicate instead of a supplier
+    public void registerOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function) {
+        registerOnPlayerMatchesItem(predicate, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function, EventPriority priority) {
+        Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair = Pair.of(predicate, function);
+        PLAYER_MATCHES_ITEM_LIST.add(pair);
+        PRIORITIES.put(function, priority);
+    }
+
     /**
      * Adds a consumer to the "player has item" array at runtime, calls the consumer when
      * the player has the item
      * @param itemType
      * @param function
-     * @param priority
      */
     public void runtimeOnPlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
         PLAYER_HAS_ITEM_MAP.computeIfAbsent(itemType, k -> new ArrayList<>()).add(function);
+    }
+
+    public void removePlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
+        List<Consumer<PlayerHasItemEvent>> consumers = PLAYER_HAS_ITEM_MAP.get(itemType);
+        if (consumers != null) {
+            consumers.remove(function);
+            if (consumers.isEmpty()) {
+                PLAYER_HAS_ITEM_MAP.remove(itemType);
+            }
+        }
+    }
+
+    public Pair runtimeOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function) {
+        Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair = Pair.of(predicate, function);
+        PLAYER_MATCHES_ITEM_LIST.add(pair);
+        return pair;
+    }
+
+    public void removePlayerMatchesItem(Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair) {
+        PLAYER_MATCHES_ITEM_LIST.remove(pair);
     }
 
 
@@ -815,19 +841,32 @@ public class EventRegistrar {
     }
 
     // Fires PlayerHasItemEvent every 20 ticks for each online player
-    private void firePlayerHasItemEvents(MinecraftServer server, long totalTicks) {
-        if (PLAYER_HAS_ITEM_MAP.isEmpty()) return;
+    private void firePlayerHasItemEvents(MinecraftServer server, long totalTicks)
+    {
+        if (PLAYER_HAS_ITEM_MAP.isEmpty() && PLAYER_MATCHES_ITEM_LIST.isEmpty()) return;
         if (totalTicks % 20 != 0) return;
 
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            HashMap<Item, Integer> inventoryMap = HBUtil.ItemUtil.parseInventory(player.getInventory());
+        List<Predicate<ItemStack>> predicates = PLAYER_MATCHES_ITEM_LIST.stream().map(Pair::getLeft).toList();
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+        {
+            HashMap<ItemStack, Integer> inventoryMap = HBUtil.ItemUtil.parseInventory(player.getInventory());
             PlayerHasItemEvent event = new PlayerHasItemEvent(player, inventoryMap);
 
-            PLAYER_HAS_ITEM_MAP.forEach((item, consumers) -> {
-                if (inventoryMap.containsKey(item)) {
-                    consumers.forEach(consumer -> tryEvent(consumer, event));
+            for(ItemStack stack : inventoryMap.keySet() )
+            {
+                if(!PLAYER_HAS_ITEM_MAP.containsKey(stack.getItem()) && predicates.stream().noneMatch(p -> p.test(stack))) return;
+                int slot = inventoryMap.get(stack);
+                PlayerHasItemEvent slotEvent = new PlayerHasItemEvent(player, stack, slot, inventoryMap);
+
+                if(PLAYER_HAS_ITEM_MAP.containsKey(stack.getItem())) {
+                    List<Consumer<PlayerHasItemEvent>> consumers = PLAYER_HAS_ITEM_MAP.get(stack.getItem());
+                    consumers.forEach(consumer -> tryEvent(consumer, slotEvent));
                 }
-            });
+
+                PLAYER_MATCHES_ITEM_LIST.stream().filter( pair -> pair.getLeft().test(player.getInventory().getItem(slot)) )
+                    .forEach(pair -> pair.getRight().accept(event));
+            }
+
         }
     }
 

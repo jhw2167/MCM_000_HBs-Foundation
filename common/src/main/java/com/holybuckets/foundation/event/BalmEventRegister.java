@@ -48,10 +48,20 @@ public class BalmEventRegister {
             registry.onEvent(PlayerLogoutEvent.class, c, p(c)));
 
         drainAndRegister(registrar.ON_PLAYER_ATTACK, "ON_PLAYER_ATTACK", c ->
-            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
+            PlayerCallback.Attack.Before.EVENT.register(p(c).toPhase(), (player, target) -> {
+                if (player.level().isClientSide()) return true; // server-only; client mirror in ClientBalmEventRegister
+                PlayerAttackEvent event = new PlayerAttackEvent(player, target);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_BLOCK_BROKEN, "ON_BLOCK_BROKEN", c ->
-            registry.onEvent(BreakBlockEvent.class, c, p(c)));
+            BlockCallback.Break.Before.EVENT.register(p(c).toPhase(), (level, pos, state, blockEntity, player) -> {
+                if (level.isClientSide()) return true; // server-only; client mirror in ClientBalmEventRegister
+                BreakBlockEvent event = new BreakBlockEvent(level, player, pos, state, blockEntity);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_CHANGED_DIMENSION, "ON_PLAYER_CHANGED_DIMENSION", c ->
             registry.onEvent(PlayerChangedDimensionEvent.class, c, p(c)));
@@ -60,31 +70,68 @@ public class BalmEventRegister {
             registry.onEvent(PlayerRespawnEvent.class, c, p(c)));
 
         drainAndRegister(registrar.ON_PLAYER_DEATH, "ON_PLAYER_DEATH", c ->
-            registry.onEvent(LivingDeathEvent.class, c, p(c)));
+            LivingEntityCallback.Death.Before.EVENT.register(p(c).toPhase(), (entity, damageSource) -> {
+                if (entity.level().isClientSide()) return true; // server-only; client mirror in ClientBalmEventRegister
+                LivingDeathEvent event = new LivingDeathEvent(entity, damageSource);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_DAMAGE, "ON_PLAYER_DAMAGE", c ->
-            registry.onEvent(LivingDamageEvent.class, c, p(c)));
+            LivingEntityCallback.Damage.Before.EVENT.register(p(c).toPhase(), (entity, damageSource, damageAmount) -> {
+                if (entity.level().isClientSide()) return damageAmount; // server-only; client mirror in ClientBalmEventRegister
+                LivingDamageEvent event = new LivingDamageEvent(entity, damageSource, damageAmount);
+                c.accept(event);
+                return event.isCanceled() ? 0f : event.getDamageAmount();
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_FALL, "ON_PLAYER_FALL", c ->
-            registry.onEvent(LivingFallEvent.class, c, p(c)));
+            LivingEntityCallback.Fall.Before.EVENT.register(p(c).toPhase(), (entity, fallDamage) -> {
+                if (entity.level().isClientSide()) return fallDamage; // server-only; client mirror in ClientBalmEventRegister
+                LivingFallEvent event = new LivingFallEvent(entity, fallDamage);
+                c.accept(event);
+                if (event.isCanceled()) return 0f;
+                return event.getFallDamageOverride() != null ? event.getFallDamageOverride() : fallDamage;
+            }));
 
         drainAndRegister(registrar.ON_PLAYER_HEAL, "ON_PLAYER_HEAL", c ->
-            registry.onEvent(LivingHealEvent.class, c, p(c)));
+            LivingEntityCallback.Heal.Before.EVENT.register(p(c).toPhase(), (entity, healAmount) -> {
+                if (entity.level().isClientSide()) return healAmount; // server-only; client mirror in ClientBalmEventRegister
+                LivingHealEvent event = new LivingHealEvent(entity, healAmount);
+                c.accept(event);
+                return event.isCanceled() ? 0f : healAmount;
+            }));
 
         drainAndRegister(registrar.ON_USE_BLOCK, "ON_USE_BLOCK", c ->
-            registry.onEvent(UseBlockEvent.class, c, p(c)));
+            BlockCallback.Use.EVENT.register(p(c).toPhase(), (player, level, hand, hitResult) -> {
+                if (level.isClientSide()) return InteractionEventResult.DEFAULT; // server-only; client mirror in ClientBalmEventRegister
+                UseBlockEvent event = new UseBlockEvent(player, level, hand, hitResult);
+                c.accept(event);
+                if (event.isCanceled() || event.getInteractionResult() != net.minecraft.world.InteractionResult.PASS) {
+                    return () -> Optional.of(event.getInteractionResult());
+                }
+                return InteractionEventResult.DEFAULT;
+            }));
 
-        drainAndRegister(registrar.ON_PLAYER_ATTACK_EVENT, "ON_PLAYER_ATTACK_EVENT", c ->
-            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
 
         drainAndRegister(registrar.ON_DIG_SPEED_EVENT, "ON_DIG_SPEED_EVENT", c ->
-            registry.onEvent(DigSpeedEvent.class, c, p(c)));
+            BlockCallback.DigSpeed.EVENT.register(p(c).toPhase(), (blockGetter, pos, state, player, digSpeed) -> {
+                if (player.level().isClientSide()) return digSpeed; // server-only; client mirror in ClientBalmEventRegister
+                DigSpeedEvent event = new DigSpeedEvent(player, state, digSpeed);
+                c.accept(event);
+                return event.getSpeedOverride() != null ? event.getSpeedOverride() : digSpeed;
+            }));
 
         // Track wake up event registrations even though it's not a Balm event
         drainAndRegister(registrar.ON_WAKE_UP_ALL_PLAYERS, "ON_WAKE_UP_ALL_PLAYERS", c -> {});
 
         drainAndRegister(registrar.ON_TOSS_ITEM, "ON_TOSS_ITEM", c ->
-            registry.onEvent(TossItemEvent.class, c, p(c)));
+            ItemCallback.Toss.Before.EVENT.register(p(c).toPhase(), (player, itemStack) -> {
+                if (player.level().isClientSide()) return true; // server-only; client mirror in ClientBalmEventRegister
+                TossItemEvent event = new TossItemEvent(player, itemStack);
+                c.accept(event);
+                return !event.isCanceled();
+            }));
     }
 
     private static <T> void drainAndRegister(Set<Consumer<T>> set, String eventName, Consumer<Consumer<T>> balmRegistration)
@@ -94,10 +141,6 @@ public class BalmEventRegister {
         {
             Consumer<T> c = it.next();
             String key = c.getClass().getName() + "::" + eventName;
-
-            if(registeredEvents.containsKey(key)) {
-                String i = "why do you happen";
-            }
 
             if (!registeredEvents.containsKey(key))
             {

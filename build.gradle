@@ -14,7 +14,6 @@ allprojects {
         options.addStringOption('Xdoclint:none', '-quiet')
         options.encoding = 'UTF-8'
     }
-
 }
 
 subprojects {

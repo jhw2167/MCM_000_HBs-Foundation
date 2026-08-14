@@ -2,6 +2,7 @@ package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.capability.FoundationAttachments;
 import com.holybuckets.foundation.client.CommonClassClient;
+import com.holybuckets.foundation.event.FoundationInteractEvents;
 import com.holybuckets.foundation.util.ModContext;
 import net.blay09.mods.balm.Balm;
 import net.blay09.mods.balm.neoforge.platform.runtime.NeoForgeLoadContext;
@@ -25,6 +26,7 @@ public class FoundationMainForge {
             )
         );
         final var context = new NeoForgeLoadContext(modContainer, modEventBus);
+        FoundationInteractEvents.init();
         FoundationAttachments.init();
         FoundationAttachments.ATTACHMENT_TYPES.register(modEventBus);
         Balm.initializeMod(Constants.MOD_ID, context, registrars -> {

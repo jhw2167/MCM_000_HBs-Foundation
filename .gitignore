@@ -8,7 +8,7 @@ out1.txt
 CLAUDE.md
 claudeProjFiles/*
 CLAUDE.md
-
+updateRegressions/*
 
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore
 .gradle

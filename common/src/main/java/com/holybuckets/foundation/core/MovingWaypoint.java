@@ -131,7 +131,7 @@ public class MovingWaypoint {
                                    boolean isPermanent, EntityLike linkedEntity, String nameTag) {
         String playerId = PlayerUtil.getId(player);
         if (playerId == null) return;
-        String levelId = player.level().dimension().identifier().toString();
+        String levelId = HBUtil.LevelUtil.toLevelIdAgnostic(player.level());
 
         IntObjectMap<Waypoint> waypoints = playerWaypoints.computeIfAbsent(playerId, k -> new IntObjectHashMap<>());
 
@@ -384,19 +384,19 @@ public class MovingWaypoint {
             String playerId = PlayerUtil.getId(p);
             if (playerId == null) return;
 
-            ListTag list = nbt.getListOrEmpty("waypoints");
+            ListTag list = nbt.getList("waypoints", Tag.TAG_COMPOUND);
             if (list.isEmpty()) return;
 
             IntObjectMap<Waypoint> map = playerWaypoints.computeIfAbsent(playerId, k -> new IntObjectHashMap<>());
             for (int i = 0; i < list.size(); i++) {
-                CompoundTag c = list.getCompoundOrEmpty(i);
-                BlockPos targetPos = new BlockPos(HBUtil.BlockUtil.stringToBlockPos(c.getStringOr("targetPos", "")));
-                int colorId = c.getIntOr("colorId", 0);
-                int waypointId = c.getIntOr("waypointId", colorId);
-                boolean isPermanent = c.getBooleanOr("isPermanent", false);
-                UUID linkedEntityUuid = c.getIntArray("linkedEntityUuid").map(net.minecraft.core.UUIDUtil::uuidFromIntArray).orElse(null);
-                String nameTag = c.getString("nameTag").orElse(null);
-                String levelId = c.getStringOr("levelId", "");
+                CompoundTag c = list.getCompound(i);
+                BlockPos targetPos = new BlockPos(HBUtil.BlockUtil.stringToBlockPos(c.getString("targetPos")));
+                int colorId = c.getInt("colId");
+                int waypointId = c.getInt("waypointId");
+                boolean isPermanent = c.getBoolean("isPermanent");
+                UUID linkedEntityUuid = c.getUUID("linkedEntityUuid");
+                String nameTag = c.getString("nameTag");
+                String levelId = c.getString("levelId");
 
                 map.put(waypointId, new Waypoint(levelId, targetPos, colorId, waypointId,
                     isPermanent, linkedEntityUuid, nameTag));

@@ -3,9 +3,7 @@ package com.holybuckets.foundation.client;
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
 import com.holybuckets.foundation.event.custom.TickType;
 import net.blay09.mods.balm.api.Balm;
-import net.blay09.mods.balm.api.event.BalmEvents;
-import net.blay09.mods.balm.api.event.EventPriority;
-import net.blay09.mods.balm.api.event.TickPhase;
+import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.client.ClientStartedEvent;
 import net.blay09.mods.balm.api.event.client.ConnectedToServerEvent;
 import net.blay09.mods.balm.api.event.client.DisconnectedFromServerEvent;
@@ -91,61 +89,45 @@ public class ClientBalmEventRegister {
         registerEntityEvents();
     }
 
-    /**
-     * Client mirror of the entity/player Balm callbacks that {@link com.holybuckets.foundation.event.BalmEventRegister}
-     * handles server-side. Each callback is guarded to the client side (the server registrar rejects
-     * client-side firings) and dispatched into {@link ClientEventRegistrar#fireEntityEvent(Object)} so
-     * client-only code registered via {@code registerOnEntityEvent(...)} can react. These mirrors run
-     * for side effects only — they always return the pass-through value and never cancel/alter the
-     * server-authoritative outcome. Registered once.
-     */
     static void registerEntityEvents() {
         if (!registeredEvents.add(Objects.hash("entityEvents"))) return;
+        BalmEvents registry = Balm.getEvents();
 
-        PlayerCallback.Attack.Before.EVENT.register((player, target) -> {
-            if (player.level().isClientSide()) events.fireEntityEvent(new PlayerAttackEvent(player, target));
-            return true;
-        });
+        registry.onEvent(PlayerAttackEvent.class, e -> {
+            if (e.getPlayer().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        BlockCallback.Break.Before.EVENT.register((level, pos, state, blockEntity, player) -> {
-            if (level.isClientSide()) events.fireEntityEvent(new BreakBlockEvent(level, player, pos, state, blockEntity));
-            return true;
-        });
+        registry.onEvent(BreakBlockEvent.class, e -> {
+            if (e.getLevel().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        LivingEntityCallback.Death.Before.EVENT.register((entity, damageSource) -> {
-            if (entity.level().isClientSide()) events.fireEntityEvent(new LivingDeathEvent(entity, damageSource));
-            return true;
-        });
+        registry.onEvent(LivingDeathEvent.class, e -> {
+            if (e.getEntity().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        LivingEntityCallback.Damage.Before.EVENT.register((entity, damageSource, damageAmount) -> {
-            if (entity.level().isClientSide()) events.fireEntityEvent(new LivingDamageEvent(entity, damageSource, damageAmount));
-            return damageAmount;
-        });
+        registry.onEvent(LivingDamageEvent.class, e -> {
+            if (e.getEntity().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        LivingEntityCallback.Fall.Before.EVENT.register((entity, fallDamage) -> {
-            if (entity.level().isClientSide()) events.fireEntityEvent(new LivingFallEvent(entity, fallDamage));
-            return fallDamage;
-        });
+        registry.onEvent(LivingFallEvent.class, e -> {
+            if (e.getEntity().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        LivingEntityCallback.Heal.Before.EVENT.register((entity, healAmount) -> {
-            if (entity.level().isClientSide()) events.fireEntityEvent(new LivingHealEvent(entity, healAmount));
-            return healAmount;
-        });
+        registry.onEvent(LivingHealEvent.class, e -> {
+            if (e.getEntity().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        BlockCallback.Use.EVENT.register((player, level, hand, hitResult) -> {
-            if (level.isClientSide()) events.fireEntityEvent(new UseBlockEvent(player, level, hand, hitResult));
-            return InteractionEventResult.DEFAULT;
-        });
+        registry.onEvent(UseBlockEvent.class, e -> {
+            if (e.getPlayer().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        BlockCallback.DigSpeed.EVENT.register((blockGetter, pos, state, player, digSpeed) -> {
-            if (player.level().isClientSide()) events.fireEntityEvent(new DigSpeedEvent(player, state, digSpeed));
-            return digSpeed;
-        });
+        registry.onEvent(DigSpeedEvent.class, e -> {
+            if (e.getPlayer().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
 
-        ItemCallback.Toss.Before.EVENT.register((player, itemStack) -> {
-            if (player.level().isClientSide()) events.fireEntityEvent(new TossItemEvent(player, itemStack));
-            return true;
-        });
+        registry.onEvent(TossItemEvent.class, e -> {
+            if (e.getPlayer().level().isClientSide()) events.fireEntityEvent(e);
+        }, EventPriority.Normal);
     }
 
     static void registerClientTickEvents() {

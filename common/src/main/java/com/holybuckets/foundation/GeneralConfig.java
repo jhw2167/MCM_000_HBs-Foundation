@@ -215,7 +215,7 @@ public class GeneralConfig {
 
         if( !this.isWorldConfigInit)
         {
-            this.worldSeed = server.getWorldGenSettings().options().seed();
+            this.worldSeed = server.getWorldData().worldGenOptions().seed();
             this.isWorldConfigInit = true;
             LoggerBase.logInfo( null, "010001", "World Seed: " + this.worldSeed);
         }
@@ -248,7 +248,7 @@ public class GeneralConfig {
     {
         Level level = (Level) event.getLevel();
         LevelData data = level.getLevelData();
-        BlockPos spawn = (level instanceof ServerLevel sl) ? sl.getRespawnData().pos() : BlockPos.ZERO; /* 26.1: LevelData.getSpawnPos() removed */
+        BlockPos spawn = (level instanceof ServerLevel sl) ? sl.getSharedSpawnPos() : BlockPos.ZERO; /* 26.1: LevelData.getSpawnPos() removed */
         this.WORLD_SPAWNS.put(level, spawn);
         //if( level.isClientSide() ) return;
 
@@ -350,7 +350,7 @@ public class GeneralConfig {
         long dayTickLength = TICKS_PER_DAY;
         if(dayTickLength <= 0) dayTickLength = TICKS_PER_DAY;
         dayTickLength+=1; //need that last tick to fire
-        return (dayTickLength * totalDays) + (level.getDefaultClockTime() % dayTickLength);
+        return (dayTickLength * totalDays) + (level.getGameTime() % dayTickLength);
     }
 
     public long getSessionTickCount() {

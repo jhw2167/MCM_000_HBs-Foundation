@@ -26,7 +26,10 @@ import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -336,7 +339,7 @@ public class ClientEventRegistrar {
 
     public void onClientLevelTick(Level level) {
         if(level == null) return; //not in game
-        long totalTicks = level.getDefaultClockTime();
+        long totalTicks = level.getGameTime();
         ClientLevelTickEvent event = new ClientLevelTickEvent(level, totalTicks);
 
         ManagedChunkEvents.onWorldTickStart(level);
@@ -376,9 +379,9 @@ public class ClientEventRegistrar {
         }
     }
 
-    public void onRenderLevel(RenderLevelEvent.RenderStage stage, float partialTick,
-                              boolean renderBlockOutline, Camera camera,
-                              PoseStack poseStack, Matrix4f projectionMatrix)
+    public void onRenderLevel(RenderLevelEvent.RenderStage stage, DeltaTracker deltaTracker,
+                              boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
+                              LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix)
     {
         // Skip this stage if it has previously thrown an exception
         if (renderLevelErrorStages.contains(stage)) return;
@@ -386,8 +389,9 @@ public class ClientEventRegistrar {
         if(consumers.isEmpty()) return;
 
         // Update the static event instance with new values
-        RENDER_LEVEL_EVENT.updateValues(stage, partialTick,
-            renderBlockOutline, camera, poseStack, projectionMatrix);
+        RENDER_LEVEL_EVENT.updateValues(stage, deltaTracker,
+            renderBlockOutline, camera, gameRenderer,
+            lightTexture, modelViewMatrix, projectionMatrix);
 
         for (Consumer<RenderLevelEvent> consumer : consumers) {
             try {

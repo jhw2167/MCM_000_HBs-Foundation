@@ -1,74 +1,62 @@
 package com.holybuckets.foundation.capability;
 
 import com.holybuckets.foundation.player.ManagedPlayer;
-import com.holybuckets.foundation.event.balm.PlayerLoginEvent;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.EventPriority;
+import net.blay09.mods.balm.api.event.PlayerLoginEvent;
+import net.blay09.mods.balm.core.BalmRegistrars;
+import net.blay09.mods.balm.platform.attachment.DataAttachmentLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.attachment.IAttachmentHolder;
-import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
 
 public class ManagedPlayerAttachment {
 
+    private static final String ATTACHMENT_NAME = "managed_player";
+
+    private static DataAttachmentLookup<ManagedPlayer> ATTACHMENT_TYPE;
+
+    // Retained for API parity / callers that referenced it; no longer performs registration.
     static void init() {}
 
-    // NBT key the serialized ManagedPlayer data is stored under within the player's ValueInput/ValueOutput.
-    private static final String NBT_KEY = "data";
+    static final Codec<ManagedPlayer> CODEC = new Codec<>() {
+        @Override
+        public <T> DataResult<T> encode(ManagedPlayer input, DynamicOps<T> ops, T prefix) {
+            CompoundTag tag = ManagedPlayer.serialize(input);
+            return DataResult.success(NbtOps.INSTANCE.convertTo(ops, tag));
+        }
 
-    static final Map<String, CompoundTag> PENDING_PLAYERS = new HashMap<>();
+        @Override
+        public <T> DataResult<Pair<ManagedPlayer, T>> decode(DynamicOps<T> ops, T input) {
 
-    static final Supplier<AttachmentType<ManagedPlayer>> MANAGED_PLAYER_ATTACHMENT =
-        FoundationAttachments.ATTACHMENT_TYPES.register("managed_player",
-            () -> AttachmentType.builder(() -> (ManagedPlayer) null)
-                .serialize(new IAttachmentSerializer<ManagedPlayer>() {
+            CompoundTag tag = ops.convertTo(NbtOps.INSTANCE, input) instanceof CompoundTag c ? c : null;
+            if (tag == null || tag.isEmpty()) {
+                return DataResult.error(() -> "ManagedPlayer attachment: expected a CompoundTag");
+            }
 
-                    @Override
-                    public ManagedPlayer read(IAttachmentHolder holder, ValueInput input) {
-                        CompoundTag tag = input.read(NBT_KEY, CompoundTag.CODEC).orElse(null);
+            ManagedPlayer mp = ManagedPlayer.getManagedPlayer(tag);
+            if (mp == null) mp = new ManagedPlayer(tag);
+            return DataResult.success(Pair.of(mp, ops.empty()));
+        }
+    };
 
-                        if (tag == null || tag.isEmpty()) {
-                            return null;
-                        }
 
-                        ManagedPlayer mp = ManagedPlayer.getManagedPlayer(tag);
-                        if (mp == null) {
-                            String id = ManagedPlayer.getIdFromTag(tag);
-                            if (id != null) {
-                                PENDING_PLAYERS.put(id, tag);
-                            }
-                            return null;
-                        }
-
-                        ManagedPlayer.deserialize(mp, tag);
-                        return mp;
-                    }
-
-                    @Override
-                    public boolean write(ManagedPlayer attachment, ValueOutput output) {
-                        // Don't serialize a null attachment (matches the null default supplier).
-                        if (attachment == null) return false;
-                        CompoundTag tag = ManagedPlayer.serialize(attachment);
-                        if (tag == null || tag.isEmpty()) return false;
-                        output.store(NBT_KEY, CompoundTag.CODEC, tag);
-                        return true;
-                    }
-                })
-                .copyOnDeath()
-                .build()
-        );
-
-    static void onPlayerLoginRegisterAttachment(PlayerLoginEvent event) {
-        Player p = event.getPlayer();
-        ManagedPlayer.onPlayerLogin(event);
-        ManagedPlayer mp = ManagedPlayer.getManagedPlayer(p);
-        p.setData(MANAGED_PLAYER_ATTACHMENT, mp);
-
-        ManagedPlayer.deserialize(mp, PENDING_PLAYERS.remove(mp.getId()));
+    public static void register(BalmRegistrars registrars) {
+        registrars.dataAttachmentTypes(r -> ATTACHMENT_TYPE = r.register(ATTACHMENT_NAME, CODEC
+        ).asLookup());
+        Balm.getEvents().onEvent(
+            PlayerLoginEvent.class, ManagedPlayerAttachment::onPlayerLogin, EventPriority.Highest);
     }
+
+    static void onPlayerLogin(PlayerLoginEvent event) {
+        Player p = event.getPlayer();
+        if (p == null || p.level().isClientSide()) return;
+        ManagedPlayer.onPlayerLogin(event);
+    }
+
 }

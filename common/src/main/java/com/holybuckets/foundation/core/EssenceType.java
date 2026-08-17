@@ -36,11 +36,11 @@ public class EssenceType {
         MOD_CONFIG = MOD_CONFIG.getInstance();
 
         RegistryAccess registryAccess = GENERAL_CONFIG.getServer().registryAccess();
-        biomeRegistry = registryAccess.lookupOrThrow(Registries.BIOME);
-        entityRegistry = registryAccess.lookupOrThrow(Registries.ENTITY_TYPE);
-        structureRegistry = registryAccess.lookupOrThrow(Registries.STRUCTURE);
-        levelRegistry = registryAccess.lookupOrThrow(Registries.DIMENSION);
-        itemRegistry = registryAccess.lookupOrThrow(Registries.ITEM);
+        biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
+        entityRegistry = registryAccess.registryOrThrow(Registries.ENTITY_TYPE);
+        structureRegistry = registryAccess.registryOrThrow(Registries.STRUCTURE);
+        levelRegistry = registryAccess.registryOrThrow(Registries.DIMENSION);
+        itemRegistry = registryAccess.registryOrThrow(Registries.ITEM);
 
     }
 
@@ -103,7 +103,7 @@ public class EssenceType {
 
         for (ResourceLocation loc : getEssenceLocations(essenceName)) {
             if (biomeRegistry.containsKey(loc)) {
-                Biome b = biomeRegistry.getValue(loc);
+                Biome b = biomeRegistry.get(loc);
                 if(b != null) biomes.add(biomeRegistry.wrapAsHolder(b));
             }
         }
@@ -119,7 +119,7 @@ public class EssenceType {
 
         for (ResourceLocation loc : getEssenceLocations()) {
             if (entityRegistry.containsKey(loc)) {
-                entities.add(entityRegistry.getValue(loc));
+                entities.add(entityRegistry.get(loc));
             }
         }
         return entities;
@@ -134,7 +134,7 @@ public class EssenceType {
 
         for (ResourceLocation loc : getEssenceLocations()) {
             if (structureRegistry.containsKey(loc)) {
-                structures.add(structureRegistry.getValue(loc));
+                structures.add(structureRegistry.get(loc));
             }
         }
         return structures;
@@ -149,7 +149,7 @@ public class EssenceType {
 
         for (ResourceLocation loc : getEssenceLocations()) {
             if (levelRegistry.containsKey(loc)) {
-                dimensions.add(levelRegistry.getValue(loc));
+                dimensions.add(levelRegistry.get(loc));
             }
         }
         return dimensions;
@@ -193,7 +193,7 @@ public class EssenceType {
     }
 
     public boolean matchesDimension(Level dimension) {
-        return matches(dimension.dimension().identifier());
+        return matches(dimension.dimension().location());
     }
 
     public boolean matchesItem(Item item) {

@@ -332,21 +332,21 @@ public class ChunkExplorerManager {
             }
 
             int totalStart = total;
-            int nextPosX = currentPos.x() + dir[0]*skipChunks;
-            int nextPosZ = currentPos.z() + dir[1]*skipChunks;
+            int nextPosX = currentPos.x  + dir[0]*skipChunks;
+            int nextPosZ = currentPos.z  + dir[1]*skipChunks;
             while(util.isChunkInitialized(nextPosX, nextPosZ))
             {
                 //check if nextPosX is outside of radius from startPos
-                if(nextPosX > startPos.x()) {
-                    if(nextPosX - startPos.x() > radius) break;
+                if(nextPosX > startPos.x) {
+                    if(nextPosX - startPos.x > radius) break;
                 } else {
-                    if(startPos.x() - nextPosX > radius) break;
+                    if(startPos.x - nextPosX > radius) break;
                 }
 
-                if(nextPosZ > startPos.z()) {
-                    if(nextPosZ - startPos.z() > radius) break;
+                if(nextPosZ > startPos.z) {
+                    if(nextPosZ - startPos.z > radius) break;
                 } else {
-                    if(startPos.z() - nextPosZ > radius) break;
+                    if(startPos.z - nextPosZ > radius) break;
                 }
 
 

@@ -6,30 +6,19 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.event.BalmEvents;
+import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
+import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.core.BalmRegistrars;
 import net.blay09.mods.balm.platform.attachment.DataAttachmentLookup;
-import net.blay09.mods.balm.platform.event.callback.LevelCallback;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
-/**
- * Description: ManagedChunk persistence via Balm's data attachment API.
- *
- * <p>Restructured to match the (working) NeoForge version — Balm's data attachment API is
- * cross-loader, so this file is identical on both loaders. Registration + the chunk-load hook happen
- * inside Balm's (bound) initializer via {@link #register(BalmRegistrars)}, replacing the old Fabric
- * {@code AttachmentRegistry.createPersistent} + {@code LevelCallback.Chunk.LOAD} listener that was
- * wired outside the bound init.
- *
- * <p>Design: the common {@link ManagedChunk} creation flow ({@code ManagedChunkEvents.onChunkLoad})
- * is unchanged — it still creates ManagedChunks into {@code ManagedChunkUtility}'s registry. Balm is
- * used purely for <b>persistence</b>: the created ManagedChunk is attached to the chunk so Balm saves
- * it, and Balm auto-decodes it back on load (whereupon the {@code ManagedChunk(CompoundTag)}
- * constructor re-registers it into the registry).
- */
+
 public class ManagedChunkAttachment {
 
     private static final String ATTACHMENT_NAME = "managed_chunk";
@@ -57,24 +46,23 @@ public class ManagedChunkAttachment {
         }
     };
 
-    /**
-     * Registers the Balm data attachment and the (now bound) chunk-load persistence hook.
-     * MUST be called from within Balm's initializer (see FoundationAttachments#registerBalmAndEvents),
-     * where the registrars and event mappings are available.
-     */
+
     public static void register(BalmRegistrars registrars) {
         registrars.dataAttachmentTypes(r -> LOOKUP = r.register(ATTACHMENT_NAME, CODEC).asLookup());
-        LevelCallback.Chunk.LOAD.register(ManagedChunkAttachment::onChunkLoad);
+        Balm.getEvents().onEvent(ChunkLoadingEvent.Load.class, ManagedChunkAttachment::onChunkLoad, EventPriority.Highest);
+    }
+
+    private static void onChunkLoad(ChunkLoadingEvent event) {
+        LevelAccessor level = event.getLevel();
+        ChunkAccess chunk = event.getChunk();
+        ChunkPos chunkPos = chunk.getPos();
+        onChunkLoad(level, chunk, chunkPos);
     }
 
     private static void onChunkLoad(LevelAccessor level, ChunkAccess chunk, ChunkPos chunkPos) {
         if (LOOKUP == null || level.isClientSide()) return;
-        // Persisted chunks are auto-decoded by Balm before this runs, so has() short-circuits them
-        // (and the decode already re-registered the ManagedChunk into the registry).
         if (LOOKUP.has(chunk)) return;
 
-        // Reuse the ManagedChunk the common flow created; create it if this hook happens to run
-        // first (both paths dedupe via the LOADED_CHUNKS registry, so only one instance exists).
         ManagedChunk mc = ManagedChunkUtility.getInstance(level).getManagedChunk(chunkPos);
         if (mc == null) {
             mc = new ManagedChunk(level, chunkPos);

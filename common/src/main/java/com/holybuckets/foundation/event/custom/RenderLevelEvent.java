@@ -1,14 +1,11 @@
 package com.holybuckets.foundation.event.custom;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import org.joml.Matrix4f;
 
-// 26.1.2 PORT: In-world render stages are no longer sourced from a LevelRenderer mixin (the
-// renderLevel pipeline was reworked and the old string-constant inject points are gone). They now
-// come from the loader-native render-stage events — NeoForge RenderLevelStageEvent and Fabric
-// WorldRenderEvents — which supply the live PoseStack, camera, projection matrix and partial tick.
-// LightTexture / GameRenderer / DeltaTracker are no longer carried (they weren't used by consumers).
 public class RenderLevelEvent {
 
     public enum RenderStage {
@@ -21,27 +18,42 @@ public class RenderLevelEvent {
     }
 
     private RenderStage stage;
-    private float partialTick;
+    private DeltaTracker deltaTracker;
     private boolean renderBlockOutline;
     private Camera camera;
-    private PoseStack poseStack;
+    private GameRenderer gameRenderer;
+    private LightTexture lightTexture;
+    private Matrix4f modelViewMatrix;
     private Matrix4f projectionMatrix;
 
+    public RenderLevelEvent(RenderStage stage, DeltaTracker deltaTracker,
+                           boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
+                           LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
+        this.stage = stage;
+        this.deltaTracker = deltaTracker;
+        this.renderBlockOutline = renderBlockOutline;
+        this.camera = camera;
+        this.gameRenderer = gameRenderer;
+        this.lightTexture = lightTexture;
+        this.modelViewMatrix = modelViewMatrix;
+        this.projectionMatrix = projectionMatrix;
+    }
+
+    // Package-private constructor for static instance
     public RenderLevelEvent() {
     }
 
-    public RenderLevelEvent(RenderStage stage, float partialTick, boolean renderBlockOutline,
-                            Camera camera, PoseStack poseStack, Matrix4f projectionMatrix) {
-        updateValues(stage, partialTick, renderBlockOutline, camera, poseStack, projectionMatrix);
-    }
-
-    public void updateValues(RenderStage stage, float partialTick, boolean renderBlockOutline,
-                             Camera camera, PoseStack poseStack, Matrix4f projectionMatrix) {
+    // Package-private method to update values
+    public void updateValues(RenderStage stage, DeltaTracker deltaTracker,
+                             boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
+                             LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
         this.stage = stage;
-        this.partialTick = partialTick;
+        this.deltaTracker = deltaTracker;
         this.renderBlockOutline = renderBlockOutline;
         this.camera = camera;
-        this.poseStack = poseStack;
+        this.gameRenderer = gameRenderer;
+        this.lightTexture = lightTexture;
+        this.modelViewMatrix = modelViewMatrix;
         this.projectionMatrix = projectionMatrix;
     }
 
@@ -49,8 +61,16 @@ public class RenderLevelEvent {
         return stage;
     }
 
+    public DeltaTracker getDeltaTracker() {
+        return deltaTracker;
+    }
+
+    /**
+     * Convenience method — extracts partial tick from DeltaTracker.
+     * Preserves the same API for consumers that previously called getPartialTick().
+     */
     public float getPartialTick() {
-        return partialTick;
+        return deltaTracker.getGameTimeDeltaPartialTick(false);
     }
 
     public boolean isRenderBlockOutline() {
@@ -61,9 +81,16 @@ public class RenderLevelEvent {
         return camera;
     }
 
-    /** The live world-render PoseStack from the loader render event. Use this to position draws. */
-    public PoseStack getPoseStack() {
-        return poseStack;
+    public GameRenderer getGameRenderer() {
+        return gameRenderer;
+    }
+
+    public LightTexture getLightTexture() {
+        return lightTexture;
+    }
+
+    public Matrix4f getModelViewMatrix() {
+        return modelViewMatrix;
     }
 
     public Matrix4f getProjectionMatrix() {

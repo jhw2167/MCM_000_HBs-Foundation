@@ -136,7 +136,7 @@ public class CommonClassClient {
         // Test AFTER_TRANSLUCENT_BLOCKS stage
         reg.registerOnRenderLevel(RenderLevelEvent.RenderStage.AFTER_TRANSLUCENT_BLOCKS, event -> {
             if (Math.random() < 0.1) {
-                LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_TRANSLUCENT_BLOCKS fired - camera position: " + event.getCamera().position());
+                LoggerBase.logDebug(null, "RENDER_TEST", "RenderLevelEvent AFTER_TRANSLUCENT_BLOCKS fired - camera position: " + event.getCamera().getPosition());
             }
         });
         

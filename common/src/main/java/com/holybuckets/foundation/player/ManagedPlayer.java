@@ -81,6 +81,7 @@ public class ManagedPlayer {
     {
         this();
         this.holdNbt = tag;
+        this.id = getIdFromTag(tag);
         try {
             this.initSubclassesFromNbt(holdNbt);
         } catch (InvalidId ex) {
@@ -93,6 +94,7 @@ public class ManagedPlayer {
         }
         if( this.id == null ) {
             LoggerBase.logDebug(null, "004001", "Failed to read playerId from NBT data " + tag);
+            return;
         }
         PLAYERS.put(id, this);
     }
@@ -345,10 +347,10 @@ public class ManagedPlayer {
     public static String getIdFromTag(CompoundTag tag) {
         if(tag == null || tag.isEmpty()) return null;
         if(tag.contains(PARENT_TAG)) {
-            tag = tag.getCompoundOrEmpty(PARENT_TAG);
+            tag = tag.getCompound(PARENT_TAG);
         }
         if(tag == null || tag.isEmpty() || !tag.contains("id")) return null;
-        return tag.getString("id").orElse(null);
+        return tag.getString("id");
     }
 
     public static ManagedPlayer getManagedPlayer(CompoundTag tag)
@@ -421,7 +423,7 @@ public class ManagedPlayer {
             sub.setPlayer(this.player);
 
             try {
-                CompoundTag nbt = tag.getCompoundOrEmpty(sub.getClass().getName());
+                CompoundTag nbt = tag.getCompound(sub.getClass().getName());
                 if(managedPlayerData.containsKey(sub.getClass())) {
                     managedPlayerData.get(sub.getClass()).deserializeNBT(nbt);
                 } else {
@@ -710,7 +712,7 @@ public class ManagedPlayer {
     public static ManagedPlayer deserialize(ManagedPlayer mp, CompoundTag tag) {
         if(tag == null || tag.isEmpty()) return mp;
         if(tag.contains(PARENT_TAG))
-            tag = tag.getCompoundOrEmpty(PARENT_TAG);
+            tag = tag.getCompound(PARENT_TAG);
         if(mp == null) {
             return new ManagedPlayer(tag);
         }
@@ -749,14 +751,14 @@ public class ManagedPlayer {
         }
 
         try {
-            this.tickWritten = tag.getLongOr("tickWritten", 0L);
-            this.id = tag.getString("id").orElse(null);
+            this.tickWritten = tag.getLong("tickWritten");
+            this.id = tag.getString("id");
 
             //deserialize subclasses
             for(IManagedPlayer data : managedPlayerData.values())
             {
                 try {
-                    CompoundTag nbt = tag.getCompoundOrEmpty(data.getClass().getName());
+                    CompoundTag nbt = tag.getCompound(data.getClass().getName());
                     data.deserializeNBT(nbt);
                 } catch (Exception e) {
                     String msg = String.format("Error deserializing subclass %s for player %s: %s",

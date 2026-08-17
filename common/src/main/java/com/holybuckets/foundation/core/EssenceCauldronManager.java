@@ -444,7 +444,9 @@ public class EssenceCauldronManager {
         /**
          * Add some floating redstone particles to indicate the spell failed
          */
-         private static ParticleOptions RED_FAIL_DUST = new DustParticleOptions(0xCC1A1A, 1.0f);
+         //conver 0xCC1A1A to int[] Vector3f
+         private static ParticleOptions RED_FAIL_DUST = new DustParticleOptions(
+         new Vector3f(0xCC / 255.0f, 0x1A / 255.0f, 0x1A / 255.0f), 1.0f);
         public void cauldronFailedTeleportEffects() {
             List<Object[]> particles = new ArrayList<>();
             for (int i = 0; i < 20; i++) {

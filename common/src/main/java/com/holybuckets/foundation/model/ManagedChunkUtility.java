@@ -82,7 +82,7 @@ public class ManagedChunkUtility {
 
     public boolean isChunkInitialized(ChunkPos p) {
         if(p == null) return false;
-        return isChunkInitialized(p.x(), p.z());
+        return isChunkInitialized(p.x, p.z);
     }
 
     public boolean isChunkInitialized(int x, int z) {
@@ -91,12 +91,7 @@ public class ManagedChunkUtility {
     }
 
 
-    /**
-     * Provided a chunk and id, determines if the chunk and all chunks around it are loaded and
-     * in FULL status, else returns false.
-     * @param cp ChunkPos to check
-     * @return boolean indicating if chunk and surroundings are fully loaded
-     */
+
     public boolean isChunkFullyLoaded(ChunkPos cp) {
         if(!isLoaded(cp)) return false;
         List<String> localAreaChunks = HBUtil.ChunkUtil.getLocalChunkIds(cp, 1);
@@ -302,7 +297,7 @@ public class ManagedChunkUtility {
             }
             else if( isFullyLoaded  && !hasLevelChunk ) {
                 ChunkPos cp = m.getChunkPos();
-                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x(), cp.z(), false);
+                m.levelChunk = HBUtil.ChunkUtil.getLevelChunk(level, cp.x, cp.z, false);
             }
 
         }

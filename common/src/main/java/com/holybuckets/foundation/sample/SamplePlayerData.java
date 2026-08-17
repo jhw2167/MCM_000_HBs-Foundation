@@ -100,8 +100,8 @@ public class SamplePlayerData implements IManagedPlayer {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        blocksBroken = nbt.getIntOr("blocksBroken", 0);
-        damageDealt = nbt.getIntOr("damageDealt", 0);
+        blocksBroken = nbt.getInt("blocksBroken");
+        damageDealt = nbt.getInt("damageDealt");
     }
 
     @Override

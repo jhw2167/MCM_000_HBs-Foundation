@@ -6,6 +6,7 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.WaypointStick;
 import com.holybuckets.foundation.platform.Services;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.core.BalmRegistrars;
 
 
 public class CommonClass {
@@ -13,7 +14,7 @@ public class CommonClass {
     public static boolean isInitialized = false;
     public static IMessager MESSAGER;
 
-    public static void init()
+    public static void init(BalmRegistrars registrars)
     {
         Constants.LOG.info("Loaded {} mod on {}! we are currently in a {} environment!", Constants.MOD_NAME, Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
 

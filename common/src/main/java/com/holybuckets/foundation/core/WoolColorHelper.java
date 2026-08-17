@@ -30,7 +30,11 @@ public class WoolColorHelper {
         //float[] rgb = color.getTextureDiffuseColors();
         Integer colorInt = color.getTextureDiffuseColor();
         WOOL_DUST_CACHE.put(id, new DustParticleOptions(
-            colorInt,
+                new Vector3f(
+                        ((colorInt >> 16) & 0xFF) / 255.0f,
+                        ((colorInt >> 8) & 0xFF) / 255.0f,
+                        (colorInt & 0xFF) / 255.0f
+                ),
             1.0f
         ));
         INT_COLOR_CACHE.put(id, colorInt);

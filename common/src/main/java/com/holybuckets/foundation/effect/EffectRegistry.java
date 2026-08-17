@@ -4,8 +4,8 @@ import com.holybuckets.foundation.HBUtil;
 import net.blay09.mods.balm.core.BalmRegistrar;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.alchemy.Potion;
@@ -33,7 +33,7 @@ public class EffectRegistry {
             () -> new Potion(name, new MobEffectInstance(effect, durationTicks, amplifier)));
     }
 
-    private static Identifier id(String modId, String name) {
+    private static ResourceLocation id(String modId, String name) {
         return HBUtil.LOC(modId, name);
     }
 

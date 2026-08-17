@@ -209,13 +209,14 @@ public class MessagerClient implements IMessager {
      */
     private void drawTextWithOutline(GuiGraphics guiGraphics, Font font, String text, int x, int y, int color, int outlineColor) {
         // Draw outline (4 cardinal directions only - thinner)
-        guiGraphics.text(font, text, x - 1, y, outlineColor);     // Left
-        guiGraphics.text(font, text, x + 1, y, outlineColor);     // Right
-        guiGraphics.text(font, text, x, y - 1, outlineColor);     // Top
-        guiGraphics.text(font, text, x, y + 1, outlineColor);     // Bottom
+
+        guiGraphics.drawString(font, text, x-1, y, outlineColor);   //left
+        guiGraphics.drawString(font, text, x + 1, y, outlineColor);     // Right
+        guiGraphics.drawString(font, text, x, y - 1, outlineColor);     // Top
+        guiGraphics.drawString(font, text, x, y + 1, outlineColor);     // Bottom
 
         // Draw main text
-        guiGraphics.text(font, text, x, y, color);
+        guiGraphics.drawString(font, text, x, y, color);
     }
     
     /**

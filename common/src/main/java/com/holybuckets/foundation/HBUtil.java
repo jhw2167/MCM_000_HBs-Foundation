@@ -149,6 +149,18 @@ public class HBUtil {
             return playersInRange;
         }
 
+        public static List<ServerPlayer> getAllPlayersInChunkRange(ChunkPos pos, int range) {
+            List<ServerPlayer> players = getAllPlayers();
+            List<ServerPlayer> playersInRange = new ArrayList<>();
+            BlockPos centerPos = pos.getWorldPosition();
+            for (ServerPlayer player : players) {
+                if (getAllPlayersInBlockRange(centerPos, range * 16).contains(player)) {
+                    playersInRange.add(player);
+                }
+            }
+            return playersInRange;
+        }
+
 
         /**
          * Returns empty string if the gameProfile is not ready

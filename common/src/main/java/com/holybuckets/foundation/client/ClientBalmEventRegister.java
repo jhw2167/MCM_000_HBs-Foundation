@@ -1,6 +1,7 @@
 package com.holybuckets.foundation.client;
 
 import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.TickType;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.balm.api.event.*;
@@ -144,5 +145,9 @@ public class ClientBalmEventRegister {
                 net.blay09.mods.balm.api.event.TickType.ClientLevel,
                  TickPhase.End, events::onClientLevelTick);
         }
+    }
+
+    static void registerPriorityEvents(EventRegistrar registrar) {
+
     }
 }

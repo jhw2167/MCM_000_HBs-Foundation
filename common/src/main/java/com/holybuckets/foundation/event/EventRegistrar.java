@@ -145,6 +145,10 @@ public class EventRegistrar {
         BalmEventRegister.registerPriorityEvents(instance);
     }
 
+    public static void onPlayerConnectedToServer() {
+        GENERAL_CONFIG = GeneralConfig.getInstance();
+    }
+
     void onBeforeServerStarted(ServerStartingEvent event)
     {
 
@@ -893,6 +897,7 @@ public class EventRegistrar {
     private static void cleanupOnNewDay() {
         AnvilUpdateEvent.ANVIL_EVENTS.clear();
     }
+
 
 
     /**

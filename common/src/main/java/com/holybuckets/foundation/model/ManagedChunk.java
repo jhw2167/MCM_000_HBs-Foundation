@@ -272,7 +272,6 @@ public class ManagedChunk implements IMangedChunkData {
     {
         this.isLoaded = false;
         if(this.level.isClientSide()) return;
-        this.levelChunk = null;
         for(IMangedChunkData data : managedChunkData.values()) {
             data.handleChunkUnloaded(event);
         }

@@ -3,6 +3,7 @@ package com.holybuckets.foundation.command;
 //Project imports
 
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.biome.BiomeAPI;
 import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.core.MovingWaypoint;
@@ -47,6 +48,7 @@ public class CommandList {
     }
 
     public static void register() {
+        LoggerBase.logInfo(null, CLASS_ID, "Registering commands" + PREFIX);
 //        CommandRegistry.register(LocateClusters::noArgs);
 //        CommandRegistry.register(LocateClusters::limitCount);
 //        CommandRegistry.register(LocateClusters::limitCountSpecifyBlockType);
@@ -66,6 +68,7 @@ public class CommandList {
 
         CommandRegistry.register(ListWaypoints::noArgs);
         CommandRegistry.register(DeleteWaypoint::byId);
+        LoggerBase.logInfo(null, CLASS_ID, "Finished Registering commands" + PREFIX);
     }
 
     //**** SUGGETTIONS ****//

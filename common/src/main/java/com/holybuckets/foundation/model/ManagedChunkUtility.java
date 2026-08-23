@@ -224,9 +224,7 @@ public class ManagedChunkUtility {
     }
 
     public static ManagedChunk getManagedChunk(LevelAccessor level, ChunkPos pos) {
-        if(pos == null || level == null) return null;
-        if( !getInstance(level).isLoaded(pos) )  return null;
-        return LOADED_CHUNKS.get(level).get( LOADED_CHUNKPOS.get(level).containsKey(pos) );
+        return getManagedChunk(level, HBUtil.ChunkUtil.getId(pos) );
     }
 
     /**

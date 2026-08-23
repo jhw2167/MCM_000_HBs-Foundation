@@ -5,6 +5,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.core.MovingWaypoint;
 import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.datastore.DataStore;
+import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ClientTickEvent;
 import com.holybuckets.foundation.event.custom.RenderLevelEvent;
 import com.holybuckets.foundation.event.custom.TickType;
@@ -64,6 +65,7 @@ public class CommonClassClient {
         ManagedPlayer.onClientConnectedToServer(player);
 
         if(isServerSide) return;
+        EventRegistrar.onPlayerConnectedToServer();
         GeneralConfig.getInstance().onPlayerConnectedToServer(player);
         DataStore.onPlayerConnectToServer(getServerName(event.getClient()));
         WoolColorHelper.initWoolColors();

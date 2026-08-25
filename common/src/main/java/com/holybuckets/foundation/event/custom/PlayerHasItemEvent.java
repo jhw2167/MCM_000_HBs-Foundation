@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class PlayerHasItemEvent {
     private final Player player;
-    private final HashMap<ItemStack, Integer> inventoryMap;
+    private final HashMap<Item, Integer> inventoryMap;
     private final ItemStack stack;
     private final int slot;
 
@@ -21,11 +21,15 @@ public class PlayerHasItemEvent {
         this.player = player;
         this.stack = stack;
         this.slot = slot;
-        this.inventoryMap = inventoryMap;
+        var itemMap = new HashMap<Item, Integer>();
+        for (var entry : inventoryMap.entrySet()) {
+            itemMap.put(entry.getKey().getItem(), entry.getValue());
+        }
+        this.inventoryMap = itemMap;
     }
 
     public Player getPlayer() { return player; }
     public ItemStack getItemStack() { return stack; }
     public int getSlot() { return slot; }
-    public HashMap<ItemStack, Integer> getInventoryMap() { return inventoryMap; }
+    public HashMap<Item, Integer> getInventoryMap() { return inventoryMap; }
 }

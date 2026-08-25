@@ -55,17 +55,6 @@ public class CommonClassDebug {
         //reg.registerOnClientInput(CommonClassDebug::onPlayerInput);
     }
 
-    //has oak_log in inventory, send message to player using messager system
-    private static void onPlayerHasOakLog(PlayerHasItemEvent event) {
-        if (event.getPlayer() == null) return;
-        Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have an oak log in your inventory!");
-    }
-
-    //if a player has a diamond sword in their inventory, send a message using the Messager system
-    private static void onPlayerHasDiamondSword(PlayerHasItemEvent event) {
-        if (event.getPlayer() == null) return;
-        Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have a diamond sword in your inventory!");
-    }
 
     private static void onPlayerInput(ClientInputEvent event) {
         if (event.getPlayer() == null) return;
@@ -125,6 +114,19 @@ public class CommonClassDebug {
     private static void testPlayerMatchesItem(EventRegistrar reg) {
         reg.registerOnPlayerMatchesItem(SHARPENED, CommonClassDebug::onPlayerHasSharpness);
         reg.registerOnBeforeServerStarted(CommonClassDebug::registerAppleCounterAtRuntime);
+        reg.registerOnPlayerHasItem( () -> Items.OAK_LOG , CommonClassDebug::onPlayerHasOakLog);
+    }
+
+    //has oak_log in inventory, send message to player using messager system
+    private static void onPlayerHasOakLog(PlayerHasItemEvent event) {
+        if (event.getPlayer() == null) return;
+        Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have an oak log in your inventory!");
+    }
+
+    //if a player has a diamond sword in their inventory, send a message using the Messager system
+    private static void onPlayerHasDiamondSword(PlayerHasItemEvent event) {
+        if (event.getPlayer() == null) return;
+        Messager.getInstance().sendBottomActionHint(event.getPlayer(), "You have a diamond sword in your inventory!");
     }
 
     /**
@@ -149,6 +151,8 @@ public class CommonClassDebug {
     private static void registerAppleCounterAtRuntime(ServerStartingEvent event) {
         EventRegistrar.getInstance()
             .runtimeOnPlayerMatchesItem(stack -> stack.getItem()==Items.APPLE, CommonClassDebug::onPlayerHasApples);
+        EventRegistrar.getInstance()
+            .runtimeOnPlayerMatchesItem(stack -> stack.getItem()==Items.DIAMOND_SWORD, CommonClassDebug::onPlayerHasDiamondSword);
         LoggerBase.logInfo(null, "001311", "PLAYER_MATCHES_ITEM apple counter registered at runtime");
     }
 

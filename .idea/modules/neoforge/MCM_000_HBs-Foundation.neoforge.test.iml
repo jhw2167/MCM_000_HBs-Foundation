@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id=":neoforge:test" external.linked.project.path="$MODULE_DIR$/../../../neoforge" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="com.holybuckets.foundation" external.system.module.type="sourceSet" external.system.module.version="1.8.27-SNAPSHOT" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <output-test url="file://$MODULE_DIR$/../../../neoforge/build/classes/java/test" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../../neoforge/src/test" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="MCM_000_HBs-Foundation.neoforge.main" />
+    <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.8.9" level="project" />
+    <orderEntry type="library" name="Gradle: org.antlr:antlr4-runtime:4.9.3" level="project" />
+    <orderEntry type="library" name="Gradle: org.xerial:sqlite-jdbc:3.46.1.0" level="project" />
+    <orderEntry type="library" name="Gradle: net.blay09.mods:balm-neoforge:26.1.2.5" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.code.findbugs:jsr305:3.0.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.36" level="project" />
+    <orderEntry type="library" name="Gradle: net.blay09.mods:kuma-api-neoforge:26.1.2.2" level="project" />
+  </component>
+  <component name="TestModuleProperties" production-module="MCM_000_HBs-Foundation.neoforge.main" />
+</module>

@@ -1,0 +1,940 @@
+package com.holybuckets.foundation.event;
+
+//MC Imports
+
+//Forge Imports
+
+import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.datastructure.ConcurrentSet;
+import com.holybuckets.foundation.event.custom.*;
+import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
+import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.model.ManagedChunkEvents;
+import com.holybuckets.foundation.networking.ClientInputMessage;
+import com.holybuckets.foundation.networking.SimpleStringMessage;
+import com.holybuckets.foundation.util.MixinManager;
+import net.blay09.mods.balm.api.event.*;
+import net.blay09.mods.balm.api.event.BreakBlockEvent;
+import net.blay09.mods.balm.api.event.PlayerAttackEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStartedEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+import javax.annotation.Nullable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import static com.holybuckets.foundation.event.custom.ServerTickEvent.DailyTickEvent;
+
+
+/**
+ * Class: GeneralRealTimeConfig
+ *
+ * Description: Fundamental world configs, singleton
+
+ */
+public class EventRegistrar {
+    public static final String CLASS_ID = "010";
+
+    /**
+     * World Data
+     **/
+     private static GeneralConfig GENERAL_CONFIG;
+    private static EventRegistrar instance;
+    final Map<Consumer<?>, EventPriority> PRIORITIES = new ConcurrentHashMap<>();
+
+    final Set<Consumer<PlayerLoginEvent>> ON_PLAYER_LOGIN = new ConcurrentSet<>();
+    final Set<Consumer<PlayerLogoutEvent>> ON_PLAYER_LOGOUT = new ConcurrentSet<>();
+    final Set<Consumer<LevelLoadingEvent.Load>> ON_LEVEL_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<LevelLoadingEvent.Unload>> ON_LEVEL_UNLOAD = new ConcurrentSet<>();
+
+
+    final Set<Consumer<ChunkLoadingEvent.Load>> ON_CHUNK_LOAD = new ConcurrentSet<>();
+    final Set<Consumer<ChunkLoadingEvent.Unload>> ON_CHUNK_UNLOAD = new ConcurrentSet<>();
+
+    //final Deque<Consumer<ModLifecycleEvent>> ON_MOD_LIFECYCLE = new ArrayDeque<>();
+    //Will have to divide up into different lifecycles
+
+    //final Deque<Consumer<RegisterEvent>> ON_REGISTER = new ArrayDeque<>();
+    //Dont see it, I think this is for registering commands
+
+    //final Deque<Consumer<ModConfigEvent>> ON_MOD_CONFIG = new ArrayDeque<>();
+    //Dont see it, is probably different for forge and fabric, Balm abstracts away all configuration
+
+    final Set<Consumer<ServerStartingEvent>> ON_BEFORE_SERVER_START = new ConcurrentSet<>();
+    final Set<Consumer<ServerStartedEvent>> ON_SERVER_START = new ConcurrentSet<>();
+    final Set<Consumer<ServerStoppedEvent>> ON_SERVER_STOP = new ConcurrentSet<>();
+
+    final Map<TickScheme, Consumer<?>> SERVER_TICK_EVENTS = new ConcurrentHashMap<>();
+    final Multimap<ResourceLocation, Consumer<DailyTickEvent>> DAILY_TICK_EVENTS = HashMultimap.create();
+    // Subscribers must test for level equality if they want to execute their code in only a specific dimension
+    final Set<Consumer<Level>> ON_SERVER_LEVEL_TICK = new ConcurrentSet<>();
+    final Set<Consumer<DatastoreSaveEvent>> ON_DATA_SAVE = new ConcurrentSet<>();
+    final Set<Consumer<PlayerAttackEvent>> ON_PLAYER_ATTACK = new ConcurrentSet<>();
+    final Set<Consumer<BreakBlockEvent>> ON_BLOCK_BROKEN = new ConcurrentSet<>();
+    final Set<Consumer<PlayerChangedDimensionEvent>> ON_PLAYER_CHANGED_DIMENSION = new ConcurrentSet<>();
+    final Set<Consumer<PlayerRespawnEvent>> ON_PLAYER_RESPAWN = new ConcurrentSet<>();
+    final Set<Consumer<LivingDeathEvent>> ON_PLAYER_DEATH = new ConcurrentSet<>();
+    final Set<Consumer<LivingDamageEvent>> ON_PLAYER_DAMAGE = new ConcurrentSet<>();
+    final Set<Consumer<LivingFallEvent>> ON_PLAYER_FALL = new ConcurrentSet<>();
+    final Set<Consumer<LivingHealEvent>> ON_PLAYER_HEAL = new ConcurrentSet<>();
+    final Set<Consumer<UseBlockEvent>> ON_USE_BLOCK = new ConcurrentSet<>();
+    final Set<Consumer<DigSpeedEvent>> ON_DIG_SPEED_EVENT = new ConcurrentSet<>();
+    final Set<Consumer<ClientInputEvent>> ON_CLIENT_INPUT = new ConcurrentSet<>();
+    final Set<Consumer<WakeUpAllPlayersEvent>> ON_WAKE_UP_ALL_PLAYERS = new ConcurrentSet<>();
+    final Set<Consumer<TossItemEvent>> ON_TOSS_ITEM = new ConcurrentSet<>();
+    final Map<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> ON_PLAYER_INTERACT_BY_TYPE = new ConcurrentHashMap<>();
+    final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
+    final Set<Consumer<StructureLoadedEvent>> ON_STRUCTURE_LOADED = new ConcurrentSet<>();
+    final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
+    final List<AnvilUpdateEvent> ANVIL_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+
+    // ItemEntity tick event support
+    final List<Supplier<Item>> ITEM_ENTITY_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<ItemEntityTickEvent>> ITEM_ENTITY_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+    final Map<Item, List<Consumer<ItemEntityTickEvent>>> ITEM_ENTITY_TICK_MAP = new ConcurrentHashMap<>();
+    final Set<Consumer<ItemEntityTickEvent>> ALL_ITEM_ENTITY_CONSUMERS = new ConcurrentSet<>();
+
+    // PlayerHasItem event support
+    final List<Supplier<Item>> PLAYER_HAS_ITEM_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<PlayerHasItemEvent>> PLAYER_HAS_ITEM_CONSUMER_LIST = Collections.synchronizedList(new ArrayList<>());
+    final Map<Item, List<Consumer<PlayerHasItemEvent>>> PLAYER_HAS_ITEM_MAP = new ConcurrentHashMap<>();
+    final List<Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>>> PLAYER_MATCHES_ITEM_LIST = Collections.synchronizedList(new ArrayList<>());
+
+    // Cache for event ID strings using HashBasedTable with consumer and event class as separate indices
+    private final Table<Integer, Class<?>, String> eventIdCache = HashBasedTable.create();
+
+    /**
+     * Constructor
+     **/
+    private EventRegistrar() {
+        super();
+        LoggerBase.logInit(null, "010000", this.getClass().getName());
+
+        instance = this;
+    }
+
+    public static EventRegistrar getInstance() {
+        return instance;
+    }
+
+    public static void init() {
+        instance = new EventRegistrar();
+        BalmEventRegister.registerPriorityEvents(instance);
+    }
+
+    void onBeforeServerStarted(ServerStartingEvent event)
+    {
+
+        GENERAL_CONFIG = GeneralConfig.getInstance();
+        GeneralConfig.fireEvent(ServerStartingEvent.class, event);
+        // Process deferred item objects for ItemEntity tick events
+        processItemEntityDeferredObjects();
+        processPlayerHasItemDeferredObjects();
+
+        List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+
+        for (Consumer<ServerStartingEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+
+    }
+
+    private void processItemEntityDeferredObjects() {
+        for (int i = 0; i < ITEM_ENTITY_SUPPLIERS.size(); i++)
+        {
+            Supplier<Item> deferredItem = ITEM_ENTITY_SUPPLIERS.get(i);
+            Consumer<ItemEntityTickEvent> consumer = ITEM_ENTITY_CONSUMERS.get(i);
+
+            if (consumer == null) continue;
+
+            if (deferredItem == null) {
+                ALL_ITEM_ENTITY_CONSUMERS.add(consumer);
+            } else {
+                Item item = deferredItem.get();
+                ITEM_ENTITY_TICK_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
+            }
+        }
+
+    }
+
+    private void processPlayerHasItemDeferredObjects() {
+        for (int i = 0; i < PLAYER_HAS_ITEM_SUPPLIERS.size(); i++) {
+            Supplier<Item> supplier = PLAYER_HAS_ITEM_SUPPLIERS.get(i);
+            Consumer<PlayerHasItemEvent> consumer = PLAYER_HAS_ITEM_CONSUMER_LIST.get(i);
+            if (supplier == null || consumer == null) continue;
+            Item item = supplier.get();
+            PLAYER_HAS_ITEM_MAP.computeIfAbsent(item, k -> new ArrayList<>()).add(consumer);
+        }
+    }
+
+    void onServerStopped(ServerStoppedEvent event)
+    {
+        // Sort consumers by priority
+        List<Consumer<ServerStoppedEvent>> sortedConsumers = ON_SERVER_STOP.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<ServerStoppedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+
+        GeneralConfig.fireEvent(ServerStoppedEvent.class, event);
+    }
+
+    void onServerStarted(ServerStartedEvent event) {
+        // Sort consumers by priority
+        List<Consumer<ServerStartedEvent>> sortedConsumers = ON_SERVER_START.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<ServerStartedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    void onLevelLoad(LevelLoadingEvent.Load event) {
+        // Sort consumers by priority
+        List<Consumer<LevelLoadingEvent.Load>> sortedConsumers = ON_LEVEL_LOAD.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+
+        GeneralConfig.fireEvent(LevelLoadingEvent.Load.class, event);
+        // Execute in priority order
+        for (Consumer<LevelLoadingEvent.Load> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    void onLevelUnload(LevelLoadingEvent.Unload event) {
+        // Sort consumers by priority
+        List<Consumer<LevelLoadingEvent.Unload>> sortedConsumers = ON_LEVEL_UNLOAD.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+
+        GeneralConfig.fireEvent(LevelLoadingEvent.Unload.class, event);
+        // Execute in priority order
+        for (Consumer<LevelLoadingEvent.Unload> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+
+    //Create public methods for pushing functions onto each function event
+    private <T> void generalRegister(Consumer<T> function, Set<Consumer<T>> set, EventPriority priority) {
+        set.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    private void generalTickEventRegister(Consumer<?> function, Map<TickScheme, Consumer<?>> map, TickType type, EventPriority priority) {
+        TickScheme scheme = new TickScheme(function, type);
+        map.put(scheme, function);
+        PRIORITIES.put(function, priority);
+    }
+
+    public void registerOnPlayerLogin(Consumer<PlayerLoginEvent> function) {
+        registerOnPlayerLogin(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerLogin(Consumer<PlayerLoginEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_LOGIN, priority);
+    }
+
+    public void registerOnPlayerLogout(Consumer<PlayerLogoutEvent> function) {
+        registerOnPlayerLogout(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerLogout(Consumer<PlayerLogoutEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_LOGOUT, priority);
+    }
+
+
+    public void registerOnLevelLoad(Consumer<LevelLoadingEvent.Load> function) {
+        registerOnLevelLoad(function, EventPriority.Normal);
+    }
+
+    public void registerOnLevelLoad(Consumer<LevelLoadingEvent.Load> function, EventPriority priority) {
+        generalRegister(function, ON_LEVEL_LOAD, priority);
+    }
+
+
+    public void registerOnLevelUnload(Consumer<LevelLoadingEvent.Unload> function) {
+        registerOnLevelUnload(function, EventPriority.Normal);
+    }
+
+    public void registerOnLevelUnload(Consumer<LevelLoadingEvent.Unload> function, EventPriority priority) {
+        generalRegister(function, ON_LEVEL_UNLOAD, priority);
+    }
+
+
+    public void registerOnChunkLoad(Consumer<ChunkLoadingEvent.Load> function) {
+        registerOnChunkLoad(function, EventPriority.Normal);
+    }
+
+    public void registerOnChunkLoad(Consumer<ChunkLoadingEvent.Load> function, EventPriority priority) {
+        generalRegister(function, ON_CHUNK_LOAD, priority);
+    }
+
+    public void registerOnChunkUnload(Consumer<ChunkLoadingEvent.Unload> function) {
+        registerOnChunkUnload(function, EventPriority.Normal);
+    }
+
+    public void registerOnChunkUnload(Consumer<ChunkLoadingEvent.Unload> function, EventPriority priority) {
+        generalRegister(function, ON_CHUNK_UNLOAD, priority);
+    }
+
+    /*
+    public void registerOnModLifecycle(Consumer<ModLifecycleEvent> function) { registerOnModLifecycle(function, false); }
+    public void registerOnModLifecycle(Consumer<ModLifecycleEvent> function, EventPriority priority) {
+        generalRegister(function, ON_MOD_LIFECYCLE, priority);
+    }
+
+    public void registerOnRegister(Consumer<RegisterEvent> function) { registerOnRegister(function, false); }
+    public void register OnRegister(Consumer<RegisterEvent> function, EventPriority priority) {
+        generalRegister(function, ON_REGISTER, priority);
+    }
+
+    public void registerOnMod Config(Consumer<ModConfigEvent> function) { registerOnModConfig(function, false); }
+    public void registerOnModConfig(Consumer<ModConfigEvent> function, EventPriority priority) {
+        generalRegister(function, ON_MOD_CONFIG, priority);
+    }
+    */
+
+
+    public void registerOnBeforeServerStarted(Consumer<ServerStartingEvent> function) {
+        registerOnBeforeServerStarted(function, EventPriority.Normal);
+    }
+
+    public void registerOnBeforeServerStarted(Consumer<ServerStartingEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BEFORE_SERVER_START, priority);
+    }
+
+
+    public void registerOnServerStarted(Consumer<ServerStartedEvent> function) {
+        registerOnServerStarted(function, EventPriority.Normal);
+    }
+
+    public void registerOnServerStarted(Consumer<ServerStartedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_SERVER_START, priority);
+    }
+
+    public void registerOnServerStopped(Consumer<ServerStoppedEvent> function) {
+        registerOnServerStopped(function, EventPriority.Normal);
+    }
+
+    public void registerOnServerStopped(Consumer<ServerStoppedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_SERVER_STOP, priority);
+    }
+
+
+
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function) {
+        registerOnDataSave(function, EventPriority.Normal);
+    }
+
+    public void registerOnDataSave(Consumer<DatastoreSaveEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DATA_SAVE, priority);
+    }
+
+
+    //** TICK EVENTS
+
+    @SuppressWarnings("unchecked")
+    public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function) {
+        registerOnServerTick(type, function, EventPriority.Normal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ServerTickEvent> void registerOnServerTick(TickType type, Consumer<T> function, EventPriority priority) {
+        generalTickEventRegister(function, SERVER_TICK_EVENTS, type, priority);
+    }
+
+    /**
+     * Registers a consumer for server level tick events.
+     * Note: Subscribers must test for level equality if they want to execute their code in only a specific dimension.
+     * @param function the consumer to register
+     */
+    public void registerOnServerLevelTick(Consumer<Level> function) {
+        registerOnServerLevelTick(function, EventPriority.Normal);
+    }
+
+    /**
+     * Registers a consumer for server level tick events with priority.
+     * Note: Subscribers must test for level equality if they want to execute their code in only a specific dimension.
+     * @param function the consumer to register
+     * @param priority the event priority
+     */
+    public void registerOnServerLevelTick(Consumer<Level> function, EventPriority priority) {
+        generalRegister(function, ON_SERVER_LEVEL_TICK, priority);
+    }
+
+    public void registerOnDailyTick(ResourceLocation dimension, Consumer<DailyTickEvent> function) {
+        registerOnDailyTick(dimension, function, EventPriority.Normal);
+    }
+
+    private static final ResourceLocation EMPTY_LOC = HBUtil.LOC("minecraft", "");
+    /**
+     * registers a consumer to a specific dimension for day changes.
+     * This event is triggered when the number of ticks in a day have passed
+     * OR when the player wakes up in the specifie dimension.
+     * @param dimension
+     * @param function
+     * @param priority
+     */
+    public void registerOnDailyTick(@Nullable ResourceLocation dimension, Consumer<DailyTickEvent> function, EventPriority priority) {
+        ResourceLocation dimLoc = dimension != null ? dimension :EMPTY_LOC;
+        DAILY_TICK_EVENTS.put(dimLoc, function);
+        PRIORITIES.put(function, priority);
+    }
+
+
+
+
+    //** PLAYER EVENTS
+
+    public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function) {
+        registerOnPlayerAttack(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerAttack(Consumer<PlayerAttackEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_ATTACK, priority);
+    }
+
+    public void registerOnBreakBlock(Consumer<BreakBlockEvent> function) {
+        registerOnBreakBlock(function, EventPriority.Normal);
+    }
+
+    public void registerOnBreakBlock(Consumer<BreakBlockEvent> function, EventPriority priority) {
+        generalRegister(function, ON_BLOCK_BROKEN, priority);
+    }
+
+    public void registerOnPlayerChangedDimension(Consumer<PlayerChangedDimensionEvent> function) {
+        registerOnPlayerChangedDimension(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerChangedDimension(Consumer<PlayerChangedDimensionEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_CHANGED_DIMENSION, priority);
+    }
+
+    public void registerOnPlayerRespawn(Consumer<PlayerRespawnEvent> function) {
+        registerOnPlayerRespawn(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerRespawn(Consumer<PlayerRespawnEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_RESPAWN, priority);
+    }
+
+    public void registerOnPlayerDeath(Consumer<LivingDeathEvent> function) {
+        registerOnPlayerDeath(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerDeath(Consumer<LivingDeathEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_DEATH, priority);
+    }
+
+    public void registerOnPlayerDamage(Consumer<LivingDamageEvent> function) {
+        registerOnPlayerDamage(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerDamage(Consumer<LivingDamageEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_DAMAGE, priority);
+    }
+
+    public void registerOnPlayerFall(Consumer<LivingFallEvent> function) {
+        registerOnPlayerFall(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerFall(Consumer<LivingFallEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_FALL, priority);
+    }
+
+    public void registerOnPlayerHeal(Consumer<LivingHealEvent> function) {
+        registerOnPlayerHeal(function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerHeal(Consumer<LivingHealEvent> function, EventPriority priority) {
+        generalRegister(function, ON_PLAYER_HEAL, priority);
+    }
+
+    public void registerOnUseBlock(Consumer<UseBlockEvent> function) {
+        registerOnUseBlock(function, EventPriority.Normal);
+    }
+
+    public void registerOnUseBlock(Consumer<UseBlockEvent> function, EventPriority priority) {
+        generalRegister(function, ON_USE_BLOCK, priority);
+    }
+
+    public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function) {
+        registerOnDigSpeedEvent(function, EventPriority.Normal);
+    }
+
+    public void registerOnDigSpeedEvent(Consumer<DigSpeedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_DIG_SPEED_EVENT, priority);
+    }
+
+    public void registerOnClientInput(Consumer<ClientInputEvent> function) {
+        registerOnClientInput(function, EventPriority.Normal);
+    }
+
+    public void registerOnClientInput(Consumer<ClientInputEvent> function, EventPriority priority) {
+        generalRegister(function, ON_CLIENT_INPUT, priority);
+    }
+
+    public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function) {
+        registerOnWakeUpAllPlayers(function, EventPriority.Normal);
+    }
+
+    public void registerOnWakeUpAllPlayers(Consumer<WakeUpAllPlayersEvent> function, EventPriority priority) {
+        generalRegister(function, ON_WAKE_UP_ALL_PLAYERS,  priority);
+    }
+
+    public void registerOnTossItem(Consumer<TossItemEvent> function) {
+        registerOnTossItem(function, EventPriority.Normal);
+    }
+
+    public void registerOnTossItem(Consumer<TossItemEvent> function, EventPriority priority) {
+        generalRegister(function, ON_TOSS_ITEM, priority);
+    }
+
+    public <T extends PlayerInteractEvent> void registerOnPlayerInteract(Class<T> eventType, Consumer<? super T> function) {
+        registerOnPlayerInteract(eventType, function, EventPriority.Normal);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends PlayerInteractEvent> void registerOnPlayerInteract(Class<T> eventType, Consumer<? super T> function, EventPriority priority) {
+        Consumer<PlayerInteractEvent> consumer = (Consumer<PlayerInteractEvent>) function;
+        ON_PLAYER_INTERACT_BY_TYPE
+            .computeIfAbsent(eventType, k -> new ConcurrentSet<>())
+            .add(consumer);
+        PRIORITIES.put(consumer, priority);
+    }
+
+    public boolean onPlayerInteract(PlayerInteractEvent event)
+    {
+        if (ON_PLAYER_INTERACT_BY_TYPE.isEmpty()) return false;
+        if (GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide) return false;
+
+        Class<? extends PlayerInteractEvent> eventClass = event.getClass();
+        for (Map.Entry<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> entry : ON_PLAYER_INTERACT_BY_TYPE.entrySet()) {
+            if (!entry.getKey().isAssignableFrom(eventClass)) continue;
+            for (Consumer<PlayerInteractEvent> c : entry.getValue()) {
+                try {
+                    c.accept(event);
+                } catch (Exception e) {
+                    LoggerBase.logError(null, "PLAYER_INTERACT",
+                        "Error firing PlayerInteractEvent consumer: " + e.getMessage());
+                }
+            }
+        }
+        return event.isCanceled();
+    }
+
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function) {
+        registerOnSimpleMessage(messageId, function, EventPriority.Normal);
+    }
+
+    public void registerOnSimpleMessage(String messageId, Consumer<SimpleMessageEvent> function, EventPriority priority) {
+        ON_SIMPLE_MESSAGE.put(messageId, function);
+        PRIORITIES.put(function, priority);
+    }
+
+    public void registerOnStructureLoaded(Consumer<StructureLoadedEvent> function) {
+        registerOnStructureLoaded(function, EventPriority.Normal);
+    }
+
+    public void registerOnStructureLoaded(Consumer<StructureLoadedEvent> function, EventPriority priority) {
+        generalRegister(function, ON_STRUCTURE_LOADED, priority);
+    }
+
+    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function) {
+        registerOnPlayerNearStructure(structureType, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerNearStructure(@Nullable ResourceLocation structureType, Consumer<PlayerNearStructureEvent> function, EventPriority priority) {
+        ResourceLocation key = structureType != null ? structureType : EMPTY_LOC;
+        ON_PLAYER_NEAR_STRUCTURE.computeIfAbsent(key, k -> new ConcurrentSet<>()).add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function) {
+        registerOnAnvilUpdate(eventKey, function, EventPriority.Normal);
+    }
+
+    public void registerOnAnvilUpdate(@Nullable AnvilUpdateEvent eventKey, Consumer<AnvilUpdateEvent> function, EventPriority priority) {
+        ANVIL_UPDATE_EVENTS.add(eventKey);
+        ANVIL_UPDATE_CONSUMERS.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function) {
+        registerOnItemEntityTick(itemType, function, EventPriority.Normal);
+    }
+
+    public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function, EventPriority priority) {
+        ITEM_ENTITY_SUPPLIERS.add(itemType);
+        ITEM_ENTITY_CONSUMERS.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    public void registerOnPlayerHasItem(Supplier<Item> itemType, Consumer<PlayerHasItemEvent> function) {
+        registerOnPlayerHasItem(itemType, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerHasItem(Supplier<Item> itemType, Consumer<PlayerHasItemEvent> function, EventPriority priority) {
+        PLAYER_HAS_ITEM_SUPPLIERS.add(itemType);
+        PLAYER_HAS_ITEM_CONSUMER_LIST.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
+    //add register methods for player matches item, which takes a predicate instead of a supplier
+    public void registerOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function) {
+        registerOnPlayerMatchesItem(predicate, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function, EventPriority priority) {
+        Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair = Pair.of(predicate, function);
+        PLAYER_MATCHES_ITEM_LIST.add(pair);
+        PRIORITIES.put(function, priority);
+    }
+
+    /**
+     * Adds a consumer to the "player has item" array at runtime, calls the consumer when
+     * the player has the item
+     * @param itemType
+     * @param function
+     */
+    public void runtimeOnPlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
+        PLAYER_HAS_ITEM_MAP.computeIfAbsent(itemType, k -> new ArrayList<>()).add(function);
+    }
+
+    public void removePlayerHasItem(Item itemType, Consumer<PlayerHasItemEvent> function) {
+        List<Consumer<PlayerHasItemEvent>> consumers = PLAYER_HAS_ITEM_MAP.get(itemType);
+        if (consumers != null) {
+            consumers.remove(function);
+            if (consumers.isEmpty()) {
+                PLAYER_HAS_ITEM_MAP.remove(itemType);
+            }
+        }
+    }
+
+    public Pair runtimeOnPlayerMatchesItem(Predicate<ItemStack> predicate, Consumer<PlayerHasItemEvent> function) {
+        Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair = Pair.of(predicate, function);
+        PLAYER_MATCHES_ITEM_LIST.add(pair);
+        return pair;
+    }
+
+    public void removePlayerMatchesItem(Pair<Predicate<ItemStack>, Consumer<PlayerHasItemEvent>> pair) {
+        PLAYER_MATCHES_ITEM_LIST.remove(pair);
+    }
+
+
+    /**
+     * Custom Events
+     **/
+
+    public void dataSaveEvent(boolean writeOut) {
+        DatastoreSaveEvent event = DatastoreSaveEvent.create();
+        for (Consumer<DatastoreSaveEvent> saver : ON_DATA_SAVE) {
+            saver.accept(event);
+        }
+
+        if( writeOut ) event.getDataStore().write();
+    }
+
+    public void onServerTick(MinecraftServer s) {
+        GeneralConfig config = GENERAL_CONFIG;
+        long totalTicks = config.getTotalTickCount();
+        ServerTickEvent event = new ServerTickEvent(totalTicks);
+        
+        // Handle regular tick events
+        SERVER_TICK_EVENTS.forEach((scheme, consumer) -> {
+            if (scheme.shouldTrigger(totalTicks)) {
+                tryEvent((Consumer<ServerTickEvent>) consumer, event);
+            }
+        });
+
+        firePlayerHasItemEvents(s, totalTicks);
+
+        // Handle daily tick events
+        Map<ResourceLocation, DailyTickEvent> cache = new HashMap<>();
+
+        for( Level l : config.getLevels().values())
+        {
+            if(l.isClientSide) continue;
+            if (config.getNextDailyTick(l) > totalTicks) continue;
+
+            ResourceLocation dimLoc = l.dimension().location();
+            long sleepTicks = config.getTotalTickCountWithSleep(l);
+            cache.put(dimLoc, new DailyTickEvent(totalTicks, sleepTicks, l, false));
+        }
+
+        //Fire General Config Daily events
+        cache.forEach((dim, dailyTickEvent) -> GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent));
+        //Fire registered daily tick events
+        DAILY_TICK_EVENTS.asMap().forEach((dimLoc, consumers) -> {
+            if( dimLoc == EMPTY_LOC ) {
+             cache.forEach((dim, dailyTickEvent) -> consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent)) );
+             return;
+            }
+           if( !cache.containsKey(dimLoc) ) return;
+
+           DailyTickEvent dailyTickEvent = cache.get(dimLoc);
+           LoggerBase.logDebug(null, "010200", "Firing daily tick event for dimension: " + dimLoc);
+           consumers.forEach(consumer -> tryEvent(consumer, dailyTickEvent));
+        });
+    }
+
+    public void onServerLevelTick(Level level) {
+        if( level == null ) return;
+        ManagedChunkEvents.onWorldTickStart(level);
+        
+        // Sort consumers by priority
+        List<Consumer<Level>> sortedConsumers = ON_SERVER_LEVEL_TICK.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<Level> consumer : sortedConsumers) {
+            tryEvent(consumer, level);
+        }
+    }
+
+
+    public void onWakeUpAllPlayers(ServerLevel level)
+    {
+        GeneralConfig config = GENERAL_CONFIG;
+        int totalSleeps = config.getTotalSleeps(level)+1;
+        WakeUpAllPlayersEvent event = new WakeUpAllPlayersEvent(level, totalSleeps);
+        GeneralConfig.fireEvent(WakeUpAllPlayersEvent.class, event);
+        ON_WAKE_UP_ALL_PLAYERS.forEach(consumer -> tryEvent(consumer, event));
+
+        // Trigger daily tick event if it is the first tick of the day
+        DailyTickEvent dailyTickEvent = new DailyTickEvent(
+                config.getTotalTickCount(),
+                config.getTotalTickCountWithSleep(level),
+                level,
+                true
+        );
+
+        GeneralConfig.fireEvent(ServerTickEvent.DailyTickEvent.class, dailyTickEvent);
+        DAILY_TICK_EVENTS.get(EMPTY_LOC).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
+        ResourceLocation levelId = level.dimension().location();
+        DAILY_TICK_EVENTS.get(levelId).forEach(consumer -> tryEvent(consumer, dailyTickEvent) );
+
+        cleanupOnNewDay();
+    }
+
+    public void onClientInput(ClientInputMessage message) {
+        GeneralConfig config = GENERAL_CONFIG;
+        Player p = config.getServer().getPlayerList().getPlayer(message.playerId);
+        ClientInputEvent event = new ClientInputEvent(p, message);
+        ON_CLIENT_INPUT.forEach(consumer -> tryEvent(consumer, event));
+    }
+
+    public void onSimpleMessage(Player player, SimpleStringMessage message, String messageId) {
+        SimpleMessageEvent event = new SimpleMessageEvent(player, message, messageId);
+        Collection<Consumer<SimpleMessageEvent>> consumers = ON_SIMPLE_MESSAGE.get(messageId);
+        
+        // Sort consumers by priority
+        List<Consumer<SimpleMessageEvent>> sortedConsumers = consumers.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<SimpleMessageEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onStructureLoaded(StructureLoadedEvent event) {
+        // Sort consumers by priority
+        List<Consumer<StructureLoadedEvent>> sortedConsumers = ON_STRUCTURE_LOADED.stream()
+            .sorted((a, b) -> PRIORITIES.get(b).compareTo(PRIORITIES.get(a)))
+            .toList();
+            
+        // Execute in priority order
+        for (Consumer<StructureLoadedEvent> consumer : sortedConsumers) {
+            tryEvent(consumer, event);
+        }
+    }
+
+    public void onPlayerNearStructure(PlayerNearStructureEvent event) {
+        ResourceLocation structureType = event.getStructureInfo().getId();
+        
+        // Get consumers for this specific structure type
+        Set<Consumer<PlayerNearStructureEvent>> specificConsumers = ON_PLAYER_NEAR_STRUCTURE.get(structureType);
+        if (specificConsumers != null) {
+           specificConsumers.forEach(consumer -> tryEvent(consumer, event));
+        }
+        
+        // Get consumers for all structure types (registered with null/empty ResourceLocation)
+        Set<Consumer<PlayerNearStructureEvent>> generalConsumers = ON_PLAYER_NEAR_STRUCTURE.get(EMPTY_LOC);
+        if (generalConsumers != null) {
+              generalConsumers.forEach(consumer -> tryEvent(consumer, event));
+        }
+    }
+
+    /**
+     * AnvilEvent, AnvilUpdateEvent, AnvilRecipe
+     * @param event
+     */
+    public void onAnvilUpdate(AnvilUpdateEvent event)
+    {
+        // Iterate through the events list to find matching registered event handlers
+        synchronized (ANVIL_UPDATE_EVENTS) {
+            for (int i =  0; i < ANVIL_UPDATE_EVENTS.size(); i++)
+            {
+                AnvilUpdateEvent registeredEvent = ANVIL_UPDATE_EVENTS.get(i);
+                Consumer<AnvilUpdateEvent> consumer = ANVIL_UPDATE_CONSUMERS.get(i);
+                
+                // Skip null entries (maintain ordering)
+                if (consumer == null) {
+                    continue;
+                }
+                
+                if (registeredEvent==null || registeredEvent.equals(event)) {
+                    tryEvent(consumer, event);
+                    break; // Only execute the first matching handler
+                }
+            }
+        }
+    }
+
+    public static void onItemEntityTick(ItemEntity itemEntity)
+    {
+        EventRegistrar registrar = getInstance();
+        if (registrar == null) return;
+        if( !registrar.ITEM_ENTITY_TICK_MAP.containsKey(itemEntity.getItem().getItem()) ) return;
+
+        ItemEntityTickEvent event = new ItemEntityTickEvent(itemEntity);
+        registrar.ALL_ITEM_ENTITY_CONSUMERS.forEach(consumer -> registrar.tryEvent(consumer, event));
+
+        Item item = itemEntity.getItem().getItem();
+        List<Consumer<ItemEntityTickEvent>> specificConsumers = registrar.ITEM_ENTITY_TICK_MAP.get(item);
+        specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
+    }
+
+    // Fires PlayerHasItemEvent every 20 ticks for each online player
+    private void firePlayerHasItemEvents(MinecraftServer server, long totalTicks)
+    {
+        if (PLAYER_HAS_ITEM_MAP.isEmpty() && PLAYER_MATCHES_ITEM_LIST.isEmpty()) return;
+        if (totalTicks % 20 != 0) return;
+
+        List<Predicate<ItemStack>> predicates = PLAYER_MATCHES_ITEM_LIST.stream().map(Pair::getLeft).toList();
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+        {
+            HashMap<ItemStack, Integer> inventoryMap = HBUtil.ItemUtil.parseInventory(player.getInventory());
+            PlayerHasItemEvent event = new PlayerHasItemEvent(player, inventoryMap);
+
+            for(ItemStack stack : inventoryMap.keySet() )
+            {
+                if(!PLAYER_HAS_ITEM_MAP.containsKey(stack.getItem()) && predicates.stream().noneMatch(p -> p.test(stack))) return;
+                int slot = inventoryMap.get(stack);
+                PlayerHasItemEvent slotEvent = new PlayerHasItemEvent(player, stack, slot, inventoryMap);
+
+                if(PLAYER_HAS_ITEM_MAP.containsKey(stack.getItem())) {
+                    List<Consumer<PlayerHasItemEvent>> consumers = PLAYER_HAS_ITEM_MAP.get(stack.getItem());
+                    consumers.forEach(consumer -> tryEvent(consumer, slotEvent));
+                }
+
+                PLAYER_MATCHES_ITEM_LIST.stream().filter( pair -> pair.getLeft().test(player.getInventory().getItem(slot)) )
+                    .forEach(pair -> pair.getRight().accept(event));
+            }
+
+        }
+    }
+
+    private <T> void tryEvent(Consumer<T> consumer, T event) {
+        // Use consumer hashcode and event class as separate indices in the table
+        String id = eventIdCache.get(consumer.hashCode(), event.getClass());
+        if (id == null) {
+            id = consumer.toString() + "::" + event.getClass().getName();
+            eventIdCache.put(consumer.hashCode(), event.getClass(), id);
+        }
+            
+        if( MixinManager.isEnabled(consumer.toString())) {
+            try {
+                consumer.accept(event);
+            } catch (Exception e) {
+                MixinManager.recordError(id, e);
+            }
+        }
+    }
+
+    /**
+     * Cleanup janky code concepts. e.g. my "use multiple items in anvil recipes fix"
+     */
+    private static void cleanupOnNewDay() {
+        AnvilUpdateEvent.ANVIL_EVENTS.clear();
+    }
+
+
+    /**
+     * ###############
+     **/
+
+    private class TickScheme {
+        int offset;
+        TickType frequency;
+
+        <T> TickScheme(Consumer<T> func, TickType frequency) {
+            this.frequency = frequency;
+            this.offset = (func.hashCode() % getFrequency());
+        }
+
+        int getFrequency() {
+            switch (frequency) {
+                case ON_SINGLE_TICK:
+                    return 1;
+                case ON_20_TICKS:
+                    return 20;
+                case ON_120_TICKS:
+                    return 120;
+                case ON_1200_TICKS:
+                    return 1200;
+                case ON_6000_TICKS:
+                    return 6000;
+                case ON_24000_TICKS:
+                    return 24000; // 1 day in ticks
+                default:
+                    return 1;
+            }
+        }
+
+        public TickType getTickType() {
+            return frequency;
+        }
+
+        boolean shouldTrigger(long totalTicks) {
+            return totalTicks % getFrequency() == offset;
+        }
+
+    }
+}
+//END CLASS

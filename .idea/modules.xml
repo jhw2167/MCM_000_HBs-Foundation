@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/MCM_000_HBs-Foundation.iml" filepath="$PROJECT_DIR$/.idea/modules/MCM_000_HBs-Foundation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.iml" filepath="$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.main.iml" filepath="$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.test.iml" filepath="$PROJECT_DIR$/.idea/modules/buildSrc/MCM_000_HBs-Foundation.buildSrc.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.iml" filepath="$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.test.iml" filepath="$PROJECT_DIR$/.idea/modules/common/MCM_000_HBs-Foundation.common.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.iml" filepath="$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.main.iml" filepath="$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.test.iml" filepath="$PROJECT_DIR$/.idea/modules/fabric/MCM_000_HBs-Foundation.fabric.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.iml" filepath="$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.main.iml" filepath="$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.test.iml" filepath="$PROJECT_DIR$/.idea/modules/neoforge/MCM_000_HBs-Foundation.neoforge.test.iml" />
+    </modules>
+  </component>
+</project>

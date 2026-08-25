@@ -40,6 +40,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -314,6 +315,30 @@ public class HBUtil {
                 itemSlotMap.put(stack, i);
             }
             return itemSlotMap;
+        }
+
+        // Adds enchantment to an item, adding levels if it already exists
+        public static void addEnchant(ItemStack stack, ResourceKey<Enchantment> enchantKey, int level) {
+            if (stack == null || stack.isEmpty() || enchantKey == null || level < 1) return;
+            Holder<Enchantment> enchant = enchantNameToEnchant(enchantKey.identifier());
+            if (enchant == null) return;
+            int lvl = stack.getEnchantments().getLevel(enchant);
+            if( lvl > 0) level += lvl;
+            stack.enchant(enchant, level);
+        }
+
+        public static void removeEnchant(ItemStack stack, ResourceKey<Enchantment> enchantKey) {
+            if (stack == null || stack.isEmpty() || enchantKey == null) return;
+            Holder<Enchantment> enchant = enchantNameToEnchant(enchantKey.identifier());
+            if (enchant == null) return;
+            stack.enchant(enchant, 0);
+        }
+
+        public static void setEnchant(ItemStack stack, ResourceKey<Enchantment> enchantKey, int level) {
+            if (stack == null || stack.isEmpty() || enchantKey == null || level < 0) return;
+            Holder<Enchantment> enchant = enchantNameToEnchant(enchantKey.identifier());
+            if (enchant == null) return;
+            stack.enchant(enchant, level);
         }
 
     }

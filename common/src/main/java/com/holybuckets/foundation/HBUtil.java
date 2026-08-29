@@ -317,7 +317,18 @@ public class HBUtil {
             return itemSlotMap;
         }
 
-        // Adds enchantment to an item, adding levels if it already exists
+        // Returns enchant level of item and enchant, 0 otherwise
+        public static int getEnchantLevel(ItemStack stack, ResourceKey<Enchantment> enchantKey) {
+            if (stack == null || stack.isEmpty() || enchantKey == null) return 0;
+            Holder<Enchantment> enchant = enchantNameToEnchant(enchantKey.identifier());
+            if (enchant == null) return 0;
+            int lvl = stack.getEnchantments().getLevel(enchant);
+            if( lvl < 1) return 0;
+            return lvl;
+
+        }
+
+                // Adds enchantment to an item, adding levels if it already exists
         public static void addEnchant(ItemStack stack, ResourceKey<Enchantment> enchantKey, int level) {
             if (stack == null || stack.isEmpty() || enchantKey == null || level < 1) return;
             Holder<Enchantment> enchant = enchantNameToEnchant(enchantKey.identifier());

@@ -52,6 +52,8 @@ public class EnchantedEssence extends SimpleRewardItem {
                 list = "No Biomes Associated with this Essence";
             }
             tooltipConsumer.accept(Component.literal(list).withStyle(ChatFormatting.GRAY));
+        } else {
+            tooltipConsumer.accept(Component.translatable(modDescKey));
         }
     }
     

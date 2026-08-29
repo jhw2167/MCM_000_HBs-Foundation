@@ -46,8 +46,7 @@ import static java.lang.Thread.sleep;
 public class CommonClassDebug {
 
 
-    public static void init(EventRegistrar reg)
-    {
+    public static void init(EventRegistrar reg) {
         //testMessager(reg);
         //test(reg);
     }
@@ -88,15 +87,14 @@ public class CommonClassDebug {
         //Set a MovingWaypoint to the players current position
         BlockPos pos = event.getPlayer().blockPosition();
 
-        if(keyCodes.stream().toList().get(0)==1)
+        if (keyCodes.stream().toList().get(0) == 1)
             MovingWaypoint.setWaypoint((ServerPlayer) event.getPlayer(), pos);
 
         // Also log it for debugging
         //LoggerBase.logInfo(null, "MESSAGER_TEST", "Player input: " + keyMessage.toString());
     }
 
-    public static void test(EventRegistrar reg)
-    {
+    public static void test(EventRegistrar reg) {
         //reg.registerOnChunkLoad(CommonClassDebug::onChunkLoad);
         //reg.registerOnLevelLoad(CommonClassDebug::onLevelLoad);
         //reg.registerOnPlayerLogin(CommonClassDebug::onPlayerLogin);
@@ -112,20 +110,38 @@ public class CommonClassDebug {
 
         // PlayerInteractEvent — uncomment any single line to verify one variant in isolation,
         // or the .class line to verify the catch-all subscription path.
-        reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
 
-        testPlayerMatchesItem(reg);
+        //testPlayerMatchesItem(reg);
+        addSharpnessTest(reg);
     }
 
 
     /* PLAYER_MATCHES_ITEM */
 
+    //test add and remove sharpness from diamond sword
+    //when a player hold diamond sword in their hand, add a level
+    //of sharpness once per second until it reaches level 10, then remove it
+    private static void addSharpnessTest(EventRegistrar reg) {
+        reg.registerOnPlayerHasItem(() -> Items.DIAMOND_SWORD, CommonClassDebug::addShaprnessToSword);
+    }
+
+
     private static void testPlayerMatchesItem(EventRegistrar reg) {
         reg.registerOnPlayerMatchesItem(SHARPENED, CommonClassDebug::onPlayerHasSharpness);
         reg.registerOnBeforeServerStarted(CommonClassDebug::registerAppleCounterAtRuntime);
+    }
+
+    private static int SHAPRP_COUNTER = 0;
+    private static void addShaprnessToSword(PlayerHasItemEvent event) {
+        if(SHAPRP_COUNTER++ % 20 != 0) return;
+        int lvl = HBUtil.ItemUtil.getEnchantLevel(event.getItemStack(),
+             Enchantments.SHARPNESS);
+        if(lvl > 10) lvl=-1;
+         HBUtil.ItemUtil.setEnchant(event.getItemStack(), Enchantments.SHARPNESS, lvl + 1);
     }
 
     /**

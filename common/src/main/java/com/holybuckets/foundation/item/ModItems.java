@@ -24,7 +24,8 @@ public class ModItems {
 
     public static void initialize(BalmItemRegistrar items)
     {
-        enchantedEssenceItem = items.register("enchanted_essence", props -> new SimpleRewardItem("enchanted_essence", Constants.MOD_ID, props)).asDeferredItem();
+        enchantedEssenceItem = items.register("enchanted_essence",e
+            props -> new EnchantedEssence(null, props)).asDeferredItem();
         enchantedEssence = DeferredObject.of(enchantedEssenceItem);
 
         waypointStickItem = items.register("waypoint_stick", WaypointStick::new).asDeferredItem();

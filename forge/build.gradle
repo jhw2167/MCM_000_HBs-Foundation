@@ -75,6 +75,16 @@ minecraft {
 
 sourceSets.main.resources.srcDir 'src/generated/resources'
 
+repositories {
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly project(":common")
@@ -83,6 +93,9 @@ dependencies {
     implementation fg.deobf("net.blay09.mods:balm-forge:${balm_version}") {
         changing = true
     }
+
+    // Compile against Chunk Pregenerator, not shipped or loaded at runtime
+    compileOnly fg.deobf("curse.maven:chunkpregenerator-${chunkpregenerator_project_id}:${chunkpregenerator_file_id}")
 
 }
 

@@ -38,6 +38,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -45,6 +46,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -87,6 +89,10 @@ public class HBUtil {
             namespace = "minecraft";
         }
         return new ResourceLocation(namespace, path);
+    }
+
+    public static String READ(String group, String modId, String enUsField) {
+        return Component.translatable(group + "." + modId + "." + enUsField).getString();
     }
 
     public static ResourceLocation LOC(String qualified) {
@@ -168,7 +174,15 @@ public class HBUtil {
             return prefix + gp.getName().toString();
         }
 
-    //create a PlayerNameSpace for CLIENT and SERVER
+        public static ServerPlayer getServerPlayer(Player p) {
+            if (p == null) return null;
+            if (p instanceof ServerPlayer) {
+                return (ServerPlayer) p;
+            }
+            return (ServerPlayer) getPlayer(getId(p), PlayerNameSpace.SERVER);
+        }
+
+        //create a PlayerNameSpace for CLIENT and SERVER
         public enum PlayerNameSpace {
             SERVER,
             CLIENT
@@ -279,15 +293,61 @@ public class HBUtil {
             return  1;
         }
 
-        // Maps each distinct Item to the first slot index it occupies (0-35 main, 36-39 armor, 40 offhand)
-        public static HashMap<Item, Integer> parseInventory(Inventory inventory) {
-            HashMap<Item, Integer> itemSlotMap = new HashMap<>();
+        // Maps each non-empty ItemStack to the slot index it occupies (0-35 main, 36-39 armor, 40 offhand)
+        public static HashMap<ItemStack, Integer> parseInventory(Inventory inventory) {
+            HashMap<ItemStack, Integer> itemSlotMap = new HashMap<>();
             for (int i = 0; i < inventory.getContainerSize(); i++) {
                 ItemStack stack = inventory.getItem(i);
                 if (stack.isEmpty()) continue;
-                itemSlotMap.putIfAbsent(stack.getItem(), i);
+                itemSlotMap.put(stack, i);
             }
             return itemSlotMap;
+        }
+
+        public static boolean itemHasEnchant(ItemStack stack, Enchantment enchant) {
+            if (stack == null || stack.isEmpty() || enchant == null) return false;
+            return EnchantmentHelper.getItemEnchantmentLevel(enchant, stack) > 0;
+        }
+
+        public static boolean itemHasEnchant(ItemStack stack, String qualifiedEnchantName) {
+            return itemHasEnchant(stack, enchantNameToEnchant(qualifiedEnchantName));
+        }
+
+        // Returns enchant level of item and enchant, 0 otherwise
+        public static int getEnchantLevel(ItemStack stack, Enchantment enchant) {
+            if (stack == null || stack.isEmpty() || enchant == null) return 0;
+            int lvl = EnchantmentHelper.getItemEnchantmentLevel(enchant, stack);
+            if (lvl < 1) return 0;
+            return lvl;
+        }
+
+        public static int getEnchantLevel(ItemStack stack, String qualifiedEnchantName) {
+            return getEnchantLevel(stack, enchantNameToEnchant(qualifiedEnchantName));
+        }
+
+        // Adds enchantment to an item, adding levels if it already exists
+        public static void addEnchant(ItemStack stack, Enchantment enchant, int level) {
+            if (stack == null || stack.isEmpty() || enchant == null || level < 1) return;
+            int lvl = getEnchantLevel(stack, enchant);
+            setEnchant(stack, enchant, lvl + level);
+        }
+
+        public static void removeEnchant(ItemStack stack, Enchantment enchant) {
+            if (stack == null || stack.isEmpty() || enchant == null) return;
+            Map<Enchantment, Integer> enchants = new HashMap<>(EnchantmentHelper.getEnchantments(stack));
+            enchants.remove(enchant);
+            EnchantmentHelper.setEnchantments(enchants, stack);
+        }
+
+        public static void setEnchant(ItemStack stack, Enchantment enchant, int level) {
+            if (stack == null || stack.isEmpty() || enchant == null || level < 0) return;
+            if (level == 0) {
+                removeEnchant(stack, enchant);
+                return;
+            }
+            Map<Enchantment, Integer> enchants = new HashMap<>(EnchantmentHelper.getEnchantments(stack));
+            enchants.put(enchant, level);
+            EnchantmentHelper.setEnchantments(enchants, stack);
         }
 
     }

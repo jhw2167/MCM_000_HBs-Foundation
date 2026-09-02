@@ -2,6 +2,7 @@ package com.holybuckets.foundation.networking;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.HBUtil.PlayerUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.client.ClientEventRegistrar;
@@ -78,7 +79,12 @@ public class SimpleStringMessage {
             : new SimpleStringMessage(p.getUUID(), messageId, content);
 
         if(GeneralConfig.getInstance().isIntegrated()) {
-            EventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
+            if(p==null) {
+                String error = "SimpleStringMessage.createAndFire: Attempt to send message to undefined player. MsgId "+ messageId;
+                LoggerBase.logError(null, "016001", error);
+                return message;
+            }
+            EventRegistrar.getInstance().onSimpleMessage(PlayerUtil.getServerPlayer(p), message, message.messageId);
             ClientEventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
             return message;
         }

@@ -74,9 +74,6 @@ public class BalmEventRegister {
         drainAndRegister(registrar.ON_USE_BLOCK, "ON_USE_BLOCK", c ->
             registry.onEvent(UseBlockEvent.class, c, p(c)));
 
-        drainAndRegister(registrar.ON_PLAYER_ATTACK_EVENT, "ON_PLAYER_ATTACK_EVENT", c ->
-            registry.onEvent(PlayerAttackEvent.class, c, p(c)));
-
         drainAndRegister(registrar.ON_DIG_SPEED_EVENT, "ON_DIG_SPEED_EVENT", c ->
             registry.onEvent(DigSpeedEvent.class, c, p(c)));
 

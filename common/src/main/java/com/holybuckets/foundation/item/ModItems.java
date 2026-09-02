@@ -24,7 +24,7 @@ public class ModItems {
 
     public static void initialize(BalmItemRegistrar items)
     {
-        enchantedEssenceItem = items.register("enchanted_essence",e
+        enchantedEssenceItem = items.register("enchanted_essence",
             props -> new EnchantedEssence(null, props)).asDeferredItem();
         enchantedEssence = DeferredObject.of(enchantedEssenceItem);
 

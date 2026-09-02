@@ -27,8 +27,16 @@ public class ShapeGen {
         return finalShape;
     }
 
+    /**
+     * Returns shape centered at source
+     * @param source
+     * @param x - size in x direction
+     * @param y - size in y direction
+     * @param z - size in z direction
+     * @return list of BlockPos representing the cuboid
+     */
     public static List<BlockPos> cuboid(BlockPos source, int x, int y, int z) {
-            Fast3DArray cube = ShapeUtil.getCube(x,y,z);
+            Fast3DArray cube = ShapeUtil.getCube(x,z,y);
             List<BlockPos> positions = new ArrayList<>(cube.size);
             for (int i = 0; i < cube.size; i++) {
                 positions.add(new BlockPos(source.getX() + cube.getX(i),

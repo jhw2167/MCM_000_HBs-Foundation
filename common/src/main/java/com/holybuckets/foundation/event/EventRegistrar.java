@@ -535,6 +535,10 @@ public class EventRegistrar {
         PRIORITIES.put(consumer, priority);
     }
 
+    public static void onPlayerConnectedToServer() {
+       GENERAL_CONFIG = GeneralConfig.getInstance();
+    }
+
     public boolean onPlayerInteract(PlayerInteractEvent event)
     {
         if (ON_PLAYER_INTERACT_BY_TYPE.isEmpty()) return false;

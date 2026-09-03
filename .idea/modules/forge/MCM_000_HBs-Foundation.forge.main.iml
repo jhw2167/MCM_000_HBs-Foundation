@@ -16,7 +16,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="MCM_000_HBs-Foundation.common.main" scope="PROVIDED" />
-    <orderEntry type="library" scope="PROVIDED" name="Gradle: curse.maven:chunkpregenerator-267193:8748892_mapped_official_1.20.1" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraftforge:forge:1.20.1-47.3.0_mapped_official_1.20.1" level="project" />
     <orderEntry type="module-library">
       <library name="Gradle: com.google.code.gson:gson:2.10">
@@ -58,6 +57,8 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: net.blay09.mods:balm-forge:7.3.41+1.20.1_mapped_official_1.20.1" level="project" />
+    <orderEntry type="library" name="Gradle: curse.maven:chunkpregenerator-267193:8311990_mapped_official_1.20.1" level="project" />
+    <orderEntry type="library" name="Gradle: curse.maven:carbon-config-898104:8119981_mapped_official_1.20.1" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraft:client:extra:1.20.1" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraftforge:fmlloader:1.20.1-47.3.0" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraftforge:JarJarSelector:0.3.19" level="project" />

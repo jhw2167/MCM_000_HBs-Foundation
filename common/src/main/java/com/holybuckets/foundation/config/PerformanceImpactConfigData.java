@@ -9,6 +9,16 @@ import net.blay09.mods.balm.api.config.Config;
 public class PerformanceImpactConfigData implements BalmConfigData {
     public CPerformanceImpactConfig performanceImpactConfig = new CPerformanceImpactConfig();
     public ConfigFiles configFiles = new ConfigFiles();
+    public CFeatures features = new CFeatures();
+
+    public static class CFeatures {
+
+        @Comment("Enables the Chunk Explorer, which pre-generates distant chunks around players in the background. Requires Chunk Pregenerator to be installed; ignored otherwise. Disabled by default: it generates world on the server thread while players are online.")
+        public boolean enableChunkExplorer = false;
+
+        @Comment("The rate of chunk exploration beyond player bounds. 100 is the fastest. Valid range 1 - 100.")
+        public int chunkExploreRate = 1;
+    }
 
     public static class ConfigFiles {
         @Comment("File path to EnchantedEssence config file")

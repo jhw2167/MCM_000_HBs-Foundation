@@ -35,6 +35,10 @@ public class PerformanceImpactConfig {
         setBlockWritesPerTick( p );
     }
 
+    public int getChunkExploreRate() {
+        return getActive().features.chunkExploreRate;
+    }
+
 
     //SETTERS
     public void setBlockWritesPerTick(PerformanceImpactLevel p)

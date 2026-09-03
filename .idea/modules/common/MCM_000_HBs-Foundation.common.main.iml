@@ -738,5 +738,6 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="library" name="Gradle: curse.maven:chunkpregenerator-267193:8311990_mapped_official_1.20.1" level="project" />
   </component>
 </module>

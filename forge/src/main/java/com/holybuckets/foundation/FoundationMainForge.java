@@ -8,10 +8,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.ModList;
-/*
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforgespi.language.IModInfo;
- */
 
 @Mod( Constants.MOD_ID)
 public class FoundationMainForge {

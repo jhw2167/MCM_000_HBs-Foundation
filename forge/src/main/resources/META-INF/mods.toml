@@ -31,7 +31,7 @@ versionRange="${balm_version_range}"
 ordering="NONE"
 side="BOTH"
 [[dependencies.${mod_id}]]
-modId="chunkpregenerator"
+modId="chunkpregen"
 mandatory=false
 versionRange="*"
 ordering="AFTER"

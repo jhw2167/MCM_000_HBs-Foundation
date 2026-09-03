@@ -2,10 +2,12 @@ package com.holybuckets.foundation.core;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
+import com.holybuckets.foundation.platform.services.ChunkLoader;
 import com.mojang.datafixers.util.Either;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -35,7 +37,7 @@ public class ChunkExplorerManager {
     public static final String CLASS_ID = "037";
 
 
-    public static final int SCAN_RADIUS_CHUNKS = 64;//625;   // 10,000 blocks / 16, RANGE
+    public static final int SCAN_RADIUS_CHUNKS = 64; //625;   // 10,000 blocks / 16, RANGE
     public static final int MIN_HOLD_TICKS = 2;     // ticks a probe stays loaded
     public static final int MAX_HOLD_TICKS = 40;     // ticks a probe stays loaded
     public static final int CHUNK_EXPLORER_MAX = 50;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
@@ -66,11 +68,15 @@ public class ChunkExplorerManager {
     }
 
 
-    public static void init(EventRegistrar reg) {
+    private static ChunkLoader CHUNK_LOADER;
+
+    public static void init(EventRegistrar reg, ChunkLoader chunkLoader) {
+        GENERAL_CONFIG = GeneralConfig.getInstance();
+        CHUNK_LOADER = chunkLoader;
         reg.registerOnBeforeServerStarted(ChunkExplorerManager::onServerStart);
         reg.registerOnLevelLoad(ChunkExplorerManager::onLevelLoad);
         reg.registerOnLevelUnload(ChunkExplorerManager::onLevelUnload);
-        reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ChunkExplorerManager::onSingleTick);
+        reg.registerOnServerTick(TickType.ON_120_TICKS, ChunkExplorerManager::onExploreTick);
         reg.registerOnServerTick(TickType.ON_120_TICKS,  ChunkExplorerManager::on1200Ticks);
     }
 
@@ -86,14 +92,10 @@ public class ChunkExplorerManager {
     {
         long now = GENERAL_CONFIG.getTotalTickCount();
 
-        /*
-        if (heldChunk != null && (now - heldSince) > MIN_HOLD_TICKS) {
-            if(util.isChunkInitialized(heldChunk) || now - heldSince > MAX_HOLD_TICKS) {
-                HBUtil.ChunkUtil.unforceLoadChunk((ServerLevel) level, heldChunk, ticketId(heldChunk), 0);
+
+        if (CHUNK_LOADER.unforceChunkLoad((ServerLevel) level, heldChunk) ) {
                 heldChunk = null;
-            }
         }
-         */
 
         //aaa
         if (heldChunk == null) {
@@ -101,9 +103,8 @@ public class ChunkExplorerManager {
             if (next != null) {
                 heldChunk = next;
                 heldSince = now;
-                HBUtil.ChunkUtil.softLoadChunk((ServerLevel) level, next ).thenAccept( o -> heldChunk = null);
                 requestedChunks.add(next);
-                //HBUtil.ChunkUtil.forceLoadChunk((ServerLevel) level, next, ticketId(next), 0);
+                CHUNK_LOADER.forceChunkLoad((ServerLevel) level, next);
             }
         }
     }
@@ -136,10 +137,8 @@ public class ChunkExplorerManager {
             //ChunkPos playerChunk = new ChunkPos(player.blockPosition());
             final int maxPerPlayer = CHUNK_EXPLORER_MAX / chunkGenerators.size();
             int count = 0;
-            while(true)
+            while(chunkExploreQueue.size() < CHUNK_EXPLORER_MAX)
             {
-                if(chunkExploreQueue.size() > CHUNK_EXPLORER_MAX) break;
-
                 ChunkPos next = handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
                 if(next == null) break;
                 if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) break;
@@ -182,7 +181,6 @@ public class ChunkExplorerManager {
 
     private static void onServerStart(ServerStartingEvent event) {
         managers.clear();
-        GENERAL_CONFIG = GeneralConfig.getInstance();
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
@@ -194,16 +192,33 @@ public class ChunkExplorerManager {
         if (event.getLevel().isClientSide()) return;
         ChunkExplorerManager manager = managers.remove(event.getLevel());
         if (manager != null && manager.heldChunk != null) {
-            HBUtil.ChunkUtil.unforceLoadChunk(
-                (ServerLevel) event.getLevel(),
-                manager.heldChunk,
-                ticketId(manager.heldChunk),
-                2
-            );
+            CHUNK_LOADER.unforceChunkLoad((ServerLevel) manager.level, manager.heldChunk);
         }
     }
 
-    private static void onSingleTick(ServerTickEvent event) {
+    private static final int RATE_MIN = 1;
+    private static final int RATE_MAX = 100;
+    private static int exploreTickCounter = 0;
+
+    /**
+     * Number of ON_120_TICKS passes to skip between exploration attempts. A rate of
+     * 100 explores every pass, a rate of 1 explores every 100th pass.
+     */
+    private static int exploreInterval() {
+        int rate = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate();
+        rate = Math.max(RATE_MIN, Math.min(RATE_MAX, rate));
+        return Math.abs(101 - rate);
+    }
+
+    private static boolean exploreChunksEnabled() {
+        return PerformanceImpactConfig.getActive().features.enableChunkExplorer;
+    }
+
+    private static void onExploreTick(ServerTickEvent event) {
+        if(!exploreChunksEnabled()) return;
+        if (++exploreTickCounter < exploreInterval()) return;
+        exploreTickCounter = 0;
+
         for (ChunkExplorerManager manager : managers.values()) {
             manager.onTick(event);
         }
@@ -244,8 +259,9 @@ public class ChunkExplorerManager {
             ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
             if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) {
                 ChunkPos p = new ChunkPos(player.blockPosition());
-                double skipRatio = (double) PLAYER_RENDER_DIST_SQ / handler.getSkippedChunks()*SKIP_CHUNKS;
-                int radialOffset = Math.max(0, (int) skipRatio );
+                int skipped = Math.max(1, handler.getSkippedChunks());
+                double skipRatio = (double) PLAYER_RENDER_DIST_SQ / skipped * SKIP_CHUNKS;
+                int radialOffset = Math.max(0, Math.min(SCAN_RADIUS_CHUNKS, (int) skipRatio));
                 chunkGenerators.put(player, new ChunkGenerationOrderHandler(p, radialOffset, SCAN_RADIUS_CHUNKS) );
             }
         }

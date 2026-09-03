@@ -1,6 +1,11 @@
 package com.holybuckets.foundation;
 
 import com.holybuckets.foundation.console.IMessager;
+import com.holybuckets.foundation.core.ChunkExplorerManager;
+import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.platform.services.ChunkLoader;
+import com.holybuckets.foundation.util.ModContext;
+import net.blay09.mods.balm.api.Balm;
 import com.holybuckets.foundation.event.BalmEventRegister;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.item.WaypointStick;
@@ -24,12 +29,28 @@ public class CommonClass {
         FoundationInitializers.init();
         EventRegistrar reg = EventRegistrar.getInstance();
         WaypointStick.init(reg);
+        initChunkExplorer(reg);
         // Debug-only hooks live in CommonClassDebug. Activate individual hooks by
         // uncommenting registrations inside that class.
         CommonClassDebug.init(reg);
 
         BalmEventRegister.registerEvents();
         isInitialized = true;
+    }
+
+    public static final String CHUNK_PREGEN_MOD_ID = "chunkpregen";
+
+
+    private static void initChunkExplorer(EventRegistrar reg) {
+        if(ModContext.getInstance().isLoaded(CHUNK_PREGEN_MOD_ID))
+        {
+            ChunkLoader chunkLoader = (ChunkLoader) Balm.platformProxy()
+                .withForge("com.holybuckets.foundation.core.ForgeChunkLoader")
+                .withFabric("com.holybuckets.foundation.core.FabricChunkLoader")
+                .build();
+            ChunkExplorerManager.init(reg, chunkLoader);
+            Constants.LOG.info("Chunk Explorer initialized against {}", CHUNK_PREGEN_MOD_ID);
+        }
     }
 
     //ANYTHING HERE SHOULD BE HIGH PRIORITY, DO FROM GENERAL CONFIG

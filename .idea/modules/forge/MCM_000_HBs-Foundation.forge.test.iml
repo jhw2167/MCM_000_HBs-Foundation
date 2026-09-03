@@ -51,6 +51,8 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: net.blay09.mods:balm-forge:7.3.41+1.20.1_mapped_official_1.20.1" level="project" />
+    <orderEntry type="library" name="Gradle: curse.maven:chunkpregenerator-267193:8311990_mapped_official_1.20.1" level="project" />
+    <orderEntry type="library" name="Gradle: curse.maven:carbon-config-898104:8119981_mapped_official_1.20.1" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraft:client:extra:1.20.1" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraftforge:fmlloader:1.20.1-47.3.0" level="project" />
     <orderEntry type="library" name="Gradle: net.minecraftforge:JarJarSelector:0.3.19" level="project" />
@@ -122,7 +124,19 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0" level="project" />
+    <orderEntry type="module-library">
+      <library name="Gradle: org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0">
+        <CLASSES>
+          <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-slf4j2-impl/2.19.0/5c04bfdd63ce9dceb2e284b81e96b6a70010ee10/log4j-slf4j2-impl-2.19.0.jar!/" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-slf4j2-impl/2.19.0/af430d65c7cb13eb00407c75e759d56508e30f88/log4j-slf4j2-impl-2.19.0-javadoc.jar!/" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-slf4j2-impl/2.19.0/628978b55e7195966a111841796d17ae048bce62/log4j-slf4j2-impl-2.19.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="module-library">
       <library name="Gradle: com.google.guava:guava:31.1-jre">
         <CLASSES>

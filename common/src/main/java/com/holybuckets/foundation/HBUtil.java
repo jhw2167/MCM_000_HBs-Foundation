@@ -1161,9 +1161,8 @@ public class HBUtil {
         }
 
 
-
-        private static final int MAX_AXIS = 30_000_000;
-        private static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
+        public static final int MAX_AXIS = 30_000_000;
+        public static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
         private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();

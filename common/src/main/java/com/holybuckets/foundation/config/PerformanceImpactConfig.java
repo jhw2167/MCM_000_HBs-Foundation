@@ -35,6 +35,10 @@ public class PerformanceImpactConfig {
         setBlockWritesPerTick( p );
     }
 
+    public int getChunkExploreMaximumDiskSize() {
+        return getActive().features.chunkExploreMaximumDiskSize;
+    }
+
     public int getChunkExploreRate() {
         return getActive().features.chunkExploreRate;
     }

@@ -18,6 +18,9 @@ public class PerformanceImpactConfigData implements BalmConfigData {
 
         @Comment("The rate of chunk exploration beyond player bounds. 100 is the fastest. Valid range 1 - 100.")
         public int chunkExploreRate = 1;
+
+        @Comment("Disables background chunk loading once the chunk folder size on disk has exceed this size. Assumes 8KB per chunk. Takes integer value in Gigabytes")
+        public int chunkExploreMaximumDiskSize = 8;
     }
 
     public static class ConfigFiles {

@@ -2,6 +2,7 @@ package com.holybuckets.foundation.core;
 
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
@@ -214,10 +215,36 @@ public class ChunkExplorerManager {
         return PerformanceImpactConfig.getActive().features.enableChunkExplorer;
     }
 
+    /**
+     * Total initialized chunks across every managed level, used as a stand in for the
+     * size of the chunk folder on disk.
+     */
+    private static long totalInitializedChunks() {
+        long total = 0;
+        for (ChunkExplorerManager manager : managers.values()) {
+            total += manager.util.getInitializedChunkCount();
+        }
+        return total;
+    }
+
+    private static boolean diskLimitExceeded() {
+        int maxGigabytes = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreMaximumDiskSize();
+        long maxChunks = HBUtil.ChunkUtil.gigabytesToChunkCount(maxGigabytes);
+        long total = totalInitializedChunks();
+        if (total < maxChunks) return false;
+
+        LoggerBase.logWarning(null, CLASS_ID, "Chunk Explorer halted: " + total
+            + " initialized chunks exceeds the " + maxGigabytes + "GB budget of " + maxChunks
+            + " chunks. Raise chunkExploreMaximumDiskSize to continue exploring.");
+        return true;
+    }
+
     private static void onExploreTick(ServerTickEvent event) {
         if(!exploreChunksEnabled()) return;
         if (++exploreTickCounter < exploreInterval()) return;
         exploreTickCounter = 0;
+
+        if (diskLimitExceeded()) return;
 
         for (ChunkExplorerManager manager : managers.values()) {
             manager.onTick(event);

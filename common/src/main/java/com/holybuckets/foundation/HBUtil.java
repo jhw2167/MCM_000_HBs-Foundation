@@ -1163,6 +1163,17 @@ public class HBUtil {
 
         public static final int MAX_AXIS = 30_000_000;
         public static final int MAX_CHUNK_VALUE = MAX_AXIS / 16;
+
+        // Assumed on disk footprint of a single generated chunk. Not measured, used to
+        // convert a gigabyte budget into a chunk count.
+        public static final long CHUNK_DISK_SIZE_BYTES = 8192L;
+        public static final long BYTES_PER_GIGABYTE = 1024L * 1024L * 1024L;
+        public static final long CHUNKS_PER_GIGABYTE = BYTES_PER_GIGABYTE / CHUNK_DISK_SIZE_BYTES;
+
+        public static long gigabytesToChunkCount(int gigabytes) {
+            if (gigabytes < 1) return CHUNKS_PER_GIGABYTE;
+            return (long) gigabytes * CHUNKS_PER_GIGABYTE;
+        }
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
         private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();

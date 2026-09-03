@@ -181,6 +181,14 @@ public class ManagedChunkUtility {
     //** UTILITIES **//
 
     /**
+     * Number of initialized chunks for this world, without copying the backing set
+     */
+    public int getInitializedChunkCount() {
+        Set<String> chunks = INITIALIZED_CHUNKS.get(level);
+        return (chunks == null) ? 0 : chunks.size();
+    }
+
+    /**
      * Get a copy of the set of all initialized chunks for this world
      * @return A copy of the set of all initialized chunks for this world
      */

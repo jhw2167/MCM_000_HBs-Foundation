@@ -68,7 +68,7 @@ public class WaypointStick extends Item {
 
     /**
      * Right-click into the air (no block / entity under the crosshair). Deletes the
-     * nearest waypoint within {@link #DELETE_NEAR_HORIZ_DIST} blocks (xz only).
+     * nearest waypoint
      */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {

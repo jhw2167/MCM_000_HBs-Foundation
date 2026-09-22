@@ -6,19 +6,13 @@ import net.minecraft.world.level.ChunkPos;
 
 public interface ChunkLoader {
 
-    /**
-     * Submites a chunk pos to be loaded
-     * @param level
-     * @param pos
-     * @return
-     */
     boolean forceChunkLoad(ServerLevel level, ChunkPos pos);
+    boolean unforceChunkLoad(ServerLevel level, ChunkPos pos);
 
     /**
-     *
-     * @param level
-     * @param pos
-     * @return false if a process is still running, true if we can move on and load a new chunk
+     * Undo any player facing state the loader muted while a background load was in flight.
+     * Safe to call when nothing is suppressed. Called on level unload and server stop so a
+     * shutdown mid load cannot leave players muted.
      */
-    boolean unforceChunkLoad(ServerLevel level, ChunkPos pos);
+    default void restoreListeners() {}
 }

@@ -24,14 +24,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static com.holybuckets.foundation.HBUtil.PlayerUtil;
 
@@ -47,7 +40,7 @@ public class MovingWaypoint {
         // Persistable identifier for the linked entity. We hold the UUID rather than the
         // Entity itself so we don't pin unloaded entities in memory and so the value
         // survives save/load (NBT) and reconnect cycles. Look the entity up on demand
-        // via ServerLevel#getEntity(UUID) when we need its current position.
+
         UUID linkedEntityUuid;
         String nameTag;          // optional label, null if unset
 
@@ -157,7 +150,7 @@ public class MovingWaypoint {
     }
 
     /**
-     * @return all palyer active waypoints
+     * @return all player active waypoints
      */
     public static Collection<WaypointInfo> getAllWaypoints(ServerPlayer player) {
         String playerId = PlayerUtil.getId(player);
@@ -285,11 +278,47 @@ public class MovingWaypoint {
             Entity entity = serverLevel.getEntity(uuid);
             return entity == null ? Optional.empty() : Optional.of(new VanillaEntityLike(entity));
         });
-        reg.registerOnServerTick(TickType.ON_20_TICKS, MovingWaypoint::onEntityResyncTick);
+        reg.registerOnServerTick(TickType.ON_20_TICKS, MovingWaypoint::on20Ticks);
         PlayerWaypointData.init();
     }
 
-    private static void onEntityResyncTick(ServerTickEvent event)
+    private static void on20Ticks(ServerTickEvent event) {
+        onEntityResyncTick();
+        checkPlayersNearWaypoints();
+    }
+
+    private static final int TOTAL_CHECKS = 3;
+    private static final Map<String, Integer> nearWpCount = new WeakHashMap<>();
+    private static void checkPlayersNearWaypoints()
+    {
+        if (playerWaypoints.isEmpty() || ManagedPlayer.PLAYERS.isEmpty()) return;
+
+        for (String playerId : playerWaypoints.keySet())
+        {
+            Player p = PlayerUtil.getPlayer(playerId, PlayerUtil.PlayerNameSpace.SERVER);
+            if (!(p instanceof ServerPlayer sp)) continue;
+
+            for (Waypoint w : playerWaypoints.get(playerId).values() ) {
+                if (w.isPermanent) continue;
+
+                double dx = (w.targetPos.getX() + 0.5) - sp.getX();
+                double dz = (w.targetPos.getZ() + 0.5) - sp.getZ();
+                double distSq = dx * dx + dz * dz;
+                String id = playerId+w.waypointId;
+                if (distSq <= 4.0) {
+                    nearWpCount.computeIfAbsent(id, k -> 0);
+                    int count = nearWpCount.get(id) + 1;
+                    nearWpCount.put(id, count+1);
+                    if (count >= TOTAL_CHECKS) removeWaypoint(playerId, w.waypointId);
+                } else {
+                    nearWpCount.put(id, 0);
+                }
+            }
+        }
+    }
+
+
+    private static void onEntityResyncTick()
     {
         if (playerWaypoints.isEmpty() || ManagedPlayer.PLAYERS.isEmpty()) return;
 

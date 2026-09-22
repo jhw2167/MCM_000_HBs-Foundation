@@ -12,6 +12,7 @@ import com.holybuckets.foundation.platform.services.ChunkLoader;
 import com.mojang.datafixers.util.Either;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
+import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,12 +27,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ChunkExplorerManager
  *
- * One instance per loaded level. Every 1200 ticks it collects all online
- * players in each level, merges their exploration spirals into a single
- * ordered Set<ChunkPos>, and queues those not yet present in
- * ManagedChunk.INITIALIZED_CHUNKS. Each server tick one chunk is
- * force-loaded (if not already initialized) and immediately released so
- * that BiomeManager / StructureManager onChunkLoad listeners can harvest it.
+ * 1. Triggers every 1200
  */
 public class ChunkExplorerManager {
 
@@ -77,8 +73,9 @@ public class ChunkExplorerManager {
         reg.registerOnBeforeServerStarted(ChunkExplorerManager::onServerStart);
         reg.registerOnLevelLoad(ChunkExplorerManager::onLevelLoad);
         reg.registerOnLevelUnload(ChunkExplorerManager::onLevelUnload);
+        reg.registerOnServerStopped(ChunkExplorerManager::onServerStopped);
         reg.registerOnServerTick(TickType.ON_120_TICKS, ChunkExplorerManager::onExploreTick);
-        reg.registerOnServerTick(TickType.ON_120_TICKS,  ChunkExplorerManager::on1200Ticks);
+        reg.registerOnServerTick(TickType.ON_1200_TICKS,  ChunkExplorerManager::on1200TicksSearchNewChunks);
     }
 
     //** GETTERS
@@ -89,10 +86,11 @@ public class ChunkExplorerManager {
 
     //** PER-TICK LOGIC
 
-    private void onTick(ServerTickEvent event)
+    //Called each 120 ticks modulated against player set rate
+    //Calls CHUNK_LOADER with force load implementation and checks held chunk for completion
+    private void onTickForceLoadChunk(ServerTickEvent event)
     {
         long now = GENERAL_CONFIG.getTotalTickCount();
-
 
         if (CHUNK_LOADER.unforceChunkLoad((ServerLevel) level, heldChunk) ) {
                 heldChunk = null;
@@ -194,17 +192,20 @@ public class ChunkExplorerManager {
         ChunkExplorerManager manager = managers.remove(event.getLevel());
         if (manager != null && manager.heldChunk != null) {
             CHUNK_LOADER.unforceChunkLoad((ServerLevel) manager.level, manager.heldChunk);
+            manager.heldChunk = null;
         }
+        if (CHUNK_LOADER != null) CHUNK_LOADER.restoreListeners();
+    }
+
+    private static void onServerStopped(ServerStoppedEvent event) {
+        if (CHUNK_LOADER != null) CHUNK_LOADER.restoreListeners();
+        managers.clear();
     }
 
     private static final int RATE_MIN = 1;
     private static final int RATE_MAX = 100;
     private static int exploreTickCounter = 0;
 
-    /**
-     * Number of ON_120_TICKS passes to skip between exploration attempts. A rate of
-     * 100 explores every pass, a rate of 1 explores every 100th pass.
-     */
     private static int exploreInterval() {
         int rate = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate();
         rate = Math.max(RATE_MIN, Math.min(RATE_MAX, rate));
@@ -215,10 +216,7 @@ public class ChunkExplorerManager {
         return PerformanceImpactConfig.getActive().features.enableChunkExplorer;
     }
 
-    /**
-     * Total initialized chunks across every managed level, used as a stand in for the
-     * size of the chunk folder on disk.
-     */
+    //Every initialized chunk is counted, used as estimate for disk data size
     private static long totalInitializedChunks() {
         long total = 0;
         for (ChunkExplorerManager manager : managers.values()) {
@@ -239,6 +237,7 @@ public class ChunkExplorerManager {
         return true;
     }
 
+    //Calls managers to explore chunks by calling chunk handler (pregenerator mod or native)
     private static void onExploreTick(ServerTickEvent event) {
         if(!exploreChunksEnabled()) return;
         if (++exploreTickCounter < exploreInterval()) return;
@@ -247,15 +246,11 @@ public class ChunkExplorerManager {
         if (diskLimitExceeded()) return;
 
         for (ChunkExplorerManager manager : managers.values()) {
-            manager.onTick(event);
+            manager.onTickForceLoadChunk(event);
         }
     }
 
-    /**
-     * Find new chunks nearby players to explore
-     * @param event
-     */
-    private static void on1200Ticks(ServerTickEvent event)
+    private static void on1200TicksSearchNewChunks(ServerTickEvent event)
     {
         if (GENERAL_CONFIG.getServer() == null) return;
 

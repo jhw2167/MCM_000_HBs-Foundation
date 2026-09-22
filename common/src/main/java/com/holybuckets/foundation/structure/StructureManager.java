@@ -187,6 +187,80 @@ public class StructureManager {
 
 
 
+    public List<StructureInfo> getStructuresInBand(BlockPos center, double minDistance, double maxDistance, int limit) {
+        double minSq = minDistance * minDistance;
+        double maxSq = maxDistance * maxDistance;
+        if(limit < 1) limit = structures.size();
+        return structures.values().stream()
+            .filter(info -> {
+                double d = info.origin.distSqr(center);
+                return d >= minSq && d <= maxSq;
+            })
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
+    }
+
+    public List<StructureInfo> getWhitelistedStructuresInBand(Set<ResourceLocation> whiteList, BlockPos center,
+                                                              double minDistance, double maxDistance, int limit) {
+        double minSq = minDistance * minDistance;
+        double maxSq = maxDistance * maxDistance;
+        if(limit < 1) limit = structures.size();
+        List<StructureInfo> allStructs = new LinkedList<>();
+        for( ResourceLocation location : whiteList ) {
+            var strs = getStructuresByType(location);
+            if(strs == null) continue;
+            allStructs.addAll( strs );
+        }
+
+        return allStructs.stream()
+            .filter(info -> {
+                double d = info.origin.distSqr(center);
+                return d >= minSq && d <= maxSq;
+            })
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
+    }
+
+    public List<StructureInfo> getBlacklistedStructuresInBand(Set<ResourceLocation> blackList, BlockPos center,
+                                                              double minDistance, double maxDistance, int limit) {
+        double minSq = minDistance * minDistance;
+        double maxSq = maxDistance * maxDistance;
+        if(limit < 1) limit = structures.size();
+        return structures.values().stream()
+            .filter(info -> {
+                ResourceLocation loc = info.getStructureLocation();
+                if(loc == null || blackList.contains(loc)) return false;
+                double d = info.origin.distSqr(center);
+                return d >= minSq && d <= maxSq;
+            })
+            .sorted(Comparator.comparingDouble(a -> a.origin.distSqr(center)))
+            .limit(limit)
+            .toList();
+    }
+
+    public int getDiscoveredCount() {
+        return structures.size();
+    }
+
+    public int getDiscoveredCount(ResourceLocation location) {
+        if(!structuresByType.containsKey(location)) return 0;
+        return structuresByType.get(location).size();
+    }
+
+    public boolean isDiscovered(ResourceLocation location) {
+        return structuresByType.containsKey(location) && !structuresByType.get(location).isEmpty();
+    }
+
+    public Set<ResourceLocation> getDiscoveredTypes() {
+        return Set.copyOf(structuresByType.keySet());
+    }
+
+    public @javax.annotation.Nullable StructureInfo getStructureAt(BlockPos pos) {
+        return structures.get(pos);
+    }
+
     //** EVENT HANDLERS
 
 

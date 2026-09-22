@@ -6,6 +6,9 @@ import com.holybuckets.foundation.platform.services.ChunkLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import pregenerator.common.base.ListenerStorage;
+import pregenerator.common.base.ProcessListener;
+import pregenerator.common.base.TaskStorage;
 import pregenerator.common.generator.GenerationType;
 import pregenerator.common.generator.tasks.SquareAreaTask;
 import pregenerator.common.manager.ServerManager;
@@ -27,13 +30,14 @@ public class ForgeChunkLoader implements ChunkLoader {
 
     private UUID current;
     private final Set<UUID> suppressedListeners = new LinkedHashSet<>();
+    private boolean suppressed = false;
 
     @Override
     public boolean forceChunkLoad(ServerLevel level, ChunkPos pos) {
         if (current != null) return false;
 
         if (Math.abs(pos.x) > MAX_CHUNK_VALUE || Math.abs(pos.z) > MAX_CHUNK_VALUE) {
-            LoggerBase.logError(null, CLASS_ID, "Refusing out of range chunk " + pos);
+            LoggerBase.logError(null, "039000", "Refusing out of range chunk " + pos);
             return false;
         }
         int radius = 1;
@@ -47,25 +51,47 @@ public class ForgeChunkLoader implements ChunkLoader {
         return true;
     }
 
-    /**
-     * dont report background chunk  loads to players
-     */
     private void suppressListeners() {
-        suppressedListeners.clear();
+        if (suppressed) return;
+        suppressed = true;
+
+        ListenerStorage storage = TaskStorage.getListeners();
+
+        // The console listener has a null owner and routes to MinecraftServer.sendSystemMessage,
+        // which is the recurring [Dim=...] status block in the server log.
+        suppress(storage, null);
+        suppress(storage, ProcessListener.SERVER.getOwner());
+
         for (ServerPlayer player : HBUtil.PlayerUtil.getAllPlayers()) {
-            UUID playerId = player.getUUID();
-            if (!ServerManager.INSTANCE.isListening(playerId)) continue;
-            ServerManager.INSTANCE.removeListener(playerId);
-            suppressedListeners.add(playerId);
+            suppress(storage, player.getUUID());
         }
         ServerManager.INSTANCE.removeListener(current);
     }
 
-    private void restoreListeners() {
-        for (UUID playerId : suppressedListeners) {
-            ServerManager.INSTANCE.addListener(playerId);
+    private void suppress(ListenerStorage storage, UUID id) {
+        try {
+            if (!storage.isAutoListening(id)) return;
+            storage.add(id, false);
+            ServerManager.INSTANCE.removeListener(id);
+            suppressedListeners.add(id);
+        } catch (Throwable t) {
+            LoggerBase.logWarning(null, "039001", "Could not mute pregen listener " + id + ": " + t);
+        }
+    }
+
+    @Override
+    public void restoreListeners() {
+        ListenerStorage storage = TaskStorage.getListeners();
+        for (UUID id : suppressedListeners) {
+            try {
+                storage.add(id, true);
+                ServerManager.INSTANCE.addListener(id);
+            } catch (Throwable t) {
+                LoggerBase.logWarning(null, "039002", "Could not restore pregen listener " + id + ": " + t);
+            }
         }
         suppressedListeners.clear();
+        suppressed = false;
     }
 
     @Override
@@ -82,6 +108,6 @@ public class ForgeChunkLoader implements ChunkLoader {
 
     private void logUpdate(Component n) {
         String id = (current == null) ? "null" : current.toString();
-        LoggerBase.logInfo(null, CLASS_ID, "Chunk Explorer: " + id + " - " + n.getString());
+        LoggerBase.logInfo(null, "039002", "Chunk Explorer: " + id + " - " + n.getString());
     }
 }

@@ -2,9 +2,11 @@ package com.holybuckets.foundation.command;
 
 //Project imports
 
+import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.biome.BiomeAPI;
 import com.holybuckets.foundation.biome.BiomeInfo;
+import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.core.MovingWaypoint.WaypointInfo;
 import com.holybuckets.foundation.event.CommandRegistry;
@@ -66,6 +68,8 @@ public class CommandList {
 
         CommandRegistry.register(ListWaypoints::noArgs);
         CommandRegistry.register(DeleteWaypoint::byId);
+
+        CommandRegistry.register(SetChunkExploreRate::withRate);
     }
 
     //**** SUGGETTIONS ****//
@@ -702,6 +706,45 @@ public class CommandList {
                 + " color=" + removed.colorId
                 + " @ " + posString(removed.targetPos)
             ), false);
+            return 1;
+        }
+    }
+
+
+    //**** CONFIG ****//
+
+    private static class SetChunkExploreRate {
+
+        private static final int RATE_MIN = 1;
+        private static final int RATE_MAX = 100;
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withRate() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("setChunkExploreRate")
+                    .requires(source -> source.hasPermission(2))
+                    .then(Commands.argument("rate", IntegerArgumentType.integer(RATE_MIN, RATE_MAX))
+                        .executes(context -> {
+                            int rate = IntegerArgumentType.getInteger(context, "rate");
+                            return execute(context.getSource(), rate);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int rate) {
+            PerformanceImpactConfig config = GeneralConfig.getInstance().getPerformanceImpactConfig();
+            if (config == null) {
+                source.sendFailure(Component.literal("Performance config is not initialized yet"));
+                return 0;
+            }
+
+            int previous = config.getChunkExploreRate();
+            config.setChunkExploreRate(rate);
+
+            final int applied = rate;
+            source.sendSuccess(() -> Component.literal(
+                "Chunk explore rate set to " + applied + " (was " + previous + "). 100 is the fastest."
+            ), true);
             return 1;
         }
     }

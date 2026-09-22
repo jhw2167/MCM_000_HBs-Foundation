@@ -23,8 +23,10 @@ public class PerformanceImpactConfig {
         Balm.getConfig().registerConfig(PerformanceImpactConfigData.class, null);
     }
 
+
     PerformanceImpactLevel performanceImpactLevel;
     AtomicInteger blockWritesPerTick;
+    AtomicInteger chunkExploreRate;
 
     public PerformanceImpactConfig() {
         this( PerformanceImpactLevel.valueOf(getActive().performanceImpactConfig.performanceImpact) );
@@ -33,6 +35,13 @@ public class PerformanceImpactConfig {
     public PerformanceImpactConfig(PerformanceImpactLevel p ) {
         this.performanceImpactLevel = p;
         setBlockWritesPerTick( p );
+        setChunkExploreRate( getActive().features.chunkExploreRate );
+    }
+
+    public void setChunkExploreRate(int rate) {
+        if( chunkExploreRate == null)
+            chunkExploreRate = new AtomicInteger(20);
+        chunkExploreRate.set(rate);
     }
 
     public int getChunkExploreMaximumDiskSize() {
@@ -40,7 +49,7 @@ public class PerformanceImpactConfig {
     }
 
     public int getChunkExploreRate() {
-        return getActive().features.chunkExploreRate;
+        return chunkExploreRate.get();
     }
 
 

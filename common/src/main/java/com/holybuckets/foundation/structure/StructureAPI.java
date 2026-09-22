@@ -52,5 +52,72 @@ public class StructureAPI {
         return manager.getAllStructures();
     }
 
+    public List<StructureInfo> nearestStructuresOfTypes(BlockPos pos, Set<ResourceLocation> whiteList, int limit) {
+        if(whiteList == null || whiteList.isEmpty()) return List.of();
+        return manager.getNearestWhitelistedStructures(whiteList, pos, limit);
+    }
+
+    public List<StructureInfo> nearestStructuresExcluding(BlockPos pos, Set<ResourceLocation> blackList, int limit) {
+        if(blackList == null) blackList = Set.of();
+        return manager.getNearestBlackListedStructures(blackList, pos, limit);
+    }
+
+    public List<StructureInfo> structuresWithin(BlockPos pos, double maxDistance) {
+        return manager.getNearestStructures(pos, maxDistance);
+    }
+
+    public List<StructureInfo> structuresInBand(BlockPos pos, double minDistance, double maxDistance, int limit) {
+        return manager.getStructuresInBand(pos, minDistance, maxDistance, limit);
+    }
+
+    public List<StructureInfo> structuresInBandOfTypes(BlockPos pos, Set<ResourceLocation> whiteList,
+                                                       double minDistance, double maxDistance, int limit) {
+        if(whiteList == null || whiteList.isEmpty()) return List.of();
+        return manager.getWhitelistedStructuresInBand(whiteList, pos, minDistance, maxDistance, limit);
+    }
+
+    public List<StructureInfo> structuresInBandExcluding(BlockPos pos, Set<ResourceLocation> blackList,
+                                                         double minDistance, double maxDistance, int limit) {
+        if(blackList == null) blackList = Set.of();
+        return manager.getBlacklistedStructuresInBand(blackList, pos, minDistance, maxDistance, limit);
+    }
+
+    public List<StructureInfo> structuresOfType(ResourceLocation sType) {
+        if(sType == null) return List.of();
+        return manager.getStructuresByType(sType);
+    }
+
+    public @Nullable StructureInfo nearestStructure(BlockPos pos) {
+        List<StructureInfo> nearest = manager.getNearestStructures(pos, 1);
+        return nearest.isEmpty() ? null : nearest.get(0);
+    }
+
+    public @Nullable StructureInfo structureAt(BlockPos pos) {
+        return manager.getStructureAt(pos);
+    }
+
+    public boolean isDiscovered(ResourceLocation sType) {
+        return manager.isDiscovered(sType);
+    }
+
+    public Set<ResourceLocation> getDiscoveredTypes() {
+        return manager.getDiscoveredTypes();
+    }
+
+    public int getDiscoveredCount() {
+        return manager.getDiscoveredCount();
+    }
+
+    public int getDiscoveredCount(ResourceLocation sType) {
+        return manager.getDiscoveredCount(sType);
+    }
+
+    public void addPseudoStructure(ResourceLocation sType, BlockPos pos) {
+        manager.addPseudoStructure(sType, pos);
+    }
+
+    public void removePseudoStructure(BlockPos pos) {
+        manager.removePseudoStructure(pos);
+    }
 
 }

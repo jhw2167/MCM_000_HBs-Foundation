@@ -31,11 +31,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.holybuckets.foundation.core.MovingWaypoint.MAX_COLORS;
-import static com.holybuckets.foundation.core.MovingWaypoint.MSG_ID_MOVING_WAYPOINT;
+import static com.holybuckets.foundation.core.MovingWaypoint.*;
 
 public class MovingWaypoint {
 
@@ -233,6 +233,7 @@ public class MovingWaypoint {
             if (originalWp != null) {
                 originalWp.deactivate();
                 originalWaypoints.remove(waypointId);
+                Waypoint.remove(originalWp.getTargetPos());
             }
             activeWaypoints.remove(waypointId);
             return;
@@ -280,9 +281,7 @@ public class MovingWaypoint {
         if (player == null || originalWaypoints.isEmpty()) return;
 
         updateAllActiveWaypoints(player);
-
-        // Dwell-then-delete: if the player stays within DELETE_NEAR_HORIZ_DIST blocks
-        // (xz only) of an original target for DELETE_NEAR_TICKS_THRESHOLD ticks, clear it.
+        /*
         Vec3 playerPos = player.position();
         double nearDistSq = (double) DELETE_NEAR_HORIZ_DIST * DELETE_NEAR_HORIZ_DIST;
 
@@ -301,7 +300,7 @@ public class MovingWaypoint {
             if (horizontalDistanceSq(playerPos, wpPos) <= nearDistSq) {
                 wp.nearTicks += TICK_CADENCE;
                 if (wp.nearTicks >= DELETE_NEAR_TICKS_THRESHOLD) {
-                    if (toRemove == null) toRemove = new java.util.ArrayList<>();
+                    if (toRemove == null) toRemove = new ArrayList<>();
                     toRemove.add(entry.key());
                 }
             } else {
@@ -320,6 +319,7 @@ public class MovingWaypoint {
                 activeWaypoints.remove(waypointId);
             }
         }
+         */
     }
 
     //** RENDERING

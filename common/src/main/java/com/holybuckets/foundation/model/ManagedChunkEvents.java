@@ -1,5 +1,6 @@
 package com.holybuckets.foundation.model;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
@@ -58,7 +59,8 @@ public class ManagedChunkEvents {
             LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
             LOADED_CHUNKPOS.put(level, new ConcurrentHashMap<>());
             INITIALIZED_CHUNKS.put(level,  new ConcurrentSet<>());
-            INITIALIZED_LONG_CHUNKS.put(level, new ConcurrentSet<>());
+            INITIALIZED_LONG_CHUNKS.put(level, ManagedChunk.newLongSet());
+            INITIALIZED_CHUNKS_JSON.put(level, new JsonArray());
         }
 
         if(level.isClientSide()) return;
@@ -66,23 +68,39 @@ public class ManagedChunkEvents {
         DataStore ds = GeneralConfig.getInstance().getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
-        JsonElement chunksIds = levelData.get("initializedChunkIds");
-        if( chunksIds == null )
-        {
-            String[] ids = new String[0];
-            levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(ids));
-            chunksIds = levelData.get("initializedChunkIds");
-        }
-
-        Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
-        chunksIds.getAsJsonArray().forEach( chunkId -> {
-            String id = chunkId.getAsString();
-            initChunks.add(id);
-            INITIALIZED_LONG_CHUNKS.get(level).add(HBUtil.ChunkUtil.getChunkPos1DMap(id));
-        });
+        readInitializedChunks(levelData, level);
 
         Consumer<DatastoreSaveEvent> save = (datastoreSaveEvent) -> ManagedChunk.save(datastoreSaveEvent, level);
         EventRegistrar.getInstance().registerOnDataSave( save, EventPriority.Highest);
+    }
+
+    /**
+     * Loads the initialized chunk record. Current saves store packed chunk longs; older saves
+     * store "x,z" strings, which are converted on read and written back in the new form.
+     */
+    private static void readInitializedChunks(LevelSaveData levelData, Level level)
+    {
+        JsonElement packed = levelData.get(ManagedChunk.INIT_CHUNKS_KEY);
+        JsonElement legacy = levelData.get(ManagedChunk.INIT_CHUNKS_LEGACY_KEY);
+
+        if (packed == null && legacy == null) {
+            levelData.addProperty(ManagedChunk.INIT_CHUNKS_KEY, INITIALIZED_CHUNKS_JSON.get(level));
+            return;
+        }
+
+        if (packed != null) {
+            packed.getAsJsonArray().forEach(e ->
+                ManagedChunk.markInitialized(level, e.getAsLong()));
+        } else {
+            Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
+            legacy.getAsJsonArray().forEach(e -> {
+                String id = e.getAsString();
+                initChunks.add(id);
+                ManagedChunk.markInitialized(level, HBUtil.ChunkUtil.getChunkPos1DMap(id));
+            });
+        }
+
+        levelData.addProperty(ManagedChunk.INIT_CHUNKS_KEY, INITIALIZED_CHUNKS_JSON.get(level));
     }
 
     private static void onWorldUnload( final LevelLoadingEvent.Unload event )

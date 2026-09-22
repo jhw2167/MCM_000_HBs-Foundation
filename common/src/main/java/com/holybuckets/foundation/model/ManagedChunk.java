@@ -1,5 +1,7 @@
 package com.holybuckets.foundation.model;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.datastore.DataStore;
@@ -11,6 +13,9 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.modelInterface.IMangedChunkData;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -38,7 +43,33 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<LevelAccessor, Map<ChunkPos, String>> LOADED_CHUNKPOS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
-    static final Map<LevelAccessor, ConcurrentSet<Long>> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
+    static final Map<LevelAccessor, LongSet> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
+    // Serialized form of INITIALIZED_LONG_CHUNKS, appended to as chunks initialize rather than
+    // rebuilt on every save. The DataStore holds this same instance, so writes must be appends.
+    static final Map<LevelAccessor, JsonArray> INITIALIZED_CHUNKS_JSON = new ConcurrentHashMap<>();
+
+    public static final String INIT_CHUNKS_KEY = "initializedChunkPos";
+    public static final String INIT_CHUNKS_LEGACY_KEY = "initializedChunkIds";
+
+    static LongSet newLongSet() {
+        return LongSets.synchronize(new LongOpenHashSet());
+    }
+
+    /**
+     * Records a chunk as initialized. The LongSet is the duplicate check; the cached
+     * JsonArray only grows when the set actually accepted a new value.
+     */
+    static void markInitialized(LevelAccessor level, long chunkPos) {
+        LongSet initialized = INITIALIZED_LONG_CHUNKS.get(level);
+        if (initialized == null) return;
+        if (!initialized.add(chunkPos)) return;
+
+        JsonArray cache = INITIALIZED_CHUNKS_JSON.get(level);
+        if (cache == null) return;
+        synchronized (cache) {
+            cache.add(new JsonPrimitive(chunkPos));
+        }
+    }
 
     private String id;
     private LevelAccessor level;
@@ -86,14 +117,15 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKPOS.putIfAbsent(this.level, new ConcurrentHashMap<>());
 
         INITIALIZED_CHUNKS.putIfAbsent(this.level, new HashSet<>());
-        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, new ConcurrentSet<>());
+        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, newLongSet());
+        INITIALIZED_CHUNKS_JSON.putIfAbsent(this.level, new JsonArray());
 
         CHUNK_CACHE.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
         LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
 
         INITIALIZED_CHUNKS.get(this.level).add(this.id);
-        INITIALIZED_LONG_CHUNKS.get(this.level).add(HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
+        markInitialized(this.level, HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
     }
 
 
@@ -356,11 +388,11 @@ public class ManagedChunk implements IMangedChunkData {
         DataStore ds = event.getDataStore();
         LevelSaveData levelData = ds.getOrCreateLevelSaveData( Constants.MOD_ID, level);
 
-        Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
-        if(initChunks == null) return;
+        JsonArray cache = INITIALIZED_CHUNKS_JSON.get(level);
+        if(cache == null) return;
 
-        String[] chunkIds = initChunks.toArray(new String[0]);
-        levelData.addProperty("initializedChunkIds", HBUtil.FileIO.arrayToJson(chunkIds) );
+        //The array is appended to as chunks initialize, so there is nothing to rebuild here
+        levelData.addProperty(INIT_CHUNKS_KEY, cache);
 
     }
 

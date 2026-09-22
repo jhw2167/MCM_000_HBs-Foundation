@@ -206,7 +206,19 @@ public class ChunkExplorerManager {
     private static final int RATE_MAX = 100;
     private static int exploreTickCounter = 0;
 
-    private static int exploreInterval() {
+    /** checks explore interval but does not tick it **/
+    public static boolean checkExploreInterval() {
+        return exploreTickCounter >= getExploreInterval();
+    }
+
+    /** ticks the explore interval and returns true if we have exceeeded the interval time **/
+    private static boolean tickExploreInterval() {
+        if( exploreTickCounter++ > getExploreInterval() )
+            exploreTickCounter = 0;
+        return checkExploreInterval();
+    }
+
+    private static int getExploreInterval() {
         int rate = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate();
         rate = Math.max(RATE_MIN, Math.min(RATE_MAX, rate));
         return Math.abs(101 - rate);
@@ -240,8 +252,7 @@ public class ChunkExplorerManager {
     //Calls managers to explore chunks by calling chunk handler (pregenerator mod or native)
     private static void onExploreTick(ServerTickEvent event) {
         if(!exploreChunksEnabled()) return;
-        if (++exploreTickCounter < exploreInterval()) return;
-        exploreTickCounter = 0;
+        if (!tickExploreInterval()) return;
 
         if (diskLimitExceeded()) return;
 

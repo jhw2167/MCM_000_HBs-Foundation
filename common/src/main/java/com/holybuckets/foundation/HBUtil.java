@@ -1809,9 +1809,14 @@ public class HBUtil {
             return true;
         }
 
+        private static final Gson ARRAY_GSON = new GsonBuilder().serializeNulls().create();
+
         public static JsonElement arrayToJson(String[] arr) {
-            Gson gson = new GsonBuilder().serializeNulls().create();
-            return gson.toJsonTree(arr);
+            return ARRAY_GSON.toJsonTree(arr);
+        }
+
+        public static JsonElement arrayToJson(long[] arr) {
+            return ARRAY_GSON.toJsonTree(arr);
         }
     }
     //END FILE IO

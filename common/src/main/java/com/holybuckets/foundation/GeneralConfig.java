@@ -5,7 +5,6 @@ package com.holybuckets.foundation;
 //Forge Imports
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.core.WoolColorHelper;
@@ -98,7 +97,7 @@ public class GeneralConfig {
         //trigger these manually to ensure order is followed
         //reg.registerOnWakeUpAllPlayers(instance::onWakeUpAllPlayers, EventPriority.Highest);
         //reg.registerOnDailyTick(null,  instance::onDailyTick, EventPriority.Highest);
-        reg.registerOnServerTick(TickType.ON_1200_TICKS, instance::on1200Ticks, EventPriority.Lowest);
+        reg.registerOnServerTick(TickType.ON_6000_TICKS, instance::triggerDataSaveEvent, EventPriority.Lowest);
     }
 
     public static void fireEvent(Class<?> eventClass, Object event) {
@@ -153,7 +152,7 @@ public class GeneralConfig {
         EventRegistrar.getInstance().dataSaveEvent(false);
     }
 
-    private void on1200Ticks(ServerTickEvent event) {
+    private void triggerDataSaveEvent(ServerTickEvent event) {
         this.saveData(null);
         EventRegistrar.getInstance().dataSaveEvent(true);
     }

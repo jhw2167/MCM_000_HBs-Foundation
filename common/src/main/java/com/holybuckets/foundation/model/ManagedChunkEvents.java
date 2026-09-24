@@ -74,10 +74,6 @@ public class ManagedChunkEvents {
         EventRegistrar.getInstance().registerOnDataSave( save, EventPriority.Highest);
     }
 
-    /**
-     * Loads the initialized chunk record. Current saves store packed chunk longs; older saves
-     * store "x,z" strings, which are converted on read and written back in the new form.
-     */
     private static void readInitializedChunks(LevelSaveData levelData, Level level)
     {
         JsonElement packed = levelData.get(ManagedChunk.INIT_CHUNKS_KEY);

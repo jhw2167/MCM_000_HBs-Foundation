@@ -27,6 +27,7 @@ public class PerformanceImpactConfig {
     PerformanceImpactLevel performanceImpactLevel;
     AtomicInteger blockWritesPerTick;
     AtomicInteger chunkExploreRate;
+    AtomicInteger chunkExploreMaxAllowedTickSize;
 
     public PerformanceImpactConfig() {
         this( PerformanceImpactLevel.valueOf(getActive().performanceImpactConfig.performanceImpact) );
@@ -36,12 +37,28 @@ public class PerformanceImpactConfig {
         this.performanceImpactLevel = p;
         setBlockWritesPerTick( p );
         setChunkExploreRate( getActive().features.chunkExploreRate );
+        setChunkExploreMaxAllowedTickSize( getActive().features.chunkExploreMaxAllowedTickSize );
     }
 
     public void setChunkExploreRate(int rate) {
         if( chunkExploreRate == null)
             chunkExploreRate = new AtomicInteger(20);
         chunkExploreRate.set(rate);
+    }
+
+    public void setChunkExploreMaxAllowedTickSize(int millis) {
+        if( chunkExploreMaxAllowedTickSize == null)
+            chunkExploreMaxAllowedTickSize = new AtomicInteger(45);
+        chunkExploreMaxAllowedTickSize.set(millis);
+    }
+
+    /**
+     * Session value in milliseconds. Seeded from config on load, then changed freely in game.
+     */
+    public int getChunkExploreMaxAllowedTickSize() {
+        if( chunkExploreMaxAllowedTickSize == null)
+            setChunkExploreMaxAllowedTickSize( getActive().features.chunkExploreMaxAllowedTickSize );
+        return chunkExploreMaxAllowedTickSize.get();
     }
 
     public int getChunkExploreMaximumDiskSize() {

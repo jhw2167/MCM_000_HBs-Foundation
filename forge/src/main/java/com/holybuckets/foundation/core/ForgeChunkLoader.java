@@ -95,6 +95,12 @@ public class ForgeChunkLoader implements ChunkLoader {
     }
 
     @Override
+    public boolean isRunning(ServerLevel level) {
+        if (current == null) return false;
+        return ServerManager.INSTANCE.isRunning(level.dimension());
+    }
+
+    @Override
     public boolean unforceChunkLoad(ServerLevel level, ChunkPos pos) {
         if (current == null) return true;
         if (ServerManager.INSTANCE.isRunning(level.dimension())) {

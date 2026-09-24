@@ -44,8 +44,7 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, LongSet> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
-    // Serialized form of INITIALIZED_LONG_CHUNKS, appended to as chunks initialize rather than
-    // rebuilt on every save. The DataStore holds this same instance, so writes must be appends.
+
     static final Map<LevelAccessor, JsonArray> INITIALIZED_CHUNKS_JSON = new ConcurrentHashMap<>();
 
     public static final String INIT_CHUNKS_KEY = "initializedChunkPos";
@@ -55,10 +54,6 @@ public class ManagedChunk implements IMangedChunkData {
         return LongSets.synchronize(new LongOpenHashSet());
     }
 
-    /**
-     * Records a chunk as initialized. The LongSet is the duplicate check; the cached
-     * JsonArray only grows when the set actually accepted a new value.
-     */
     static void markInitialized(LevelAccessor level, long chunkPos) {
         LongSet initialized = INITIALIZED_LONG_CHUNKS.get(level);
         if (initialized == null) return;
@@ -390,8 +385,6 @@ public class ManagedChunk implements IMangedChunkData {
 
         JsonArray cache = INITIALIZED_CHUNKS_JSON.get(level);
         if(cache == null) return;
-
-        //The array is appended to as chunks initialize, so there is nothing to rebuild here
         levelData.addProperty(INIT_CHUNKS_KEY, cache);
 
     }

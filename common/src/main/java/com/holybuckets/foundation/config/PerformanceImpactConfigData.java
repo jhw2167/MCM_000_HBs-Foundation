@@ -21,6 +21,9 @@ public class PerformanceImpactConfigData implements BalmConfigData {
 
         @Comment("Disables background chunk loading once the chunk folder size on disk has exceed this size. Assumes 8KB per chunk. Takes integer value in Gigabytes")
         public int chunkExploreMaximumDiskSize = 8;
+
+        @Comment("Skips background chunk loading while the server's average tick time is above this many milliseconds. A healthy server tick is 50ms or less. Raise it to let the explorer keep working on a busy server, lower it to make the explorer yield sooner. Takes integer value in milliseconds")
+        public int chunkExploreMaxAllowedTickSize = 45;
     }
 
     public static class ConfigFiles {

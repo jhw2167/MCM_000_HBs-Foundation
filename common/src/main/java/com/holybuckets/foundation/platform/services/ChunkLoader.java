@@ -15,4 +15,6 @@ public interface ChunkLoader {
      * shutdown mid load cannot leave players muted.
      */
     default void restoreListeners() {}
+
+    boolean isRunning(ServerLevel level);
 }

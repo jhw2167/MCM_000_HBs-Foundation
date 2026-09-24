@@ -13,6 +13,7 @@ import com.mojang.datafixers.util.Either;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -90,7 +91,15 @@ public class ChunkExplorerManager {
     //Calls CHUNK_LOADER with force load implementation and checks held chunk for completion
     private void onTickForceLoadChunk(ServerTickEvent event)
     {
+        MinecraftServer server = GENERAL_CONFIG.getServer();
         long now = GENERAL_CONFIG.getTotalTickCount();
+
+        if(CHUNK_LOADER.isRunning((ServerLevel) level) ) {
+            String msg = String.format("Skipping chunk explore, exploration in progress at chunk: %s, queue size: %d", heldChunk, chunkExploreQueue.size());
+            LoggerBase.logInfo(null, "0370013", msg);
+            return;
+        }
+
 
         if (CHUNK_LOADER.unforceChunkLoad((ServerLevel) level, heldChunk) ) {
                 heldChunk = null;
@@ -211,7 +220,7 @@ public class ChunkExplorerManager {
         return exploreTickCounter >= getExploreInterval();
     }
 
-    /** ticks the explore interval and returns true if we have exceeeded the interval time **/
+    /** ticks the explore interval and returns true if we have exceeded the interval time **/
     private static boolean tickExploreInterval() {
         if( exploreTickCounter++ > getExploreInterval() )
             exploreTickCounter = 0;
@@ -237,6 +246,12 @@ public class ChunkExplorerManager {
         return total;
     }
 
+    private static boolean averageTickTickTimeExceeded() {
+        int millis =  GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreMaxAllowedTickSize();
+
+        return false;
+    }
+
     private static boolean diskLimitExceeded() {
         int maxGigabytes = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreMaximumDiskSize();
         long maxChunks = HBUtil.ChunkUtil.gigabytesToChunkCount(maxGigabytes);
@@ -255,11 +270,14 @@ public class ChunkExplorerManager {
         if (!tickExploreInterval()) return;
 
         if (diskLimitExceeded()) return;
+        if (averageTickTickTimeExceeded()) return;
 
         for (ChunkExplorerManager manager : managers.values()) {
             manager.onTickForceLoadChunk(event);
         }
     }
+
+
 
     private static void on1200TicksSearchNewChunks(ServerTickEvent event)
     {

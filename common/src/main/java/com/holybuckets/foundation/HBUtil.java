@@ -1037,17 +1037,17 @@ public class HBUtil {
             return new ChunkPos(p1.x + dir[0], p1.z + dir[1]);
         }
 
-        public static Long getChunkPos1DMap(String id) {
+        public static long getChunkPos1DMap(String id) {
             String[] parts = id.split(",");
             return getChunkPos1DMap(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
         }
 
-        public static Long getChunkPos1DMap(ChunkPos pos ) {
+        public static long getChunkPos1DMap(ChunkPos pos ) {
             return getChunkPos1DMap(pos.x, pos.z);
         }
 
         //override with integer arguments
-        public static Long getChunkPos1DMap(int x, int z) {
+        public static long getChunkPos1DMap(int x, int z) {
            return ChunkPos.asLong(x, z);
         }
 

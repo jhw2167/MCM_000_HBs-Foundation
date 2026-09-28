@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.*;
@@ -335,6 +336,9 @@ public class StructureManager {
         if( existingStructures.containsKey(key) )
             structStartPos = existingStructures.get(key);
 
+        //Canonicalize this chunk+type to the first position we saw for it, so a bounding box
+        //center that shifts slightly between loads resolves to the same entry.
+        existingStructures.putIfAbsent(key, structStartPos);
         currentlyLoadedStructures.add(structStartPos);
 
         if (structures.containsKey(structStartPos)) {
@@ -403,23 +407,55 @@ public class StructureManager {
         if(root == null || root.isJsonNull()) return;
 
         JsonObject rootObj = root.getAsJsonObject();
-        for(String key : rootObj.keySet()) {
+        for(String key : rootObj.keySet())
+        {
             JsonArray arr = rootObj.getAsJsonArray(key);
-            int registryId = Integer.parseInt(key);
+
+            ResourceLocation structureLocation = resolveSavedKey(key);
+            if(structureLocation == null) {
+                LoggerBase.logWarning(null, "050010", "Dropping saved structures under unresolvable key " + key);
+                continue;
+            }
+
+            Structure struct = structureRegistry.get(structureLocation);
+            if(struct == null) {
+                LoggerBase.logWarning(null, "050011", "Structure " + structureLocation
+                    + " is no longer in the registry, dropping " + arr.size() + " saved entries");
+                continue;
+            }
+            int registryId = structureRegistry.getId(struct);
+
             for(JsonElement elem : arr)
             {
-                // This would need to be stored in save data or derived
-                ResourceLocation structureLocation = structureRegistry.getKey( structureRegistry.byId(registryId) );
-                if(structureLocation != null) {
-                    StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
-                    if(structures.containsKey(info.origin)) continue;
-                    this.structures.put(info.origin, info);
-                    this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
-                    this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
-                    ChunkPos cp = new ChunkPos(info.origin);
-                    this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
-                }
+                StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
+                if(structures.containsKey(info.origin)) continue;
+                this.structures.put(info.origin, info);
+                this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
+                this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
+                ChunkPos cp = new ChunkPos(info.origin);
+                this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
             }
+        }
+    }
+
+    /**
+     * Save keys are the structure's ResourceLocation. Worlds saved before that change used the
+     * registry id, which is read here on a best effort basis: the id may now point at a
+     * different structure or none at all.
+     */
+    private ResourceLocation resolveSavedKey(String key)
+    {
+        if(key == null || key.isEmpty()) return null;
+
+        if(key.matches("-?\\d+")) {
+            Structure legacy = structureRegistry.byId(Integer.parseInt(key));
+            return (legacy == null) ? null : structureRegistry.getKey(legacy);
+        }
+
+        try {
+            return new ResourceLocation(key);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -429,7 +465,8 @@ public class StructureManager {
         for(StructureInfo struct : structures.values() )
         {
             CompoundTag tag = struct.serialize();
-            String key = tag.getInt("registryId")+"";
+            String key = tag.getString("structureLocation");
+            if(key == null || key.isEmpty()) continue;
             if(!root.has(key)) { root.add(key, new JsonArray()); }
             root.getAsJsonArray(key).add(tag.getString("origin"));
         }

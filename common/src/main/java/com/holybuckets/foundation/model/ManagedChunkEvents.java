@@ -48,7 +48,7 @@ public class ManagedChunkEvents {
     private static void onServerStopped(final ServerStoppedEvent event) {
         LOADED_CHUNKS.clear();
         LOADED_CHUNKPOS.clear();
-        INITIALIZED_CHUNKS.clear();
+        ManagedChunk.INITIALIZED_LONG_CHUNKS.clear();
     }
 
     private static void onWorldLoad( final LevelLoadingEvent.Load event )
@@ -58,7 +58,6 @@ public class ManagedChunkEvents {
         if(LOADED_CHUNKS.get(level) == null) {
             LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
             LOADED_CHUNKPOS.put(level, new ConcurrentHashMap<>());
-            INITIALIZED_CHUNKS.put(level,  new ConcurrentSet<>());
             INITIALIZED_LONG_CHUNKS.put(level, ManagedChunk.newLongSet());
             INITIALIZED_CHUNKS_JSON.put(level, new JsonArray());
         }
@@ -88,10 +87,8 @@ public class ManagedChunkEvents {
             packed.getAsJsonArray().forEach(e ->
                 ManagedChunk.markInitialized(level, e.getAsLong()));
         } else {
-            Set<String> initChunks = INITIALIZED_CHUNKS.get(level);
             legacy.getAsJsonArray().forEach(e -> {
                 String id = e.getAsString();
-                initChunks.add(id);
                 ManagedChunk.markInitialized(level, HBUtil.ChunkUtil.getChunkPos1DMap(id));
             });
         }

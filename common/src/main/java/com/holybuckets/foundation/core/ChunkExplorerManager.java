@@ -21,6 +21,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -35,10 +37,8 @@ public class ChunkExplorerManager {
     public static final String CLASS_ID = "037";
 
 
-    public static final int SCAN_RADIUS_CHUNKS = 64; //625;   // 10,000 blocks / 16, RANGE
-    public static final int MIN_HOLD_TICKS = 2;     // ticks a probe stays loaded
-    public static final int MAX_HOLD_TICKS = 40;     // ticks a probe stays loaded
-    public static final int CHUNK_EXPLORER_MAX = 50;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
+    public static final int SCAN_RADIUS_CHUNKS = 128; //625;   // 10,000 blocks / 16, RANGE
+    public static final int CHUNK_EXPLORER_MAX = 100;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
     public static final int SCAN_RADIUS_SQUARED = SCAN_RADIUS_CHUNKS*SCAN_RADIUS_CHUNKS;//625;   // 10,000 blocks / 16, RANGE
 
 
@@ -158,14 +158,6 @@ public class ChunkExplorerManager {
 
     }
 
-    //** HELPERS
-
-    private static String ticketId(ChunkPos pos) {
-        //return TICKET_PREFIX + pos.x + "_" + pos.z;
-        return TICKET_PREFIX;
-    }
-
-    private record ScoredChunk(ChunkPos pos, long distSq) {}
 
     //** STATICS
 
@@ -212,7 +204,7 @@ public class ChunkExplorerManager {
     }
 
     private static final int RATE_MIN = 1;
-    private static final int RATE_MAX = 100;
+    private static final int RATE_MAX = 1000;
     private static int exploreTickCounter = 0;
 
     /** checks explore interval but does not tick it **/
@@ -222,20 +214,22 @@ public class ChunkExplorerManager {
 
     /** ticks the explore interval and returns true if we have exceeded the interval time **/
     private static boolean tickExploreInterval() {
-        if( exploreTickCounter++ > getExploreInterval() )
-            exploreTickCounter = 0;
+        if( ++exploreTickCounter > getExploreInterval() )
+            exploreTickCounter = 1;
         return checkExploreInterval();
     }
 
     private static int getExploreInterval() {
         int rate = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate();
         rate = Math.max(RATE_MIN, Math.min(RATE_MAX, rate));
-        return Math.abs(101 - rate);
+        return rate;
     }
 
+
     private static boolean exploreChunksEnabled() {
-        return PerformanceImpactConfig.getActive().features.enableChunkExplorer;
+        return GENERAL_CONFIG.getPerformanceImpactConfig().isEnableChunkExplorer();
     }
+
 
     //Every initialized chunk is counted, used as estimate for disk data size
     private static long totalInitializedChunks() {
@@ -248,7 +242,11 @@ public class ChunkExplorerManager {
 
     private static boolean averageTickTickTimeExceeded() {
         int millis =  GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreMaxAllowedTickSize();
-
+        if( GENERAL_CONFIG.getServer().getAverageTickTime() > millis ) {
+            LoggerBase.logWarning(null, CLASS_ID, "Chunk Explorer skipped load, server is experiencing long ticks: "
+                + "ms exceeds the " + millis + "ms budget. Reduce chunkExploreRate or increase chunkExploreMaxAllowedTickSize to continue exploring.");
+            return true;
+        }
         return false;
     }
 
@@ -273,6 +271,7 @@ public class ChunkExplorerManager {
         if (averageTickTickTimeExceeded()) return;
 
         for (ChunkExplorerManager manager : managers.values()) {
+            if(!CHUNK_LOADER.isRunningOnLevel((ServerLevel) manager.level)) continue;
             manager.onTickForceLoadChunk(event);
         }
     }

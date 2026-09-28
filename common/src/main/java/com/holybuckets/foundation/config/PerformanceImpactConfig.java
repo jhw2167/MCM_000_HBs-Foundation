@@ -2,7 +2,7 @@ package com.holybuckets.foundation.config;
 
 import net.blay09.mods.balm.api.Balm;
 
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.holybuckets.foundation.config.PerformanceImpactLevel.*;
@@ -28,6 +28,8 @@ public class PerformanceImpactConfig {
     AtomicInteger blockWritesPerTick;
     AtomicInteger chunkExploreRate;
     AtomicInteger chunkExploreMaxAllowedTickSize;
+    AtomicInteger chunkExploreMaximumDiskSize;
+    AtomicBoolean enableChunkExplorer;
 
     public PerformanceImpactConfig() {
         this( PerformanceImpactLevel.valueOf(getActive().performanceImpactConfig.performanceImpact) );
@@ -36,8 +38,10 @@ public class PerformanceImpactConfig {
     public PerformanceImpactConfig(PerformanceImpactLevel p ) {
         this.performanceImpactLevel = p;
         setBlockWritesPerTick( p );
-        setChunkExploreRate( getActive().features.chunkExploreRate );
+        setChunkExploreRate( getActive().features.chunkExploreIdleTime);
         setChunkExploreMaxAllowedTickSize( getActive().features.chunkExploreMaxAllowedTickSize );
+        setChunkExploreMaximumDiskSize( getActive().features.chunkExploreMaximumDiskSize );
+        setEnableChunkExplorer( getActive().features.enableChunkExplorer );
     }
 
     public void setChunkExploreRate(int rate) {
@@ -61,11 +65,39 @@ public class PerformanceImpactConfig {
         return chunkExploreMaxAllowedTickSize.get();
     }
 
+    public void setEnableChunkExplorer(boolean enabled) {
+        if( enableChunkExplorer == null)
+            enableChunkExplorer = new AtomicBoolean(false);
+        enableChunkExplorer.set(enabled);
+    }
+
+    /**
+     * Session value. Seeded from config on load, then changed freely in game or by a dependent mod.
+     */
+    public boolean isEnableChunkExplorer() {
+        if( enableChunkExplorer == null)
+            setEnableChunkExplorer( getActive().features.enableChunkExplorer );
+        return enableChunkExplorer.get();
+    }
+
+    public void setChunkExploreMaximumDiskSize(int gigabytes) {
+        if( chunkExploreMaximumDiskSize == null)
+            chunkExploreMaximumDiskSize = new AtomicInteger(8);
+        chunkExploreMaximumDiskSize.set(gigabytes);
+    }
+
+    /**
+     * Session value in gigabytes. Seeded from config on load, then changed freely in game.
+     */
     public int getChunkExploreMaximumDiskSize() {
-        return getActive().features.chunkExploreMaximumDiskSize;
+        if( chunkExploreMaximumDiskSize == null)
+            setChunkExploreMaximumDiskSize( getActive().features.chunkExploreMaximumDiskSize );
+        return chunkExploreMaximumDiskSize.get();
     }
 
     public int getChunkExploreRate() {
+        if( chunkExploreRate == null)
+            setChunkExploreRate( getActive().features.chunkExploreIdleTime);
         return chunkExploreRate.get();
     }
 

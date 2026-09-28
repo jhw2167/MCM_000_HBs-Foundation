@@ -4,6 +4,7 @@ import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.minecraft.core.BlockPos;
@@ -19,7 +20,6 @@ import javax.annotation.Nullable;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalField;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -76,8 +76,9 @@ public class ManagedChunkUtility {
 
     public boolean isChunkInitialized(String id) {
         if(id == null) return false;
-        if(INITIALIZED_CHUNKS.get(level) == null) return false;
-        return INITIALIZED_CHUNKS.get(level).contains(id);
+        if(ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level) == null) return false;
+        return ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level)
+        .contains(HBUtil.ChunkUtil.getChunkPos1DMap(id));
     }
 
     public boolean isChunkInitialized(ChunkPos p) {
@@ -86,7 +87,7 @@ public class ManagedChunkUtility {
     }
 
     public boolean isChunkInitialized(int x, int z) {
-        if(INITIALIZED_CHUNKS.get(level) == null) return false;
+        if(ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level) == null) return false;
         return INITIALIZED_LONG_CHUNKS.get(level).contains(HBUtil.ChunkUtil.getChunkPos1DMap(x, z));
     }
 
@@ -152,13 +153,10 @@ public class ManagedChunkUtility {
     }
 
     //Get ManagedChunk Arrays
-    public static Set<String> getInitializedChunksDebug() {
-        return INITIALIZED_CHUNKS.get(GeneralConfig.OVERWORLD);
+    public static LongSet getInitializedChunksDebug() {
+        return ManagedChunk.INITIALIZED_LONG_CHUNKS.get(GeneralConfig.OVERWORLD);
     }
 
-    public static Set<Long> getInitializedLongChunksDebug() {
-        return INITIALIZED_LONG_CHUNKS.get(GeneralConfig.OVERWORLD);
-    }
 
     public static Set<String> getLoadedChunksDebug() {
         return LOADED_CHUNKS.get(GeneralConfig.OVERWORLD).keySet();
@@ -184,26 +182,17 @@ public class ManagedChunkUtility {
      * Number of initialized chunks for this world, without copying the backing set
      */
     public int getInitializedChunkCount() {
-        Set<String> chunks = INITIALIZED_CHUNKS.get(level);
+        LongSet chunks = ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level);
         return (chunks == null) ? 0 : chunks.size();
     }
 
-    /**
-     * Get a copy of the set of all initialized chunks for this world
-     * @return A copy of the set of all initialized chunks for this world
-     */
     @Nullable
-    public Set<String> getInitializedChunks() {
-        if(INITIALIZED_CHUNKS.get(level) == null) return null;
-        return INITIALIZED_CHUNKS.get(level).stream().collect(Collectors.toSet());
+    public LongSet getInitializedChunks() {
+        if(ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level) == null) return null;
+        return ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level);
     }
 
-    /**
-     * Get a chunk using a chunk id
-     * @param chunkId The chunk ID
-     * @param forceLoad is deprecated, it causes too many issues
-     * @return LevelChunk or null
-     */
+
     public LevelChunk getChunk(String chunkId, boolean forceLoad) {
         if(chunkId == null) return null;
         if(LOADED_CHUNKS.get(level) == null) return null;

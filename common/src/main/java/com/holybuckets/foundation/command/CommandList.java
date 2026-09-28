@@ -743,7 +743,7 @@ public class CommandList {
 
             final int applied = rate;
             source.sendSuccess(() -> Component.literal(
-                "Chunk explore rate set to " + applied + " (was " + previous + "). 100 is the fastest."
+                "Chunk explore rate set to " + applied + " (was " + previous + "). 1 is the fastest."
             ), true);
             return 1;
         }

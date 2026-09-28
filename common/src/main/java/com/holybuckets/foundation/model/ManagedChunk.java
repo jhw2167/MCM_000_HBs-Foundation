@@ -32,6 +32,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import static com.holybuckets.foundation.HBUtil.ChunkUtil.getChunkPos1DMap;
+
 public class ManagedChunk implements IMangedChunkData {
 
     public static final String CLASS_ID = "003";
@@ -42,7 +44,6 @@ public class ManagedChunk implements IMangedChunkData {
     static final Map<LevelAccessor, Map<String, ManagedChunk>> LOADED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, Map<ChunkPos, String>> LOADED_CHUNKPOS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor,ConcurrentSet<ManagedChunk>> CHUNK_CACHE = new ConcurrentHashMap<>();
-    static final Map<LevelAccessor, Set<String>> INITIALIZED_CHUNKS = new ConcurrentHashMap<>();
     static final Map<LevelAccessor, LongSet> INITIALIZED_LONG_CHUNKS = new ConcurrentHashMap<>();
 
     static final Map<LevelAccessor, JsonArray> INITIALIZED_CHUNKS_JSON = new ConcurrentHashMap<>();
@@ -111,7 +112,6 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
         LOADED_CHUNKPOS.putIfAbsent(this.level, new ConcurrentHashMap<>());
 
-        INITIALIZED_CHUNKS.putIfAbsent(this.level, new HashSet<>());
         INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, newLongSet());
         INITIALIZED_CHUNKS_JSON.putIfAbsent(this.level, new JsonArray());
 
@@ -119,8 +119,8 @@ public class ManagedChunk implements IMangedChunkData {
         LOADED_CHUNKS.get(this.level).put(this.id, this);
         LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
 
-        INITIALIZED_CHUNKS.get(this.level).add(this.id);
-        markInitialized(this.level, HBUtil.ChunkUtil.getChunkPos1DMap(pos.x, pos.z));
+        INITIALIZED_LONG_CHUNKS.get(this.level).add(getChunkPos1DMap(pos.x, pos.z));
+        markInitialized(this.level, getChunkPos1DMap(pos.x, pos.z));
     }
 
 

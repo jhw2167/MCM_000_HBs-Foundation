@@ -16,8 +16,8 @@ public class PerformanceImpactConfigData implements BalmConfigData {
         @Comment("Enables the Chunk Explorer, which pre-generates distant chunks around players in the background. Requires Chunk Pregenerator to be installed; ignored otherwise. Disabled by default: it generates world on the server thread while players are online.")
         public boolean enableChunkExplorer = false;
 
-        @Comment("The rate of chunk exploration beyond player bounds. 100 is the fastest. Valid range 1 - 100.")
-        public int chunkExploreRate = 1;
+        @Comment("How many cycles are idled before next preload batch. In 6 seconds intervals. A rate of 1 means every 6 seconds. 100 is every 10 minutes.")
+        public int chunkExploreIdleTime = 20;
 
         @Comment("Disables background chunk loading once the chunk folder size on disk has exceed this size. Assumes 8KB per chunk. Takes integer value in Gigabytes")
         public int chunkExploreMaximumDiskSize = 8;

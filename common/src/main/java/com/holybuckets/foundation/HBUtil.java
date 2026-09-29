@@ -1051,6 +1051,15 @@ public class HBUtil {
            return ChunkPos.asLong(x, z);
         }
 
+        public static ChunkPos getChunkPosFrom1DMap(long chunkPos) {
+            return new ChunkPos(chunkPos);
+        }
+
+        /** Rebuilds the minimum corner block position of a packed chunk position at the given height. */
+        public static BlockPos getWorldPosFrom1DMap(long chunkPos, int y) {
+            return new ChunkPos(chunkPos).getBlockAt(0, y, 0);
+        }
+
         /**
          * Gets all chunk ids for all chunks around the provided chunk
          * nearbyChunks, nearChunks, localChunks, adjacentChunks

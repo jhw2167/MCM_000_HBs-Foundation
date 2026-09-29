@@ -39,7 +39,7 @@ public class ForgeChunkLoader implements ChunkLoader {
     private final Set<UUID> suppressedListeners = new LinkedHashSet<>();
     private boolean suppressed = false;
 
-    final static int radius = 1;
+    final static int radius = 2;
     @Override
     public boolean forceChunkLoad(ServerLevel level, ChunkPos pos) {
         if (!current.isEmpty()) return false;

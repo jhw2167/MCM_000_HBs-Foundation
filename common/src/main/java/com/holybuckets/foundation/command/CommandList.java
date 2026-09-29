@@ -70,6 +70,7 @@ public class CommandList {
         CommandRegistry.register(DeleteWaypoint::byId);
 
         CommandRegistry.register(SetChunkExploreRate::withRate);
+        CommandRegistry.register(SetMaxAllocationRate::withRate);
     }
 
     //**** SUGGETTIONS ****//
@@ -715,7 +716,7 @@ public class CommandList {
 
     private static class SetChunkExploreRate {
 
-        private static final int RATE_MIN = 1;
+        private static final int RATE_MIN = -1;
         private static final int RATE_MAX = 100;
 
         private static LiteralArgumentBuilder<CommandSourceStack> withRate() {
@@ -739,11 +740,60 @@ public class CommandList {
             }
 
             int previous = config.getChunkExploreRate();
+
+            if (rate < 1) {
+                config.setEnableChunkExplorer(false);
+                source.sendSuccess(() -> Component.literal(
+                    "Chunk explorer disabled. Set a rate of 1 or higher to turn it back on."
+                ), true);
+                return 1;
+            }
+
             config.setChunkExploreRate(rate);
+            config.setEnableChunkExplorer(true);
 
             final int applied = rate;
             source.sendSuccess(() -> Component.literal(
                 "Chunk explore rate set to " + applied + " (was " + previous + "). 1 is the fastest."
+            ), true);
+            return 1;
+        }
+    }
+
+
+    private static class SetMaxAllocationRate {
+
+        private static final int RATE_MIN = 1;
+        private static final int RATE_MAX = 100000;
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withRate() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("setMaxAllocationRate")
+                    .requires(source -> source.hasPermission(2))
+                    .then(Commands.argument("megabytesPerSecond", IntegerArgumentType.integer(RATE_MIN, RATE_MAX))
+                        .executes(context -> {
+                            int rate = IntegerArgumentType.getInteger(context, "megabytesPerSecond");
+                            return execute(context.getSource(), rate);
+                        })
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int megabytesPerSecond) {
+            PerformanceImpactConfig config = GeneralConfig.getInstance().getPerformanceImpactConfig();
+            if (config == null) {
+                source.sendFailure(Component.literal("Performance config is not initialized yet"));
+                return 0;
+            }
+
+            int previous = config.getChunkExploreMaxAllocationRate();
+            config.setChunkExploreMaxAllocationRate(megabytesPerSecond);
+
+            final int applied = megabytesPerSecond;
+            final double current =  800; // config.getAverageAllocationRateMb(60);
+            source.sendSuccess(() -> Component.literal(
+                "Chunk explore allocation budget set to " + applied + "MB/s (was " + previous
+                    + "MB/s). Current 60s average is " + String.format("%.0f", current) + "MB/s."
             ), true);
             return 1;
         }

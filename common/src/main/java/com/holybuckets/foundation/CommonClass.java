@@ -3,6 +3,7 @@ package com.holybuckets.foundation;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.core.ChunkExplorerManager;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.platform.services.ChunkLoader;
 import com.holybuckets.foundation.util.ModContext;
 import net.blay09.mods.balm.api.Balm;
@@ -30,6 +31,7 @@ public class CommonClass {
         EventRegistrar reg = EventRegistrar.getInstance();
         WaypointStick.init(reg);
         initChunkExplorer(reg);
+        reg.registerOnServerTick(TickType.ON_20_TICKS, PerformanceImpactConfig::sampleMemory);
         // Debug-only hooks live in CommonClassDebug. Activate individual hooks by
         // uncommenting registrations inside that class.
         CommonClassDebug.init(reg);
@@ -58,4 +60,19 @@ public class CommonClass {
 
     }
 
+    public static void check(int i) {
+
+        int j=0;
+        switch (i) {
+            case 0:
+                j = 1;
+                break;
+            case 1:
+                j = 2;
+                break;
+            default:
+                j = 0;
+                break;
+        }
+    }
 }

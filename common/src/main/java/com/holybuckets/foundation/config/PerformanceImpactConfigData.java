@@ -19,6 +19,9 @@ public class PerformanceImpactConfigData implements BalmConfigData {
         @Comment("How many cycles are idled before next preload batch. In 6 seconds intervals. A rate of 1 means every 6 seconds. 100 is every 10 minutes.")
         public int chunkExploreIdleTime = 20;
 
+        @Comment("Skips background chunk loading while the average heap allocation rate over the last 60 seconds exceeds this value. Lower it to make the explorer yield sooner under memory pressure. Takes integer value in megabytes per second")
+        public int chunkExploreMaxAllocationRate = 800;
+
         @Comment("Disables background chunk loading once the chunk folder size on disk has exceed this size. Assumes 8KB per chunk. Takes integer value in Gigabytes")
         public int chunkExploreMaximumDiskSize = 8;
 

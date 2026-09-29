@@ -136,7 +136,7 @@ public class ManagedChunkEvents {
     }
 
     public static void onServerTick1200(ServerTickEvent event) {
-        try {
+        /*try {
             if(MixinManager.isEnabled("ManagedChunkEvents::onServerTick1200")) {
                 ManagedChunkUtility.INSTANCES.values()
                     .stream().filter( m -> !m.level.isClientSide())
@@ -144,7 +144,7 @@ public class ManagedChunkEvents {
             }
         } catch (Exception e) {
             MixinManager.recordError("ManagedChunkEvents::onServerTick1200", e);
-        }
+        }*/
 
     }
 

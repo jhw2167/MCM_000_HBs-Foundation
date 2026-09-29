@@ -6,6 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.apache.commons.lang3.text.WordUtils;
@@ -65,8 +66,8 @@ public class StructureInfo {
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
         if(origin != null) {
-         String pos = HBUtil.BlockUtil.positionToString(origin);
-            tag.putString("origin", pos);
+            tag.putLong("chunkPos", HBUtil.ChunkUtil.getChunkPos1DMap(new ChunkPos(origin)));
+            tag.putInt("y", origin.getY());
         }
         if(id != null) tag.putString("id", id.toString());
         tag.putInt("registryId", registryId);
@@ -76,9 +77,10 @@ public class StructureInfo {
     }
 
     public void deserialize(CompoundTag tag) {
-        if(tag.contains("origin")) {
-            String pos = tag.getString("origin");
-            origin = HBUtil.BlockUtil.stringToBlockPos (pos);
+        if(tag.contains("chunkPos")) {
+            origin = HBUtil.ChunkUtil.getWorldPosFrom1DMap(tag.getLong("chunkPos"), tag.getInt("y"));
+        } else if(tag.contains("origin")) {
+            origin = HBUtil.BlockUtil.stringToBlockPos(tag.getString("origin"));
         }
         if(tag.contains("id")) {
             id = new ResourceLocation(tag.getString("id"));
@@ -110,6 +112,14 @@ public class StructureInfo {
         ResourceLocation id = structureRegistry.getKey(struct);
         String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
+        return new StructureInfo(pos, id, rId, commonName, loc);
+    }
+
+    public static StructureInfo of(int rId, long chunkPos, int y, Registry<Structure> structureRegistry, ResourceLocation loc) {
+        Structure struct = structureRegistry.byId(rId);
+        ResourceLocation id = structureRegistry.getKey(struct);
+        String commonName = WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
+        BlockPos pos = HBUtil.ChunkUtil.getWorldPosFrom1DMap(chunkPos, y);
         return new StructureInfo(pos, id, rId, commonName, loc);
     }
 

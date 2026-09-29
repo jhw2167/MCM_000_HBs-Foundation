@@ -357,6 +357,8 @@ public class StructureManager {
         this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
 
         StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
+        LoggerBase.logDebug(null, "050012", "Structure loaded: " + structureLocation
+            + " chunk " + cp + " total, " + this.structures.size() );
         EventRegistrar.getInstance().onStructureLoaded(event);
     }
 
@@ -427,7 +429,14 @@ public class StructureManager {
 
             for(JsonElement elem : arr)
             {
-                StructureInfo info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
+                StructureInfo info;
+                if(elem.isJsonArray()) {
+                    JsonArray pair = elem.getAsJsonArray();
+                    if(pair.size() < 2) continue;
+                    info = StructureInfo.of(registryId, pair.get(0).getAsLong(), pair.get(1).getAsInt(), structureRegistry, structureLocation);
+                } else {
+                    info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
+                }
                 if(structures.containsKey(info.origin)) continue;
                 this.structures.put(info.origin, info);
                 this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
@@ -467,8 +476,12 @@ public class StructureManager {
             CompoundTag tag = struct.serialize();
             String key = tag.getString("structureLocation");
             if(key == null || key.isEmpty()) continue;
+            if(!tag.contains("chunkPos")) continue;
             if(!root.has(key)) { root.add(key, new JsonArray()); }
-            root.getAsJsonArray(key).add(tag.getString("origin"));
+            JsonArray pair = new JsonArray();
+            pair.add(tag.getLong("chunkPos"));
+            pair.add(tag.getInt("y"));
+            root.getAsJsonArray(key).add(pair);
         }
 
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("structures", root);

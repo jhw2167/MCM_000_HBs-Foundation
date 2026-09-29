@@ -37,9 +37,9 @@ public class ChunkExplorerManager {
     public static final String CLASS_ID = "037";
 
 
-    public static final int SCAN_RADIUS_CHUNKS = 128; //625;   // 10,000 blocks / 16, RANGE
+    public static final int SCAN_RADIUS_CHUNKS = 1024; //Get out there and scan!
     public static final int CHUNK_EXPLORER_MAX = 100;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
-    public static final int SCAN_RADIUS_SQUARED = SCAN_RADIUS_CHUNKS*SCAN_RADIUS_CHUNKS;//625;   // 10,000 blocks / 16, RANGE
+    public static final int SCAN_RADIUS_SQUARED = SCAN_RADIUS_CHUNKS*SCAN_RADIUS_CHUNKS;  // 10,000 chunks / 16, RANGE
 
 
     private static final String TICKET_PREFIX = "chunk_explorer_";
@@ -52,6 +52,8 @@ public class ChunkExplorerManager {
     // Ordered queue of positions still needing exploration this pass
     //Unique queue that maps the chunk distance between some player to its chunk position
     private final Deque<ChunkPos> chunkExploreQueue = new LinkedList<>();
+    // Chunks submitted by other systems that should be generated ahead of the spiral walk
+    private final Deque<ChunkPos> chunkGenerationPriorityQueue = new LinkedList<>();
     private final Map<Player, ChunkGenerationOrderHandler> chunkGenerators = new HashMap<>();
     private final Set<ChunkPos> requestedChunks = new HashSet<>();
 
@@ -85,10 +87,38 @@ public class ChunkExplorerManager {
         return chunkExploreQueue.size();
     }
 
+    public int priorityQueueSize() {
+        return chunkGenerationPriorityQueue.size();
+    }
+
+    /**
+     * Submits a chunk to be generated ahead of the explorer's own spiral walk. Priority chunks are
+     * sprinkled into the explore queue on the next rebuild, and only while they sit within
+     * SCAN_RADIUS_CHUNKS of a player in that level.
+     */
+    public static void submitPriorityChunk(Level level, ChunkPos pos) {
+        if (level == null || pos == null) return;
+        if (GENERAL_CONFIG == null) return;
+
+        ChunkExplorerManager manager = get(level);
+        if (manager == null) return;
+
+        synchronized (manager.chunkGenerationPriorityQueue) {
+            if (manager.chunkGenerationPriorityQueue.contains(pos)) return;
+            manager.chunkGenerationPriorityQueue.addLast(pos);
+        }
+    }
+
+    public static void submitPriorityChunks(Level level, Collection<ChunkPos> positions) {
+        if (positions == null) return;
+        for (ChunkPos pos : positions) submitPriorityChunk(level, pos);
+    }
+
     //** PER-TICK LOGIC
 
     //Called each 120 ticks modulated against player set rate
     //Calls CHUNK_LOADER with force load implementation and checks held chunk for completion
+    //tickChunk, forceTickChunk, forceload, forcechunk
     private void onTickForceLoadChunk(ServerTickEvent event)
     {
         MinecraftServer server = GENERAL_CONFIG.getServer();
@@ -139,23 +169,64 @@ public class ChunkExplorerManager {
         if (chunkGenerators.isEmpty()) return;
 
         List<Player> players = new ArrayList<>(chunkGenerators.keySet());
-        for (Player player : players)
-        {
-            ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
-            //ChunkPos playerChunk = new ChunkPos(player.blockPosition());
-            final int maxPerPlayer = CHUNK_EXPLORER_MAX / chunkGenerators.size();
-            int count = 0;
-            while(chunkExploreQueue.size() < CHUNK_EXPLORER_MAX)
-            {
-                ChunkPos next = handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
-                if(next == null) break;
-                if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) break;
+        final int priorityStride = Math.max(1, players.size());
 
-                chunkExploreQueue.addLast(next);
-                if(count++ > maxPerPlayer) break;
-            }
+        for (int i=0; i < CHUNK_EXPLORER_MAX; i++)
+        {
+            Player player = players.get(i % players.size());
+            ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
+            ChunkPos next = handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
+            if(next == null) break;
+            if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) continue;
+            chunkExploreQueue.addLast(next);
+
+            //Sprinkle one submitted chunk in for every player's worth of spiral entries
+            if((i + 1) % priorityStride != 0) continue;
+            ChunkPos priority = pollNextPriorityChunk(players);
+            if(priority != null) chunkExploreQueue.addLast(priority);
         }
 
+    }
+
+
+    /**
+     * Takes the next submitted chunk still worth generating. Chunks already initialized or loaded are
+     * dropped; chunks outside the scan radius of every player go to the back of the queue so they
+     * become eligible again once a player moves closer.
+     */
+    private ChunkPos pollNextPriorityChunk(List<Player> players)
+    {
+        synchronized (chunkGenerationPriorityQueue)
+        {
+            int attempts = chunkGenerationPriorityQueue.size();
+            for (int i = 0; i < attempts; i++)
+            {
+                ChunkPos candidate = chunkGenerationPriorityQueue.pollFirst();
+                if (candidate == null) return null;
+
+                if (util.isChunkInitialized(candidate)) continue;
+                if (util.isLoaded(candidate)) continue;
+
+                if (!withinExploreRange(candidate, players)) {
+                    chunkGenerationPriorityQueue.addLast(candidate);
+                    continue;
+                }
+
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private boolean withinExploreRange(ChunkPos pos, List<Player> players)
+    {
+        for (Player player : players) {
+            ChunkPos playerChunk = new ChunkPos(player.blockPosition());
+            if (Math.abs(pos.x - playerChunk.x) > SCAN_RADIUS_CHUNKS) continue;
+            if (Math.abs(pos.z - playerChunk.z) > SCAN_RADIUS_CHUNKS) continue;
+            return true;
+        }
+        return false;
     }
 
 
@@ -240,6 +311,20 @@ public class ChunkExplorerManager {
         return total;
     }
 
+    public static final int ALLOCATION_WINDOW_SECONDS = 60;
+
+    private static boolean allocationRateExceeded() {
+        PerformanceImpactConfig config = GENERAL_CONFIG.getPerformanceImpactConfig();
+        int maxMb = config.getChunkExploreMaxAllocationRate();
+        double averageMb = PerformanceImpactConfig.getAllocationRate(ALLOCATION_WINDOW_SECONDS);
+        if( averageMb <= maxMb ) return false;
+
+        LoggerBase.logWarning(null, CLASS_ID, "Chunk Explorer skipped load, heap allocation averaged "
+            + String.format("%.0f", averageMb) + "MB/s over the last " + ALLOCATION_WINDOW_SECONDS
+            + " seconds, above the " + maxMb + "MB/s budget. Raise chunkExploreMaxAllocationRate to continue exploring.");
+        return true;
+    }
+
     private static boolean averageTickTickTimeExceeded() {
         int millis =  GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreMaxAllowedTickSize();
         if( GENERAL_CONFIG.getServer().getAverageTickTime() > millis ) {
@@ -263,12 +348,14 @@ public class ChunkExplorerManager {
     }
 
     //Calls managers to explore chunks by calling chunk handler (pregenerator mod or native)
-    private static void onExploreTick(ServerTickEvent event) {
+    private static void onExploreTick(ServerTickEvent event)
+    {
         if(!exploreChunksEnabled()) return;
         if (!tickExploreInterval()) return;
 
         if (diskLimitExceeded()) return;
         if (averageTickTickTimeExceeded()) return;
+        if (allocationRateExceeded()) return;
 
         for (ChunkExplorerManager manager : managers.values()) {
             if(!CHUNK_LOADER.isRunningOnLevel((ServerLevel) manager.level)) continue;
@@ -276,6 +363,16 @@ public class ChunkExplorerManager {
         }
     }
 
+    private void releaseHolds() {
+        if (heldChunk == null) return;
+        long now = GENERAL_CONFIG.getTotalTickCount();
+        long heldDuration = now - heldSince;
+        if (heldDuration > 20) {
+            LoggerBase.logInfo(null, CLASS_ID, "Releasing held chunk " + heldChunk + " after " + heldDuration + " ticks.");
+            CHUNK_LOADER.unforceChunkLoad((ServerLevel) level, heldChunk);
+            heldChunk = null;
+        }
+    }
 
 
     private static void on1200TicksSearchNewChunks(ServerTickEvent event)
@@ -390,49 +487,47 @@ public class ChunkExplorerManager {
             return currentPos;
         }
 
+        /**
+         * Advances the spiral until it lands on a chunk that has not been initialized yet.
+         * Returns null once the walk leaves the scan radius.
+         */
         public ChunkPos getNextUnInitSpiralChunk(ManagedChunkUtility util, int skipChunks)
         {
             if (total == 0) {
-                total++; return currentPos;
-            }
-
-            int totalStart = total;
-            int nextPosX = currentPos.x + dir[0]*skipChunks;
-            int nextPosZ = currentPos.z + dir[1]*skipChunks;
-            while(util.isChunkInitialized(nextPosX, nextPosZ))
-            {
-                //check if nextPosX is outside of radius from startPos
-                if(nextPosX > startPos.x) {
-                    if(nextPosX - startPos.x > radius) break;
-                } else {
-                    if(startPos.x - nextPosX > radius) break;
-                }
-
-                if(nextPosZ > startPos.z) {
-                    if(nextPosZ - startPos.z > radius) break;
-                } else {
-                    if(startPos.z - nextPosZ > radius) break;
-                }
-
-
-                if (dirCount == count) {
-                    dir      = getNextDirection();
-                    dirCount = 0;
-                    // Increment the step-count after completing UP or DOWN legs
-                    if (dir == UP || dir == DOWN) {
-                        count++;
-                    }
-                }
-
-                nextPosX += (dir[0]*skipChunks);
-                nextPosZ += (dir[1]*skipChunks);
                 total++;
-                dirCount++;
+                return currentPos;
             }
 
-            skippedChunks += (total - totalStart);
-            currentPos = new ChunkPos(nextPosX, nextPosZ);
-            return currentPos;
+            int step = Math.max(1, skipChunks);
+            int maxProbes = 4 * (radius / step + 1) * (radius / step + 1) + 8;
+
+            for (int i = 0; i < maxProbes; i++)
+            {
+                stepSpiral(step);
+                if (outsideScanRadius(currentPos)) return null;
+                if (!util.isChunkInitialized(currentPos.x, currentPos.z)) return currentPos;
+                skippedChunks++;
+            }
+
+            return null;
+        }
+
+        private void stepSpiral(int step)
+        {
+            if (dirCount == count) {
+                dir = getNextDirection();
+                dirCount = 0;
+                // Leg length grows every half turn, so increment on the vertical legs only
+                if (dir == UP || dir == DOWN) count++;
+            }
+
+            currentPos = new ChunkPos(currentPos.x + dir[0]*step, currentPos.z + dir[1]*step);
+            total++;
+            dirCount++;
+        }
+
+        private boolean outsideScanRadius(ChunkPos pos) {
+            return Math.abs(pos.x - startPos.x) > radius || Math.abs(pos.z - startPos.z) > radius;
         }
 
         private int[] getNextDirection() {

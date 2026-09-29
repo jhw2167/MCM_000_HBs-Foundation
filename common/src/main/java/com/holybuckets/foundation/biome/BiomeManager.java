@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
@@ -185,6 +186,9 @@ public class BiomeManager {
             BiomeInfo info = BiomeInfo.of(holder, secPos, biomeRegistry);
             biomes.put(secPos, info);
             biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(secPos);
+            LoggerBase.logDebug(null, "050013", "Biome captured: " + biomeId
+                + " at " + secPos + " chunk " + chunk.getPos() + " | total: " + this.biomes.size());
+
         }
     }
 
@@ -209,7 +213,14 @@ public class BiomeManager {
                 ResourceLocation biomeId = biomeRegistry.getKey(biome);
                 if (biomeId == null) continue;
 
-                BiomeInfo info = BiomeInfo.of(registryId, elem.getAsString(), biomeRegistry);
+                BiomeInfo info;
+                if (elem.isJsonArray()) {
+                    JsonArray pair = elem.getAsJsonArray();
+                    if (pair.size() < 2) continue;
+                    info = BiomeInfo.of(registryId, pair.get(0).getAsLong(), pair.get(1).getAsInt(), biomeRegistry);
+                } else {
+                    info = BiomeInfo.of(registryId, elem.getAsString(), biomeRegistry);
+                }
                 if (biomes.containsKey(info.samplePos)) continue;
                 biomes.put(info.samplePos, info);
                 biomesByType.computeIfAbsent(biomeId, k -> new HashSet<>()).add(info.samplePos);
@@ -223,9 +234,13 @@ public class BiomeManager {
         for (BiomeInfo info : biomes.values())
         {
             CompoundTag tag = info.serialize();
+            if (!tag.contains("chunkPos")) continue;
             String key = tag.getInt("registryId") + "";
             if (!root.has(key)) root.add(key, new JsonArray());
-            root.getAsJsonArray(key).add(tag.getString("samplePos"));
+            JsonArray pair = new JsonArray();
+            pair.add(tag.getLong("chunkPos"));
+            pair.add(tag.getInt("y"));
+            root.getAsJsonArray(key).add(pair);
         }
 
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("biomes", root);

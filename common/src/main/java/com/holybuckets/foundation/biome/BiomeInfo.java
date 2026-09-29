@@ -6,6 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
 import org.apache.commons.lang3.text.WordUtils;
 
@@ -63,7 +64,8 @@ public class BiomeInfo {
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
         if (samplePos != null) {
-            tag.putString("samplePos", HBUtil.BlockUtil.positionToString(samplePos));
+            tag.putLong("chunkPos", HBUtil.ChunkUtil.getChunkPos1DMap(new ChunkPos(samplePos)));
+            tag.putInt("y", samplePos.getY());
         }
         if (id != null) tag.putString("id", id.toString());
         tag.putInt("registryId", registryId);
@@ -72,7 +74,9 @@ public class BiomeInfo {
     }
 
     public void deserialize(CompoundTag tag) {
-        if (tag.contains("samplePos")) {
+        if (tag.contains("chunkPos")) {
+            samplePos = HBUtil.ChunkUtil.getWorldPosFrom1DMap(tag.getLong("chunkPos"), tag.getInt("y"));
+        } else if (tag.contains("samplePos")) {
             samplePos = HBUtil.BlockUtil.stringToBlockPos(tag.getString("samplePos"));
         }
         if (tag.contains("id")) {
@@ -104,6 +108,16 @@ public class BiomeInfo {
             ? WordUtils.capitalizeFully(id.getPath().replace("_", " "))
             : "Unknown";
         BlockPos pos = HBUtil.BlockUtil.stringToBlockPos(blockPos);
+        return new BiomeInfo(pos, id, rId, commonName);
+    }
+
+    public static BiomeInfo of(int rId, long chunkPos, int y, Registry<Biome> biomeRegistry) {
+        Biome biome = biomeRegistry.byId(rId);
+        ResourceLocation id = biomeRegistry.getKey(biome);
+        String commonName = id != null
+            ? WordUtils.capitalizeFully(id.getPath().replace("_", " "))
+            : "Unknown";
+        BlockPos pos = HBUtil.ChunkUtil.getWorldPosFrom1DMap(chunkPos, y);
         return new BiomeInfo(pos, id, rId, commonName);
     }
 }

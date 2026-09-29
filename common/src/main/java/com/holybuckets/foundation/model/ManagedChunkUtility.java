@@ -263,8 +263,8 @@ public class ManagedChunkUtility {
         if (cullLevelChunksThread != null) {
             cullLevelChunksThread.interrupt();
         }
-        cullLevelChunksThread = new Thread(this::cullLevelChunks);
-        cullLevelChunksThread.start();
+        //cullLevelChunksThread = new Thread(this::cullLevelChunks);
+        //cullLevelChunksThread.start();
     }
 
     /**

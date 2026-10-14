@@ -18,6 +18,7 @@ public class CommonClass {
 
     public static boolean isInitialized = false;
     public static IMessager MESSAGER;
+    public static boolean DEBUG = false;
 
     public static void init()
     {

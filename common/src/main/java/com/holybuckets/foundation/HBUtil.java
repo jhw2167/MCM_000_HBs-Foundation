@@ -42,6 +42,7 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
@@ -840,7 +841,7 @@ public class HBUtil {
 
         /**
          * Gets a biome from the vanilla biome registry using a string ID
-         * @param biomeName String biome identifier (e.g. "minecraft:plains")
+         * @param biomeName String biome identifier (e.g.minecraft:plains)
          * @return Holder<Biome> for the requested biome, or null if not found
          */
         public static Biome getBiome(String biomeName) {
@@ -962,6 +963,16 @@ public class HBUtil {
             return sb.toString();
         }
 
+        static Holder<Biome> getBiomeAtChunk(ServerLevel level, ChunkPos pos) {
+            BlockPos point = pos.getWorldPosition().atY(128);
+            return getBiomeAtPoint(level, point);
+        }
+
+        static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
+            BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
+            Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(), level.getChunkSource().randomState().sampler());
+            return b;
+        }
     }
 
     private static LevelChunk threadedChunkResult = null;
@@ -1005,6 +1016,10 @@ public class HBUtil {
 
         public static ChunkPos getChunkPos(BlockPos pos) {
             return new ChunkPos(pos);
+        }
+
+        public static ChunkPos getChunkPos(int x, int z) {
+            return new ChunkPos(x, z);
         }
 
         /** Check if chunk is within [-x, x] and [-z, z] **/

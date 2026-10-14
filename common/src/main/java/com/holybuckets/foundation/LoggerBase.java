@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static com.holybuckets.foundation.CommonClass.DEBUG;
+
 
 public class LoggerBase {
     // Store log entries for filtering
@@ -48,7 +50,6 @@ public class LoggerBase {
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final String PREFIX =  Constants.MOD_NAME;
-    public static final Boolean DEBUG_MODE = true;
 
     /*
      *  1. We want to have static methods for logging info, warnings, and errors to server console.
@@ -238,7 +239,7 @@ public class LoggerBase {
     {
         if( prefix == null) prefix = PREFIX;
 
-        if (DEBUG_MODE) {
+        if (DEBUG) {
             LogEntry entry = new LogEntry("DEBUG", logId, prefix, string);
             if (shouldPrintLog(entry)) {
                 LOGGER.info(buildBaseConsoleMessage(entry));

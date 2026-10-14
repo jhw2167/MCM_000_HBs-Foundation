@@ -26,7 +26,7 @@ public class BalmEventRegister {
     public static EventPriority p(Consumer<?> func) { return registrar.PRIORITIES.getOrDefault(func, EventPriority.Normal); }
 
     // Register all events in the Registrar with Balm Events
-    public static void registerEvents()
+    public static synchronized void registerEvents()
     {
         BalmEvents registry = Balm.getEvents();
         registrar = EventRegistrar.getInstance();

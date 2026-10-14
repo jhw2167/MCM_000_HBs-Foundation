@@ -38,8 +38,8 @@ public class PerformanceImpactConfig {
     AtomicInteger chunkExploreMaxAllocationRate;
     AtomicBoolean enableChunkExplorer;
 
-    public PerformanceImpactConfig() {
-        this( PerformanceImpactLevel.valueOf(getActive().performanceImpactConfig.performanceImpact) );
+    public PerformanceImpactConfig(PerformanceImpactConfigData data) {
+        this( PerformanceImpactLevel.valueOf(data.performanceImpactConfig.performanceImpact) );
     }
 
     public PerformanceImpactConfig(PerformanceImpactLevel p ) {

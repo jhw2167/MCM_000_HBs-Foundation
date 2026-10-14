@@ -241,12 +241,16 @@ public class ManagedChunkUtility {
         return getChunkRandom(pos, CONFIG.getWorldSeed());
     }
 
-    public static Random getChunkRandom(ChunkPos pos, Long SEED)
+    public static Random getChunkRandom(ChunkPos pos, Long SEED) {
+        return getChunkRandom(pos.x, pos.z, SEED);
+    }
+
+    public static Random getChunkRandom(int x, int z, Long SEED)
     {
         if(SEED == null)
             SEED = LocalDateTime.now().getLong(ChronoField.MICRO_OF_DAY);
 
-        Double RAND = HBUtil.ChunkUtil.getChunkPos1DMap(pos) * 1d;
+        Double RAND = HBUtil.ChunkUtil.getChunkPos1DMap(x, z) * 1d;
         if(RAND.equals(0d))
             return new Random(SEED);
 

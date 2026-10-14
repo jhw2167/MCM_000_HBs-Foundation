@@ -78,6 +78,11 @@ public class EssenceEnchantment extends Enchantment {
     }
 
     @Override
+    public boolean isTreasureOnly() {
+        return true;
+    }
+
+    @Override
     public int getMinLevel() {
         return 1;
     }

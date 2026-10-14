@@ -13,6 +13,10 @@ public class PerformanceImpactConfigData implements BalmConfigData {
 
     public static class CFeatures {
 
+        //add a debug_mode flag
+        @Comment("Enables debug mode. This is mostly additional loggers")
+        public boolean debugMode = false;
+
         @Comment("Enables the Chunk Explorer, which pre-generates distant chunks around players in the background. Requires Chunk Pregenerator to be installed; ignored otherwise. Disabled by default: it generates world on the server thread while players are online.")
         public boolean enableChunkExplorer = false;
 

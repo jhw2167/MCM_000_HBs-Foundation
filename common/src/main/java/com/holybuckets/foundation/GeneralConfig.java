@@ -7,6 +7,7 @@ package com.holybuckets.foundation;
 import com.google.gson.Gson;
 import com.google.gson.JsonPrimitive;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.config.PerformanceImpactConfigData;
 import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.datastore.LevelSaveData;
@@ -16,6 +17,8 @@ import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
+import net.blay09.mods.balm.api.Balm;
+import net.blay09.mods.balm.api.config.BalmConfig;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
@@ -171,8 +174,8 @@ public class GeneralConfig {
     }
 
 
-    private void initPerformanceConfig() {
-        this.performanceImpactConfig = new PerformanceImpactConfig();
+    private void initPerformanceConfig(PerformanceImpactConfigData data) {
+        this.performanceImpactConfig = new PerformanceImpactConfig(data);
     }
 
     public static String PLAYER_DATA_KEY = "PLAYER_DATA";
@@ -209,7 +212,9 @@ public class GeneralConfig {
 
     public void onBeforeServerStarted(ServerStartingEvent event) {
         this.isServerSide = true;
-        this.initPerformanceConfig();
+        PerformanceImpactConfigData config = Balm.getConfig().getActive(PerformanceImpactConfigData.class);
+        this.initPerformanceConfig(config);
+        CommonClass.DEBUG = config.features.debugMode;
         this.server = event.getServer();
 
         if( !this.isWorldConfigInit)
@@ -378,8 +383,6 @@ public class GeneralConfig {
     }
 
     public PerformanceImpactConfig getPerformanceImpactConfig() {
-        if(this.performanceImpactConfig == null)
-            this.initPerformanceConfig();
         return performanceImpactConfig;
     }
 

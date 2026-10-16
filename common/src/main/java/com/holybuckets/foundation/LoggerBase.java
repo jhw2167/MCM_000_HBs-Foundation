@@ -13,6 +13,7 @@ public class LoggerBase {
     // Store log entries for filtering
     private static List<LogEntry> logHistory = new ArrayList<>();
     private static final int MAX_LOG_HISTORY = 10000; // Limit the history size
+    public static final boolean DEBUG_MODE = CommonClass.DEBUG;
 
 
     // Sampling configuration

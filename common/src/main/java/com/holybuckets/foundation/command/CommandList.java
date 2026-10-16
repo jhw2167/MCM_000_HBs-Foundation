@@ -3,10 +3,13 @@ package com.holybuckets.foundation.command;
 //Project imports
 
 import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.biome.BiomeAPI;
 import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
+import com.holybuckets.foundation.core.ChunkAnalyzer;
+import com.holybuckets.foundation.core.ChunkAnalyzer.ChunkBlockDistro;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.core.MovingWaypoint.WaypointInfo;
 import com.holybuckets.foundation.event.CommandRegistry;
@@ -30,11 +33,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 
+import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -71,6 +78,10 @@ public class CommandList {
 
         CommandRegistry.register(SetChunkExploreRate::withRate);
         CommandRegistry.register(SetMaxAllocationRate::withRate);
+
+        CommandRegistry.register(ChunkAnalyze::withCoords);
+        CommandRegistry.register(ChunkAnalyze::withRadius);
+        CommandRegistry.register(ChunkAnalyze::withRadiusAndLimit);
     }
 
     //**** SUGGETTIONS ****//
@@ -795,6 +806,100 @@ public class CommandList {
                 "Chunk explore allocation budget set to " + applied + "MB/s (was " + previous
                     + "MB/s). Current 60s average is " + String.format("%.0f", current) + "MB/s."
             ), true);
+            return 1;
+        }
+    }
+
+
+    //**** CHUNK ANALYSIS ****//
+
+    private static class ChunkAnalyze {
+
+        private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.#");
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withCoords() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("chunkAnalyze")
+                    .then(Commands.argument("chunkx", IntegerArgumentType.integer())
+                        .then(Commands.argument("chunkz", IntegerArgumentType.integer())
+                            .executes(context -> execute(context.getSource(),
+                                IntegerArgumentType.getInteger(context, "chunkx"),
+                                IntegerArgumentType.getInteger(context, "chunkz"),
+                                0, -1))
+                        )
+                    )
+                );
+        }
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withRadius() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("chunkAnalyze")
+                    .then(Commands.argument("chunkx", IntegerArgumentType.integer())
+                        .then(Commands.argument("chunkz", IntegerArgumentType.integer())
+                            .then(Commands.argument("radius", IntegerArgumentType.integer(0))
+                                .executes(context -> execute(context.getSource(),
+                                    IntegerArgumentType.getInteger(context, "chunkx"),
+                                    IntegerArgumentType.getInteger(context, "chunkz"),
+                                    IntegerArgumentType.getInteger(context, "radius"),
+                                    -1))
+                            )
+                        )
+                    )
+                );
+        }
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withRadiusAndLimit() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("chunkAnalyze")
+                    .then(Commands.argument("chunkx", IntegerArgumentType.integer())
+                        .then(Commands.argument("chunkz", IntegerArgumentType.integer())
+                            .then(Commands.argument("radius", IntegerArgumentType.integer(0))
+                                .then(Commands.argument("limit", IntegerArgumentType.integer(-1))
+                                    .executes(context -> execute(context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "chunkx"),
+                                        IntegerArgumentType.getInteger(context, "chunkz"),
+                                        IntegerArgumentType.getInteger(context, "radius"),
+                                        IntegerArgumentType.getInteger(context, "limit")))
+                                )
+                            )
+                        )
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int chunkX, int chunkZ, int radius, int limit) {
+            Level level = source.getLevel();
+            ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+
+            ChunkBlockDistro distro;
+            try {
+                distro = ChunkAnalyzer.areaBlockDistro(level, pos, radius);
+            } catch (Exception e) {
+                source.sendFailure(Component.literal("Error analyzing chunk " + chunkX + ", " + chunkZ + ": " + e.getMessage()));
+                return 0;
+            }
+
+            if (distro == null) {
+                source.sendFailure(Component.literal("Chunk " + chunkX + ", " + chunkZ + " is not loaded" + (radius > 0 ? " (nor any chunk within radius " + radius + ")" : "")));
+                return 0;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("Block counts for chunk ").append(chunkX).append(", ").append(chunkZ);
+            if (radius > 0) sb.append(" (radius ").append(radius).append(", ").append(distro.chunkCount).append(" loaded chunks)");
+            sb.append(":");
+
+            List<Map.Entry<Block, Integer>> sorted = distro.sortedCounts();
+            int shown = (limit < 0) ? sorted.size() : Math.min(limit, sorted.size());
+            for (int i = 0; i < shown; i++) {
+                Map.Entry<Block, Integer> e = sorted.get(i);
+                sb.append("\n  - ").append(HBUtil.BlockUtil.blockToString(e.getKey()))
+                    .append(" -> ").append(String.format("%,d", e.getValue()))
+                    .append(", ").append(PERCENT_FORMAT.format(distro.percent(e.getKey()))).append("%");
+            }
+
+            LoggerBase.logInfo(null, "033001", sb.toString());
+            source.sendSuccess(() -> Component.literal("Block counts for chunk " + chunkX + ", " + chunkZ + " have been logged to the server."), false);
             return 1;
         }
     }

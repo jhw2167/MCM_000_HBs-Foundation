@@ -39,7 +39,9 @@ public interface IMessager {
      * @param message The message to display
      */
     void sendCornerHint(Player player, String message);
-    
+
+    void sendBottomActionHint(Player player, String modId, String translationKey);
+
     /**
      * Sends a bottom screen action hint message to a specific player
      * @param player The player to send the message to

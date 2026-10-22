@@ -53,6 +53,7 @@ public class ChunkExplorerManager {
     //Unique queue that maps the chunk distance between some player to its chunk position
     private final Deque<ChunkPos> chunkExploreQueue = new LinkedList<>();
     // Chunks submitted by other systems that should be generated ahead of the spiral walk
+    private final Set<ChunkPos> chunkGenerationPrioritySet = new HashSet<>();
     private final Deque<ChunkPos> chunkGenerationPriorityQueue = new LinkedList<>();
     private final Map<Player, ChunkGenerationOrderHandler> chunkGenerators = new HashMap<>();
     private final Set<ChunkPos> requestedChunks = new HashSet<>();
@@ -92,9 +93,8 @@ public class ChunkExplorerManager {
     }
 
     /**
-     * Submits a chunk to be generated ahead of the explorer's own spiral walk. Priority chunks are
-     * sprinkled into the explore queue on the next rebuild, and only while they sit within
-     * SCAN_RADIUS_CHUNKS of a player in that level.
+     * Submits a chunk to be generated during background gen. Priority chunks are
+     * sprinkled into the explore queue on the next rebuild
      */
     public static void submitPriorityChunk(Level level, ChunkPos pos) {
         if (level == null || pos == null) return;
@@ -104,8 +104,9 @@ public class ChunkExplorerManager {
         if (manager == null) return;
 
         synchronized (manager.chunkGenerationPriorityQueue) {
-            if (manager.chunkGenerationPriorityQueue.contains(pos)) return;
+            if (manager.chunkGenerationPrioritySet.contains(pos)) return;
             manager.chunkGenerationPriorityQueue.addLast(pos);
+            manager.chunkGenerationPrioritySet.add(pos);
         }
     }
 

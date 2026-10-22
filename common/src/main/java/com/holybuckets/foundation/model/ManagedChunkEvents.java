@@ -35,8 +35,8 @@ public class ManagedChunkEvents {
     {
         reg.registerOnServerStopped(ManagedChunkEvents::onServerStopped);
 
-        reg.registerOnLevelLoad(ManagedChunkEvents::onWorldLoad);
-        reg.registerOnLevelUnload(ManagedChunkEvents::onWorldUnload);
+        reg.registerOnLevelLoad(ManagedChunkEvents::onWorldLoad, EventPriority.Highest);
+        reg.registerOnLevelUnload(ManagedChunkEvents::onWorldUnload, EventPriority.Highest);
 
         reg.registerOnChunkLoad(ManagedChunkEvents::onChunkLoad);
         reg.registerOnChunkUnload(ManagedChunkEvents::onChunkUnload);
@@ -48,19 +48,19 @@ public class ManagedChunkEvents {
     private static void onServerStopped(final ServerStoppedEvent event) {
         LOADED_CHUNKS.clear();
         LOADED_CHUNKPOS.clear();
-        ManagedChunk.INITIALIZED_LONG_CHUNKS.clear();
+        INITIALIZED_LONG_CHUNKS.clear();
     }
 
-    private static void onWorldLoad( final LevelLoadingEvent.Load event )
+    public static void onWorldLoad(final LevelLoadingEvent.Load event)
     {
         Level level = (Level) event.getLevel();
+        LOADED_CHUNKS.putIfAbsent(level, new ConcurrentHashMap<>());
+        LOADED_CHUNKPOS.putIfAbsent(level, new ConcurrentHashMap<>());
 
-        if(LOADED_CHUNKS.get(level) == null) {
-            LOADED_CHUNKS.put(level, new ConcurrentHashMap<>());
-            LOADED_CHUNKPOS.put(level, new ConcurrentHashMap<>());
-            INITIALIZED_LONG_CHUNKS.put(level, ManagedChunk.newLongSet());
-            INITIALIZED_CHUNKS_JSON.put(level, new JsonArray());
-        }
+        INITIALIZED_LONG_CHUNKS.putIfAbsent(level, ManagedChunk.newLongSet());
+        INITIALIZED_CHUNKS_JSON.putIfAbsent(level, new JsonArray());
+
+        CHUNK_CACHE.putIfAbsent(level, new ConcurrentSet<>());
 
         if(level.isClientSide()) return;
 

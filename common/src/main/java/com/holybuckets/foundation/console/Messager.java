@@ -2,12 +2,7 @@ package com.holybuckets.foundation.console;
 
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
-import net.minecraft.commands.CommandSource;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.OutgoingChatMessage;
-import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
@@ -76,28 +71,32 @@ public class Messager implements IMessager {
 
     /**
      * Sends corner hint message to the player on the top right corner of their screen
-     * @param p
-     * @param message
      */
     @Override
     public void sendCornerHint(Player p, String message) {
     }
 
     /**
+     * Sends a bottom screen action hint REFERENCING a translation key from the mod
+     */
+    @Override
+    public void sendBottomActionHint(Player player, String modId, String translationKey) {
+        if(modId==null || modId.isEmpty())
+            sendBottomActionHint(player, translationKey);
+        sendBottomActionHint(player, Component.translatable(translationKey).getString());
+    }
+
+    /**
      * Sends a bottom screen action hint message from server to client
-     * @param player The player to send the message to
-     * @param message The message text to display
      */
     @Override
     public void sendBottomActionHint(Player player, String message) {
         if (player == null || message == null || message.isEmpty()) return;
-        
         SimpleStringMessage.createAndFire(player, MSG_ID_BOTTOM_ACTION_HINT, message);
     }
 
     /**
      * Sends a bottom screen action hint message from server to all players
-     * @param message The message text to display
      */
     @Override
     public void sendBottomActionHint(String message) {
@@ -108,7 +107,6 @@ public class Messager implements IMessager {
 
     /**
      * Sends a bottom screen error hint message from server to all players in red text
-     * @param message The error message text to display
      */
     @Override
     public void bottomScreenErrorHint(String message) {

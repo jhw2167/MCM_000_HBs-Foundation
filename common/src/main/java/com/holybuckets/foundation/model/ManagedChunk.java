@@ -109,13 +109,6 @@ public class ManagedChunk implements IMangedChunkData {
             this.initSubclasses(level, id, null);
         }
 
-        LOADED_CHUNKS.putIfAbsent(this.level, new ConcurrentHashMap<>());
-        LOADED_CHUNKPOS.putIfAbsent(this.level, new ConcurrentHashMap<>());
-
-        INITIALIZED_LONG_CHUNKS.putIfAbsent(this.level, newLongSet());
-        INITIALIZED_CHUNKS_JSON.putIfAbsent(this.level, new JsonArray());
-
-        CHUNK_CACHE.putIfAbsent(this.level, new ConcurrentSet<>());
         LOADED_CHUNKS.get(this.level).put(this.id, this);
         LOADED_CHUNKPOS.get(this.level).put(pos, this.id);
 
@@ -320,8 +313,6 @@ public class ManagedChunk implements IMangedChunkData {
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
-     * @param level
-     * @param updates
      * @return true if all updates were successful, false otherwise
      */
     public static boolean updateChunkBlockStates(LevelAccessor level, BlockState state, Collection<BlockPos> updates) {
@@ -332,8 +323,6 @@ public class ManagedChunk implements IMangedChunkData {
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
-     * @param level
-     * @param updates
      * @return true if all updates were successful, false otherwise
      */
     public static boolean updateChunkBlockStates(LevelAccessor level, Map<BlockState, List<BlockPos>> updates) {
@@ -342,8 +331,6 @@ public class ManagedChunk implements IMangedChunkData {
 
     /**
      * Update the blocks of a chunk. Calls updateChunkBlockStates with the default block state of the block.
-     * @param level
-     * @param updates
      * @return true if all updates were successful, false otherwise
      */
     public static boolean updateChunkBlocks(LevelAccessor level, List<Pair<Block, BlockPos>> updates) {
@@ -354,23 +341,12 @@ public class ManagedChunk implements IMangedChunkData {
      * Update the block states of in world on a Client or ServerLevel. These results are added to a queue and
      * processed in the next tick where setBlock can run on the main thread. If ANY block position
      * in the update is not in a location loaded by the server, no blocks are updated and false is returned.
-     * @param level
-     * @param updates
      * @return true if successful, false if some element was null
      */
     public static boolean updateChunkBlockStates(final LevelAccessor level, List<Pair<BlockState, BlockPos>> updates) {
         return ManagedChunkBlockUpdates.updateChunkBlockStates(level, updates);
     }
 
-    /**
-     * Check if the update has succeeded and removes it.
-     * @param level - LevelAccessor
-     * @param update - Pair object with the same hashcode as requested update
-     * @return true if the update has succeeded
-     */
-    public static boolean checkUpdateBlockStateSucceeded(LevelAccessor level, Pair<BlockState, BlockPos> update) {
-        return ManagedChunkBlockUpdates.checkUpdateBlockStateSucceeded(level, update);
-    }
 
     public static void registerManagedChunkData(Class<? extends IMangedChunkData> classObject, Supplier<IMangedChunkData> data)
     {

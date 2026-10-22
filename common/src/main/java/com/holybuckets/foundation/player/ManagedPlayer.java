@@ -12,6 +12,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.ManagedPlayerSyncMessage;
+import com.holybuckets.foundation.sample.SamplePlayerData;
 import net.blay09.mods.balm.api.event.*;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -683,6 +684,7 @@ public class ManagedPlayer {
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         //reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_20_TICKS, ManagedPlayer::on20ServerTicks, EventPriority.Highest);
+        SamplePlayerData.init();
     }
 
 

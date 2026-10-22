@@ -30,9 +30,6 @@ public class ManagedChunkBlockUpdates {
     private LevelAccessor level;
 
      private Queue<Pair<BlockState, BlockPos>> UPDATES;
-     private Iterator<Pair<BlockState, BlockPos>> NEXT_UPDATE;
-     private Map<Integer, Integer> PENDING;
-     private Map<Integer, WeakReference<Pair<BlockState, BlockPos>>> SUCCEEDED;
 
      private WriteMonitor writeMonitor;
 
@@ -43,114 +40,40 @@ public class ManagedChunkBlockUpdates {
         {
             this.level = level;
             this.util = ManagedChunkUtility.getInstance(level);
-            this.PENDING = new ConcurrentHashMap<>();
             this.UPDATES = new ConcurrentLinkedQueue<>();
-            this.SUCCEEDED = new ConcurrentHashMap<>();
             writeMonitor = new WriteMonitor();
 
         }
 
     private void addUpdate(Pair<BlockState, BlockPos> update) {
-
-        if( update == null || PENDING.containsKey(update.hashCode()) )
-            return;
-
-        PENDING.put(update.hashCode(), 0);
         UPDATES.add(update);
     }
 
-    /**
-     * Check if the update has succeeded and removes it.
-     * @param hashCode
-     * @return true if the update has succeeded
-     */
-    boolean checkSucceeded(int hashCode) {
-        return SUCCEEDED.remove(hashCode) != null;
-    }
-
     private void clear() {
-        PENDING.clear();
         UPDATES.clear();
     }
 
     private void updateBlockStates()
     {
         try {
-
-            if( !writeMonitor.tryLockMainThread() ) return;
-
-            if( UPDATES.isEmpty() ) return;
-
-            if (this.NEXT_UPDATE == null || !this.NEXT_UPDATE.hasNext())
-            {
-                this.NEXT_UPDATE = UPDATES.iterator();
-                if (!this.NEXT_UPDATE.hasNext())
-                    return; // No updates to process
-            }
-
-            int writesPerTick = writeMonitor.getWritePerTick();
-            for (int i = 0; i < writesPerTick && NEXT_UPDATE.hasNext(); i++)
-            {
-                Pair<BlockState, BlockPos> update = NEXT_UPDATE.next();
-                if (update == null) continue;
-
-                /*
-                if(!ableToUpdateBlock(update)) {
-                    PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
-                    i--;
-                    continue;
-                }
-                 */
-
-                int q = 0;
-                if(level.isClientSide())
-                    q = 1;
-                else
-                    q = 2;
-
-                if (updateBlockState(update))
-                {
-                    SUCCEEDED.put(update.hashCode(), new WeakReference<>(update));
-                    PENDING.remove(update.hashCode());
-                    NEXT_UPDATE.remove();
-                } else if (PENDING.get(update.hashCode()) < MAX_ATTEMPTS) {
-                    PENDING.put(update.hashCode(), PENDING.get(update.hashCode()) + 1);
-                    i--;
-                } else {
-                    PENDING.remove(update.hashCode());
-                    NEXT_UPDATE.remove();
-                    i--;
-                }
+            int writesPerTick = writeMonitor.getWritesPerTick();
+            Iterator<?> next = UPDATES.iterator();
+            for (int i = 0; i < writesPerTick && next.hasNext(); i++) {
+                Pair<BlockState, BlockPos> update = (Pair<BlockState, BlockPos>) next.next();
+                if( update == null ) continue;
+                if( !this.util.isLoaded(update.getRight()) ) continue;
+                level.setBlock(update.getRight(), update.getLeft(), Block.UPDATE_IMMEDIATE);
+                next.remove();
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            writeMonitor.unlock();
         }
-
     }
 
     private void shutdown() {
         if( writeMonitor != null ) {
             //writeMonitor.shutdown();
         }
-    }
-
-    private boolean updateBlockState(Pair<BlockState, BlockPos> update) {
-        BlockState state = update.getLeft();
-        BlockPos pos = update.getRight();
-        int tag = Block.UPDATE_IMMEDIATE;
-
-        boolean succeeded = level.setBlock(pos, state, tag);
-        if(succeeded) {
-            level.getChunk(pos).setUnsaved(true);
-        }
-
-        return succeeded;
-    }
-
-    private boolean ableToUpdateBlock(Pair<BlockState, BlockPos> update) {
-        return this.util.isChunkFullyLoaded(update.getRight());
     }
 
     //** UPDATING CHUNK BLOCKS **//
@@ -181,34 +104,18 @@ public class ManagedChunkBlockUpdates {
     {
         if( updates == null || updates.isEmpty() )
             return false;
-
+        if( level.isClientSide() ) return false;
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return false;
 
         //Filter out any blockStates that have hbs_foundaton:empty_block default state
         List<Pair<BlockState, BlockPos>> mutableUpdates = new ArrayList<>(updates);
         mutableUpdates.removeIf(p -> p.getLeft().equals(ModBlocks.empty.get().defaultBlockState()));
-        if( level.isClientSide() ) {
-            //nothing
-        }
-        else {
-            if( mutableUpdates.stream().anyMatch(p -> !manager.ableToUpdateBlock(p)) )
-                return false;
-        }
 
-        try {
-            if( !manager.writeMonitor.tryLockWorkerThread() )
-                return false;
-            mutableUpdates.forEach(manager::addUpdate);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            manager.writeMonitor.unlock();
+        for(Pair<BlockState, BlockPos> update : mutableUpdates) {
+            if(update==null && manager.util.isLoaded( update.getRight() )) continue;
+            level.setBlock( update.getRight(), update.getLeft(), Block.UPDATE_ALL_IMMEDIATE | Block.UPDATE_CLIENTS );
         }
-
-        if( !level.isClientSide() )
-            return sendChunkBlockStatesToClient(level, mutableUpdates);
 
         return true;
     }
@@ -223,12 +130,6 @@ public class ManagedChunkBlockUpdates {
             return false;
         }
         return true;
-    }
-
-    static boolean checkUpdateBlockStateSucceeded(LevelAccessor level, Pair<BlockState, BlockPos> update) {
-        ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
-        if( manager == null ) return false;
-        return manager.checkSucceeded(update.hashCode());
     }
 
     //** EVENTS **//
@@ -251,9 +152,10 @@ public class ManagedChunkBlockUpdates {
 
 
     static void onWorldTick(Level level) {
+        if(level.isClientSide) return;
         ManagedChunkBlockUpdates manager = LEVEL_UPDATES.get(level);
         if( manager == null ) return;
-        manager.updateBlockStates();
+        //manager.updateBlockStates();
     }
 
 
@@ -277,7 +179,7 @@ public class ManagedChunkBlockUpdates {
             this.tickCount = 0;
         }
 
-        Integer getWritePerTick() {
+        Integer getWritesPerTick() {
             return writesPerTick.get() * MODULO_COUNT;
         }
 

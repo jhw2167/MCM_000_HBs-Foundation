@@ -9,6 +9,7 @@ import net.blay09.mods.balm.api.event.client.GuiDrawEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 
@@ -40,7 +41,6 @@ public class MessagerClient implements IMessager {
     
     /**
      * Initialize MessagerClient with ClientEventRegistrar to listen for server messages
-     * @param registrar The ClientEventRegistrar instance
      */
     public void init(ClientEventRegistrar registrar) {
         // Subscribe to bottom screen action hint messages from server
@@ -58,7 +58,6 @@ public class MessagerClient implements IMessager {
     
     /**
      * Sends a message to the chat console for all players
-     * @param message The message to send
      */
     @Override
     public void sendChat(String message) {
@@ -70,8 +69,6 @@ public class MessagerClient implements IMessager {
     
     /**
      * Sends a message to the chat console for a specific player
-     * @param player The target player
-     * @param message The message to send
      */
     @Override
     public void sendChat(Player player, String message) {
@@ -83,8 +80,6 @@ public class MessagerClient implements IMessager {
     
     /**
      * Sends heads up message to the player centered on bottom of their screen
-     * @param player The target player
-     * @param message The message to display
      */
     @Override
     public void sendBottomHeadsUp(Player player, String message) {
@@ -93,18 +88,24 @@ public class MessagerClient implements IMessager {
     
     /**
      * Sends corner hint message to the player on the top right corner of their screen
-     * @param player The target player
-     * @param message The message to display
      */
     @Override
     public void sendCornerHint(Player player, String message) {
         // TODO: Implement corner hint display
     }
-    
+
+    /**
+     * Sends a bottom screen action hint REFERENCING a translation key from the mod
+     */
+    @Override
+    public void sendBottomActionHint(Player player, String modId, String translationKey) {
+        if(modId==null || modId.isEmpty())
+            sendBottomActionHint(player, translationKey);
+        sendBottomActionHint(player, Component.translatable(translationKey).getString());
+    }
+
     /**
      * Sends a bottom screen action hint message to a specific player
-     * @param player The player to send the message to
-     * @param message The message text to display
      */
     @Override
     public void sendBottomActionHint(Player player, String message) {
@@ -122,7 +123,6 @@ public class MessagerClient implements IMessager {
 
     /**
      * Sends a bottom screen error hint message to all players in red text
-     * @param message The error message text to display
      */
     @Override
     public void bottomScreenErrorHint(String message) {
@@ -145,9 +145,6 @@ public class MessagerClient implements IMessager {
     
     /**
      * General method to send a hint message to the bottom center of the player's screen
-     * @param message The message to display
-     * @param textColor The color of the text (RGB format)
-     * @param durationMs Duration in milliseconds to show the message
      */
     private void bottomScreenHint(String message, int textColor, int durationMs) {
         if (message == null || message.isEmpty()) return;
@@ -231,9 +228,6 @@ public class MessagerClient implements IMessager {
         
         /**
          * Constructor with custom text color
-         * @param text The message text
-         * @param textColor The color of the text (RGB format)
-         * @param durationMs Duration in milliseconds
          */
         public BottomScreenMessage(String text, int textColor, int durationMs) {
             this.text = text;
@@ -244,8 +238,6 @@ public class MessagerClient implements IMessager {
         
         /**
          * Constructor with default white text color
-         * @param text The message text
-         * @param durationMs Duration in milliseconds
          */
         public BottomScreenMessage(String text, int durationMs) {
             this(text, 0xFFFFFF, durationMs); // Default to white

@@ -6,7 +6,9 @@ import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import net.blay09.mods.balm.api.event.BreakBlockEvent;
 import net.blay09.mods.balm.api.event.PlayerAttackEvent;
 import net.blay09.mods.balm.api.event.PlayerChangedDimensionEvent;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -20,11 +22,13 @@ public class SamplePlayerData implements IManagedPlayer {
 
     int blocksBroken;
     int damageDealt;
+    BlockPos homePos;
+    BlockPos deathPos;
     private String id;
     Player p;
 
-    static {
-        //registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
+    public static void init() {
+        registerManagedPlayerData(SamplePlayerData.class, () -> new SamplePlayerData(null));
     }
 
 
@@ -36,7 +40,7 @@ public class SamplePlayerData implements IManagedPlayer {
 
     @Override
     public boolean isServerOnly() {
-        return true;
+        return false;
     }
 
     @Override
@@ -59,7 +63,7 @@ public class SamplePlayerData implements IManagedPlayer {
 
     @Override
     public void handlePlayerJoin(Player player) {
-
+        updateHomePos(player);
     }
 
     @Override
@@ -73,11 +77,30 @@ public class SamplePlayerData implements IManagedPlayer {
         if( player != null)
             playerDataMap.remove(player);
         playerDataMap.put(player, this);
+        updateHomePos(player);
     }
 
     @Override
     public void handlePlayerDeath(Player player) {
+        if (player == null) return;
+        deathPos = player.blockPosition();
+        updateHomePos(player);
+    }
 
+    private void updateHomePos(Player player) {
+        if (!(player instanceof ServerPlayer sp)) return;
+        BlockPos bed = sp.getRespawnPosition();
+        if (bed != null) homePos = bed;
+        else homePos = sp.server.overworld().getSharedSpawnPos();
+    }
+
+    public BlockPos getHomePos() {
+        updateHomePos(p);
+        return homePos;
+    }
+
+    public BlockPos getDeathPos() {
+        return deathPos;
     }
 
     @Override
@@ -95,6 +118,9 @@ public class SamplePlayerData implements IManagedPlayer {
         CompoundTag nbt = new CompoundTag();
         nbt.putInt("blocksBroken", blocksBroken);
         nbt.putInt("damageDealt", damageDealt);
+        updateHomePos(p);
+        if (homePos != null) nbt.put("homePos", NbtUtils.writeBlockPos(homePos));
+        if (deathPos != null) nbt.put("deathPos", NbtUtils.writeBlockPos(deathPos));
         return nbt;
     }
 
@@ -102,6 +128,8 @@ public class SamplePlayerData implements IManagedPlayer {
     public void deserializeNBT(CompoundTag nbt) {
         blocksBroken = nbt.getInt("blocksBroken");
         damageDealt = nbt.getInt("damageDealt");
+        homePos = nbt.contains("homePos") ? NbtUtils.readBlockPos(nbt.getCompound("homePos")) : null;
+        deathPos = nbt.contains("deathPos") ? NbtUtils.readBlockPos(nbt.getCompound("deathPos")) : null;
     }
 
     @Override

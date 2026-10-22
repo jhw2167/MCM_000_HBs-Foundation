@@ -10,11 +10,15 @@ import com.holybuckets.foundation.event.custom.PlayerHasItemEvent;
 import com.holybuckets.foundation.event.custom.PlayerInteractEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.model.ManagedChunk;
+import com.holybuckets.foundation.model.ManagedChunkBlockUpdates;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
+import com.holybuckets.foundation.player.ManagedPlayer;
+import com.holybuckets.foundation.sample.SamplePlayerData;
 import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.PlayerLoginEvent;
 import net.blay09.mods.balm.api.event.TossItemEvent;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -109,10 +113,10 @@ public class CommonClassDebug {
 
         // PlayerInteractEvent — uncomment any single line to verify one variant in isolation,
         // or the .class line to verify the catch-all subscription path.
-        reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
-        reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
+        //reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
     }
 
     private static void onRightClickInteraction(PlayerInteractEvent.RightClickInteraction event) {
@@ -150,6 +154,20 @@ public class CommonClassDebug {
             "PlayerInteractEvent (any): type=" + event.getClass().getSimpleName()
             + " player=" + playerName
             + " canceled=" + event.isCanceled());
+       //Print out homePos and deathPos
+         if(event.getPlayer() != null)
+         {
+            ManagedPlayer mp = ManagedPlayer.getManagedPlayer(event.getPlayer());
+             SamplePlayerData spd = (SamplePlayerData) mp.getSubclass(SamplePlayerData.class);
+                BlockPos homePos = spd.getHomePos();
+                BlockPos deathPos = spd.getDeathPos();
+                LoggerBase.logInfo(null, "001304",
+                 "PlayerInteractEvent (any): homePos=" + (homePos != null ? homePos.toShortString() : "null")
+                 + " deathPos=" + (deathPos != null ? deathPos.toShortString() : "null"));
+
+                //Just to be sure, check if we can get spd from Localplayer too
+                SamplePlayerData spdLocal = (SamplePlayerData) ManagedPlayer.getManagedPlayer(Minecraft.getInstance().player).getSubclass(SamplePlayerData.class);
+          }
     }
 
     /*

@@ -225,6 +225,7 @@ public class EventRegistrar {
             .toList();
 
         GeneralConfig.fireEvent(LevelLoadingEvent.Load.class, event);
+        ManagedChunkEvents.onWorldLoad(event);
         // Execute in priority order
         for (Consumer<LevelLoadingEvent.Load> consumer : sortedConsumers) {
             tryEvent(consumer, event);

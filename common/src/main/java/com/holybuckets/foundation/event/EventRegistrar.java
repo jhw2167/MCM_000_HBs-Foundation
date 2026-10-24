@@ -31,6 +31,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import javax.annotation.Nullable;
@@ -109,6 +112,8 @@ public class EventRegistrar {
     final Map<ResourceLocation, Set<Consumer<PlayerNearStructureEvent>>> ON_PLAYER_NEAR_STRUCTURE = new ConcurrentHashMap<>();
     final List<AnvilUpdateEvent> ANVIL_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+    final List<BrewingUpdateEvent> BREWING_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<BrewingUpdateEvent>> BREWING_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
 
     // ItemEntity tick event support
     final List<Supplier<Item>> ITEM_ENTITY_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
@@ -596,6 +601,20 @@ public class EventRegistrar {
         PRIORITIES.put(function, priority);
     }
 
+    /**
+     * Registers a brewing override. The first registered key that matches the ingredient and bottle
+     * of a slot handles it. A null key matches every slot, so prefer a specific key.
+     */
+    public void registerOnBrewingUpdate(@Nullable BrewingUpdateEvent eventKey, Consumer<BrewingUpdateEvent> function) {
+        registerOnBrewingUpdate(eventKey, function, EventPriority.Normal);
+    }
+
+    public void registerOnBrewingUpdate(@Nullable BrewingUpdateEvent eventKey, Consumer<BrewingUpdateEvent> function, EventPriority priority) {
+        BREWING_UPDATE_EVENTS.add(eventKey);
+        BREWING_UPDATE_CONSUMERS.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
     public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function) {
         registerOnItemEntityTick(itemType, function, EventPriority.Normal);
     }
@@ -824,6 +843,60 @@ public class EventRegistrar {
                 }
             }
         }
+    }
+
+    public boolean hasBrewingHandlers() {
+        return !BREWING_UPDATE_CONSUMERS.isEmpty();
+    }
+
+    public void onBrewingUpdate(BrewingUpdateEvent event)
+    {
+        synchronized (BREWING_UPDATE_EVENTS) {
+            for (int i = 0; i < BREWING_UPDATE_EVENTS.size(); i++)
+            {
+                BrewingUpdateEvent registeredEvent = BREWING_UPDATE_EVENTS.get(i);
+                Consumer<BrewingUpdateEvent> consumer = BREWING_UPDATE_CONSUMERS.get(i);
+                if (consumer == null) continue;
+
+                if (registeredEvent == null || registeredEvent.equals(event)) {
+                    tryEvent(consumer, event);
+                    break; // Only execute the first matching handler
+                }
+            }
+        }
+    }
+
+    /**
+     * Fires a BrewingUpdateEvent for each non-empty bottle slot.
+     * @return per bottle slot event, null where the slot is empty or no handler set a result
+     */
+    public BrewingUpdateEvent[] fireBrewingUpdates(BrewingUpdateEvent.Phase phase, @Nullable Level level, @Nullable BlockPos pos,
+                                                   @Nullable BrewingStandBlockEntity blockEntity, NonNullList<ItemStack> slots)
+    {
+        BrewingUpdateEvent[] results = new BrewingUpdateEvent[BrewingUpdateEvent.BOTTLE_SLOT_COUNT];
+        if (!hasBrewingHandlers() || slots == null || slots.size() <= BrewingUpdateEvent.INGREDIENT_SLOT) return results;
+        if (slots.get(BrewingUpdateEvent.INGREDIENT_SLOT).isEmpty()) return results;
+
+        for (int i = 0; i < BrewingUpdateEvent.BOTTLE_SLOT_COUNT; i++)
+        {
+            if (slots.get(i).isEmpty()) continue;
+            BrewingUpdateEvent event = new BrewingUpdateEvent(phase, level, pos, blockEntity, slots, i);
+            onBrewingUpdate(event);
+            if (event.hasResult()) results[i] = event;
+        }
+        return results;
+    }
+
+    /** True if any registered brewing key explicitly accepts this stack as an ingredient */
+    public boolean isBrewingIngredient(ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty() || !hasBrewingHandlers()) return false;
+        synchronized (BREWING_UPDATE_EVENTS) {
+            for (BrewingUpdateEvent key : BREWING_UPDATE_EVENTS) {
+                if (key != null && key.acceptsIngredientForPlacement(stack)) return true;
+            }
+        }
+        return false;
     }
 
     public static void onItemEntityTick(ItemEntity itemEntity)

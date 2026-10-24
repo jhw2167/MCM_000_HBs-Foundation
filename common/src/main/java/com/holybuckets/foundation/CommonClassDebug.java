@@ -5,6 +5,7 @@ import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
+import com.holybuckets.foundation.event.custom.BrewingUpdateEvent;
 import com.holybuckets.foundation.event.custom.ClientInputEvent;
 import com.holybuckets.foundation.event.custom.PlayerHasItemEvent;
 import com.holybuckets.foundation.event.custom.PlayerInteractEvent;
@@ -25,6 +26,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -111,12 +115,42 @@ public class CommonClassDebug {
         //reg.registerOnAnvilUpdate(ironToolCobble, CommonClassDebug::onAnvilUpdateIronToolCobble);
         //reg.registerOnAnvilUpdate(empowerEnchant, CommonClassDebug::onAnvilUpdateRepair);
 
+        reg.registerOnBrewingUpdate(foodHealingBrew, CommonClassDebug::onBrewFoodIntoHealing);
+
         // PlayerInteractEvent — uncomment any single line to verify one variant in isolation,
         // or the .class line to verify the catch-all subscription path.
         //reg.registerOnPlayerInteract(PlayerInteractEvent.RightClickInteraction.class, CommonClassDebug::onRightClickInteraction);
         //reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
         //reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
         //reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+    }
+
+    //** BREWING
+
+    private static final BrewingUpdateEvent.PredicateDriven foodHealingBrew = new BrewingUpdateEvent.PredicateDriven(
+        ingredient -> ingredient.getItem().isEdible(),
+        bottle -> bottle.is(Items.POTION) || bottle.is(Items.SPLASH_POTION) || bottle.is(Items.LINGERING_POTION)
+    );
+
+    /**
+     * Food in the ingredient slot brews Healing when its nutrition is 2 or less, Healing II otherwise.
+     */
+    private static void onBrewFoodIntoHealing(BrewingUpdateEvent event) {
+        ItemStack ingredient = event.getIngredient();
+        ItemStack bottle = event.getBottle();
+
+        FoodProperties food = ingredient.getItem().getFoodProperties();
+        if (food == null) return;
+
+        int nutrition = food.getNutrition();
+        ItemStack result = new ItemStack(bottle.getItem());
+        PotionUtils.setPotion(result, nutrition <= 2 ? Potions.HEALING : Potions.STRONG_HEALING);
+        event.setResultItem(result);
+
+        if (event.isBrew()) {
+            LoggerBase.logInfo(null, "BREWING_UPDATE", "Brewed slot " + event.getBottleSlot()
+                + " from " + ingredient.getItem().getDescriptionId() + " (nutrition " + nutrition + ")");
+        }
     }
 
     private static void onRightClickInteraction(PlayerInteractEvent.RightClickInteraction event) {

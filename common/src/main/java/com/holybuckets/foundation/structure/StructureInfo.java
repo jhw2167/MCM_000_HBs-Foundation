@@ -8,7 +8,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureType;
 import org.apache.commons.lang3.text.WordUtils;
 
 public class StructureInfo {
@@ -18,6 +17,9 @@ public class StructureInfo {
     int registryId;
     String commonName;
     ResourceLocation structureLocation;
+    int currentStage = -1;
+    ResourceLocation[] structureStages = new ResourceLocation[0];
+    String structureConcept = null;
 
     public StructureInfo(BlockPos origin, ResourceLocation id, int rId, String commonName, ResourceLocation structureLocation) {
         this.origin = origin;
@@ -45,11 +47,48 @@ public class StructureInfo {
     }
 
     public String getCommonName() {
-        return commonName;
+        ResourceLocation loc = getCurrentStructureLocation();
+        if (loc == null) return commonName;
+        return WordUtils.capitalizeFully(loc.getPath().replace("_", " "));
     }
 
     public ResourceLocation getStructureLocation() {
         return structureLocation;
+    }
+
+    public ResourceLocation getCurrentStructureLocation() {
+        if (currentStage >= 0 && currentStage < structureStages.length && structureStages[currentStage] != null)
+            return structureStages[currentStage];
+        return structureLocation;
+    }
+
+    public int getCurrentStage() {
+        return currentStage;
+    }
+
+    public ResourceLocation[] getStructureStages() {
+        return structureStages;
+    }
+
+    public String getStructureConcept() {
+        return structureConcept;
+    }
+
+    public void setStructureConcept(String structureConcept) {
+        this.structureConcept = structureConcept;
+    }
+
+    public void setStructureStages(ResourceLocation[] structureStages) {
+        this.structureStages = (structureStages == null) ? new ResourceLocation[0] : structureStages;
+    }
+
+    public void setCurrentStage(int currentStage) {
+        this.currentStage = currentStage;
+    }
+
+    public void setAsUpgradableStructure(int currentStage, ResourceLocation[] structureStages) {
+        this.currentStage = currentStage;
+        setStructureStages(structureStages);
     }
 
     //add equals method based on registry id and blockPos
@@ -73,6 +112,8 @@ public class StructureInfo {
         tag.putInt("registryId", registryId);
         if(commonName != null) tag.putString("commonName", commonName);
         if(structureLocation != null) tag.putString("structureLocation", structureLocation.toString());
+        tag.putInt("currentStage", currentStage);
+        if(structureConcept != null) tag.putString("structureConcept", structureConcept);
         return tag;
     }
 
@@ -95,6 +136,9 @@ public class StructureInfo {
         if(tag.contains("structureLocation")) {
             structureLocation = new ResourceLocation(tag.getString("structureLocation"));
         }
+
+        currentStage = tag.contains("currentStage") ? tag.getInt("currentStage") : -1;
+        structureConcept = tag.contains("structureConcept") ? tag.getString("structureConcept") : null;
     }
 
 

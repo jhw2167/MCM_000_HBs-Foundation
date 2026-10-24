@@ -33,6 +33,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPlayerData;
@@ -48,6 +49,8 @@ public class StructureManager {
 
 
     private static Map<Level, StructureManager> managers = new HashMap<>();
+    private static final Map<ResourceLocation, String> structureConcepts = new HashMap<>();
+    private static final Map<String, ResourceLocation[]> structureConceptStages = new HashMap<>();
     private Iterator<StructureInfo> syncIterator;
 
     private StructureManager(Level level) {
@@ -262,6 +265,72 @@ public class StructureManager {
         return structures.get(pos);
     }
 
+    /**
+     * Finds a structure by its bounding box center and original type, tolerating the small
+     * center shifts that processStructureLoad canonicalizes.
+     */
+    public @javax.annotation.Nullable StructureInfo getStructureAt(BlockPos center, ResourceLocation loc) {
+        if (center == null || loc == null) return null;
+        BlockPos canonical = existingStructures.get("" + new ChunkPos(center) + ":" + loc);
+        return structures.get(canonical != null ? canonical : center);
+    }
+
+    //** STRUCTURE CONCEPTS
+    public static void structureUpgraded(String concept, int newStage) {
+        ResourceLocation[] stages = structureConceptStages.get(concept);
+        if (stages == null || newStage < 0 || newStage >= stages.length) return;
+
+        //iterate over all structures
+        for (StructureManager manager : managers.values()) {
+            for (StructureInfo info : manager.structures.values()) {
+                if (concept.equals(info.getStructureConcept())) {
+                    info.setCurrentStage(newStage);
+                }
+            }
+        }
+    }
+
+    /**
+     * Registers all structure concepts from Structures Over Time mod
+     * so our StructureAPI can track structures that have upgraded
+     */
+    public static void setAllStructureConcepts(Map<String, ResourceLocation[]> conceptStages)
+    {
+        structureConceptStages.putAll(conceptStages);
+
+        for(Map.Entry<String, ResourceLocation[]> entry : conceptStages.entrySet()) {
+            String concept = entry.getKey();
+            ResourceLocation[] stages = entry.getValue();
+            for(ResourceLocation stage : stages) {
+                structureConcepts.put(stage, concept);
+            }
+        }
+
+        for (StructureManager manager : managers.values()) {
+            for (StructureInfo info : manager.structures.values()) {
+                hydrateStructureConcept(info);
+            }
+        }
+    }
+
+    public static Map<ResourceLocation, String> getAllStructureConcepts() {
+        return Collections.unmodifiableMap(structureConcepts);
+    }
+
+    public static @Nullable ResourceLocation[] getStructureConceptStages(String concept) {
+        return structureConceptStages.get(concept);
+    }
+
+    private static void hydrateStructureConcept(StructureInfo info) {
+        String concept = info.getStructureConcept();
+        if (concept == null) concept = structureConcepts.get(info.getStructureLocation());
+        if (concept == null) return;
+
+        info.setStructureConcept(concept);
+        ResourceLocation[] stages = structureConceptStages.get(concept);
+        if (stages != null) info.setStructureStages(stages);
+    }
+
     //** EVENT HANDLERS
 
 
@@ -353,6 +422,7 @@ public class StructureManager {
         if (holder == null) return;
 
         StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
+        hydrateStructureConcept(structureInfo);
         this.structures.put(structStartPos, structureInfo);
         this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
 
@@ -434,10 +504,13 @@ public class StructureManager {
                     JsonArray pair = elem.getAsJsonArray();
                     if(pair.size() < 2) continue;
                     info = StructureInfo.of(registryId, pair.get(0).getAsLong(), pair.get(1).getAsInt(), structureRegistry, structureLocation);
+                    if(pair.size() > 2) info.currentStage = pair.get(2).getAsInt();
+                    if(pair.size() > 3 && !pair.get(3).isJsonNull()) info.structureConcept = pair.get(3).getAsString();
                 } else {
                     info = StructureInfo.of(registryId, elem.getAsString(), structureRegistry, structureLocation);
                 }
                 if(structures.containsKey(info.origin)) continue;
+                hydrateStructureConcept(info);
                 this.structures.put(info.origin, info);
                 this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
                 this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
@@ -481,6 +554,10 @@ public class StructureManager {
             JsonArray pair = new JsonArray();
             pair.add(tag.getLong("chunkPos"));
             pair.add(tag.getInt("y"));
+            if(struct.currentStage != -1 || struct.structureConcept != null) {
+                pair.add(struct.currentStage);
+                pair.add(struct.structureConcept);
+            }
             root.getAsJsonArray(key).add(pair);
         }
 

@@ -30,6 +30,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.*;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
@@ -37,6 +39,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
@@ -204,6 +207,43 @@ public class HBUtil {
 
     }
 
+    public static class EffectUtil {
+
+        public static String effectToString(MobEffect effect) {
+            if( effect == null ) {
+                LoggerBase.logError( null, "004000", "Error parsing effect to string, effect is null");
+                return null;
+            }
+            return effect.toString().replace("MobEffect{", "").replace("}", "");
+        }
+
+        //mobEffectNameToEffect
+        public static MobEffect mobEffectNameToEffect(String qualifiedEffectName) {
+            String[] parts = qualifiedEffectName.split(":");
+            if( parts.length < 2 ) {
+                return mobEffectNameToEffect("minecraft", qualifiedEffectName);
+            }
+            return mobEffectNameToEffect(parts[0], parts[1]);
+        }
+
+        public static MobEffect mobEffectNameToEffect(String nameSpace, String effectName) {
+            ResourceLocation effectKey = new ResourceLocation(nameSpace.trim(), effectName.trim());
+            return mobEffectNameToEffect(effectKey);
+        }
+
+        public static MobEffect mobEffectNameToEffect(ResourceLocation loc) {
+            MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(loc);
+            if(effect==null ) {
+                LoggerBase.logError( null, "004002", "Error parsing effect name as string into a Minecraft MobEffect type, " +
+                    "effect name provided was not found in Minecraft MobEffect registry: " + loc);
+                return null;
+            }
+
+            return effect;
+        }
+
+    }
+
     public static class ItemUtil {
 
         public static String itemToString(Item item) {
@@ -237,9 +277,10 @@ public class HBUtil {
             ResourceLocation itemKey = new ResourceLocation(nameSpace.trim(), itemName.trim());
             Item item = BuiltInRegistries.ITEM.get(itemKey);
 
-            if( item == null ) {
+            if(item.equals(Items.AIR) ) {
                 LoggerBase.logError( null, "004002", "Error parsing item name as string into a Minecraft Item type, " +
                     "item name provided was not found in Minecraft Item registry: " + itemName);
+                    return null;
             }
 
             return item;

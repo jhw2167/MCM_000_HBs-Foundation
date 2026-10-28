@@ -114,6 +114,10 @@ public class EventRegistrar {
     final List<Consumer<AnvilUpdateEvent>> ANVIL_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
     final List<BrewingUpdateEvent> BREWING_UPDATE_EVENTS = Collections.synchronizedList(new ArrayList<>());
     final List<Consumer<BrewingUpdateEvent>> BREWING_UPDATE_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+    final List<Supplier<Item>> PLAYER_CRAFTED_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
+    final List<Consumer<PlayerCraftedEvent>> PLAYER_CRAFTED_CONSUMERS = Collections.synchronizedList(new ArrayList<>());
+    final Map<Item, List<Consumer<PlayerCraftedEvent>>> PLAYER_CRAFTED_MAP = new ConcurrentHashMap<>();
+    final Set<Consumer<PlayerCraftedEvent>> ALL_PLAYER_CRAFTED_CONSUMERS = new ConcurrentSet<>();
 
     // ItemEntity tick event support
     final List<Supplier<Item>> ITEM_ENTITY_SUPPLIERS = Collections.synchronizedList(new ArrayList<>());
@@ -156,6 +160,7 @@ public class EventRegistrar {
         GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Process deferred item objects for ItemEntity tick events
         processItemEntityDeferredObjects();
+        processPlayerCraftedDeferredObjects();
         processPlayerHasItemDeferredObjects();
 
         List<Consumer<ServerStartingEvent>> sortedConsumers = ON_BEFORE_SERVER_START.stream()
@@ -186,6 +191,20 @@ public class EventRegistrar {
 
     }
 
+    private void processPlayerCraftedDeferredObjects() {
+        PLAYER_CRAFTED_MAP.clear();
+        ALL_PLAYER_CRAFTED_CONSUMERS.clear();
+        for (int i = 0; i < PLAYER_CRAFTED_SUPPLIERS.size(); i++)
+        {
+            Supplier<Item> deferredItem = PLAYER_CRAFTED_SUPPLIERS.get(i);
+            Consumer<PlayerCraftedEvent> consumer = PLAYER_CRAFTED_CONSUMERS.get(i);
+            if (consumer == null) continue;
+
+            if (deferredItem == null) ALL_PLAYER_CRAFTED_CONSUMERS.add(consumer);
+            else PLAYER_CRAFTED_MAP.computeIfAbsent(deferredItem.get(), k -> new ArrayList<>()).add(consumer);
+        }
+    }
+
     private void processPlayerHasItemDeferredObjects() {
         for (int i = 0; i < PLAYER_HAS_ITEM_SUPPLIERS.size(); i++) {
             Supplier<Item> supplier = PLAYER_HAS_ITEM_SUPPLIERS.get(i);
@@ -209,6 +228,7 @@ public class EventRegistrar {
         }
 
         GeneralConfig.fireEvent(ServerStoppedEvent.class, event);
+        PlayerCraftedEvent.CRAFTING_GRIDS.clear();
     }
 
     void onServerStarted(ServerStartedEvent event) {
@@ -615,6 +635,20 @@ public class EventRegistrar {
         PRIORITIES.put(function, priority);
     }
 
+    /**
+     * Subscribes to players claiming a crafted item of this type from a 2x2 or 3x3 crafting grid.
+     * A null item type subscribes to every crafted item. Items resolve on server start, so pass the deferred supplier.
+     */
+    public void registerOnPlayerCrafted(@Nullable Supplier<Item> itemType, Consumer<PlayerCraftedEvent> function) {
+        registerOnPlayerCrafted(itemType, function, EventPriority.Normal);
+    }
+
+    public void registerOnPlayerCrafted(@Nullable Supplier<Item> itemType, Consumer<PlayerCraftedEvent> function, EventPriority priority) {
+        PLAYER_CRAFTED_SUPPLIERS.add(itemType);
+        PLAYER_CRAFTED_CONSUMERS.add(function);
+        PRIORITIES.put(function, priority);
+    }
+
     public void registerOnItemEntityTick(@Nullable Supplier<Item> itemType, Consumer<ItemEntityTickEvent> function) {
         registerOnItemEntityTick(itemType, function, EventPriority.Normal);
     }
@@ -843,6 +877,21 @@ public class EventRegistrar {
                 }
             }
         }
+    }
+
+    /** Called from the crafting mixins when a player claims a crafted stack, server side only */
+    public static void onPlayerCrafted(Player player, ItemStack crafted)
+    {
+        EventRegistrar registrar = getInstance();
+        if (registrar == null || player == null || crafted == null || crafted.isEmpty()) return;
+        if (player.level().isClientSide) return;
+
+        List<Consumer<PlayerCraftedEvent>> specificConsumers = registrar.PLAYER_CRAFTED_MAP.get(crafted.getItem());
+        if (specificConsumers == null && registrar.ALL_PLAYER_CRAFTED_CONSUMERS.isEmpty()) return;
+
+        PlayerCraftedEvent event = new PlayerCraftedEvent(player, PlayerCraftedEvent.CRAFTING_GRIDS.get(player), crafted);
+        registrar.ALL_PLAYER_CRAFTED_CONSUMERS.forEach(consumer -> registrar.tryEvent(consumer, event));
+        if (specificConsumers != null) specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
     }
 
     public boolean hasBrewingHandlers() {

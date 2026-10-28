@@ -1,49 +1,22 @@
 package com.holybuckets.foundation;
 
-import com.holybuckets.foundation.block.ModBlocks;
 import com.holybuckets.foundation.console.Messager;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.event.custom.AnvilUpdateEvent;
-import com.holybuckets.foundation.event.custom.BrewingUpdateEvent;
-import com.holybuckets.foundation.event.custom.ClientInputEvent;
-import com.holybuckets.foundation.event.custom.PlayerHasItemEvent;
-import com.holybuckets.foundation.event.custom.PlayerInteractEvent;
-import com.holybuckets.foundation.event.custom.ServerTickEvent;
-import com.holybuckets.foundation.model.ManagedChunk;
-import com.holybuckets.foundation.model.ManagedChunkBlockUpdates;
-import com.holybuckets.foundation.model.ManagedChunkUtility;
+import com.holybuckets.foundation.event.custom.*;
 import com.holybuckets.foundation.player.ManagedPlayer;
 import com.holybuckets.foundation.sample.SamplePlayerData;
-import net.blay09.mods.balm.api.event.ChunkLoadingEvent;
-import net.blay09.mods.balm.api.event.LevelLoadingEvent;
-import net.blay09.mods.balm.api.event.PlayerLoginEvent;
-import net.blay09.mods.balm.api.event.TossItemEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Thread.sleep;
 
@@ -123,7 +96,21 @@ public class CommonClassDebug {
         //reg.registerOnPlayerInteract(PlayerInteractEvent.LeftClickInteraction.class, CommonClassDebug::onLeftClickInteraction);
         //reg.registerOnPlayerInteract(PlayerInteractEvent.EntityInteract.class, CommonClassDebug::onEntityInteract);
         //reg.registerOnPlayerInteract(PlayerInteractEvent.class, CommonClassDebug::onAnyPlayerInteract);
+        reg.registerOnPlayerCrafted(() -> Items.OAK_PLANKS, CommonClassDebug::onPlayerCrafted);
     }
+
+
+    //** Crafting
+    private static void onPlayerCrafted(PlayerCraftedEvent event) {
+        CraftingContainer grid = event.getCraftSlots();
+        LoggerBase.logInfo(null, "001400",
+            "PlayerCrafted: " + event.getPlayer().getName().getString()
+            + " grid " + (grid == null ? "untracked" : grid.getContainerSize())
+            + " " + event.getCraftedItem().getItem());
+
+        event.getCraftedItem().setCount(6);
+    }
+
 
     //** BREWING
 

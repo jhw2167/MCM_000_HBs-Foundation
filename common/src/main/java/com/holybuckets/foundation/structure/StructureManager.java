@@ -9,6 +9,7 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.*;
+import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.SimpleStringMessage;
 import com.holybuckets.foundation.networking.StructureInfoMessage;
@@ -30,6 +31,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 
@@ -369,8 +371,11 @@ public class StructureManager {
 
             for(BlockPos pos : currentlyLoadedStructures) {
                 if (playerPos.distSqr(pos) <= NEAR_STRUCTURE_THRESHOLD * NEAR_STRUCTURE_THRESHOLD) {
+                    StructureInfo info = structures.get(pos);
+                    Structure s = structureRegistry.get(info.getStructureLocation());
+                    LevelChunk chunk = ManagedChunkUtility.getLevelChunk(level, pos);
                     PlayerNearStructureEvent event = new PlayerNearStructureEvent(player,
-                        structures.get(pos));
+                         info, s, chunk);
                     EventRegistrar.getInstance().onPlayerNearStructure(event);
                 }
             }

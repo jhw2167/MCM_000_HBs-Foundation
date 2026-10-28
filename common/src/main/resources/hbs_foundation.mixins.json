@@ -7,8 +7,6 @@
     "mixins": [
         "ServerLevelMixin",
         "AnvilMenuMixin",
-        "BrewingStandBlockEntityMixin",
-        "BrewingStandMenuIngredientsSlotMixin",
         "ItemEntityMixin"
     ],
     "client": [

@@ -73,6 +73,8 @@ public class ClientEventRegistrar {
     final Multimap<String, Consumer<SimpleMessageEvent>> ON_SIMPLE_MESSAGE = HashMultimap.create();
     final Multimap<RenderLevelEvent.RenderStage, Consumer<RenderLevelEvent>> ON_RENDER_LEVEL = HashMultimap.create();
     final Set<Consumer<DetermineActiveWaypointEvent>> ON_DETERMINE_ACTIVE_WAYPOINT = new ConcurrentSet<>();
+    final Set<Consumer<RegisterCustomBlockEntitiesEvent>> ON_REGISTER_CUSTOM_BLOCK_ENTITIES = new ConcurrentSet<>();
+    final Set<Consumer<RegisterCustomItemModelsEvent>> ON_REGISTER_CUSTOM_ITEM_MODELS = new ConcurrentSet<>();
 
     // Static RenderLevelEvent instance for performance
     private static final RenderLevelEvent RENDER_LEVEL_EVENT = new RenderLevelEvent();
@@ -262,6 +264,37 @@ public class ClientEventRegistrar {
     public void registerOnDetermineActiveWaypoint(Consumer<DetermineActiveWaypointEvent> function, EventPriority priority) {
         ON_DETERMINE_ACTIVE_WAYPOINT.add(function);
         PRIORITIES.put(function.hashCode(), priority);
+    }
+
+
+    //** ITEM RENDERING
+
+    public void registerCustomBlockEntities(Consumer<RegisterCustomBlockEntitiesEvent> function) {
+        registerCustomBlockEntities(function, EventPriority.Normal);
+    }
+
+    public void registerCustomBlockEntities(Consumer<RegisterCustomBlockEntitiesEvent> function, EventPriority priority) {
+        generalRegister(function, ON_REGISTER_CUSTOM_BLOCK_ENTITIES, priority);
+    }
+
+    public void registerCustomItemModels(Consumer<RegisterCustomItemModelsEvent> function) {
+        registerCustomItemModels(function, EventPriority.Normal);
+    }
+
+    public void registerCustomItemModels(Consumer<RegisterCustomItemModelsEvent> function, EventPriority priority) {
+        generalRegister(function, ON_REGISTER_CUSTOM_ITEM_MODELS, priority);
+    }
+
+    public RegisterCustomBlockEntitiesEvent onRegisterCustomBlockEntities() {
+        RegisterCustomBlockEntitiesEvent event = new RegisterCustomBlockEntitiesEvent();
+        ON_REGISTER_CUSTOM_BLOCK_ENTITIES.forEach(consumer -> tryEvent(consumer, event));
+        return event;
+    }
+
+    public RegisterCustomItemModelsEvent onRegisterCustomItemModels() {
+        RegisterCustomItemModelsEvent event = new RegisterCustomItemModelsEvent();
+        ON_REGISTER_CUSTOM_ITEM_MODELS.forEach(consumer -> tryEvent(consumer, event));
+        return event;
     }
 
 

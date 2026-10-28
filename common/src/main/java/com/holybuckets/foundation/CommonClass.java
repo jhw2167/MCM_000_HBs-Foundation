@@ -35,7 +35,7 @@ public class CommonClass {
         reg.registerOnServerTick(TickType.ON_20_TICKS, PerformanceImpactConfig::sampleMemory);
         // Debug-only hooks live in CommonClassDebug. Activate individual hooks by
         // uncommenting registrations inside that class.
-        CommonClassDebug.init(reg);
+        //CommonClassDebug.init(reg);
 
         BalmEventRegister.registerEvents();
         isInitialized = true;

@@ -9,7 +9,8 @@
     "client": [
         "MixinTitleScreen",
         "MixinProcessListener",
-        "MixinIOWorker"
+        "MixinIOWorker",
+        "ItemRenderPropertiesAccessor"
     ],
     "server": [
     ],

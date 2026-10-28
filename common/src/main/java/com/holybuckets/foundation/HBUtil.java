@@ -1241,8 +1241,12 @@ public class HBUtil {
         }
         private static final TicketType<String> MOD_TICKET = TicketType.create("chunk_load",
          Comparator.comparingInt( s -> s.hashCode() ) );
-        private static Map<ServerLevel, LongSet> forceLoadedChunks = new HashMap<>();
-        private static LongObjectMap<String> forceLoadedChunkTicketIds = new LongObjectHashMap<>();
+        private static Map<ServerLevel, LongSet> forceLoadedChunks = new WeakHashMap<>();
+        private static Map<ServerLevel, LongObjectMap<String>> forceLoadedChunkTicketIds = new WeakHashMap<>();
+
+        private static LongObjectMap<String> ticketIds(ServerLevel level) {
+            return forceLoadedChunkTicketIds.computeIfAbsent(level, k -> new LongObjectHashMap<>());
+        }
 
         public static final int TICKET_RADIUS_FULL     = 0;
         public static final int TICKET_RADIUS_FEATURES = 2;
@@ -1268,18 +1272,19 @@ public class HBUtil {
             }
 
             LongSet loadedChunkIds = ChunkUtil.forceLoadedChunks.computeIfAbsent(level, k -> new LongOpenHashSet());
+            LongObjectMap<String> ticketIds = ticketIds(level);
             Long chunkId = getChunkPos1DMap(chunkPos);
-            if (forceLoadedChunkTicketIds.get(chunkId) == null) {}
-            else if (forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) return;
+            if (ticketIds.get(chunkId) == null) {}
+            else if (ticketIds.get(chunkId).equals(ticketId)) return;
             else {
                 // Remove orphaned ticket before overwriting
-                String existingId = forceLoadedChunkTicketIds.get(chunkId);
+                String existingId = ticketIds.get(chunkId);
                 level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, existingId);
             }
 
             level.getChunkSource().addRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
             loadedChunkIds.add(chunkId);
-            forceLoadedChunkTicketIds.put(chunkId, ticketId);
+            ticketIds.put(chunkId, ticketId);
 
             //Log total loaded chunks in chunkSource
             int totalChunks = level.getChunkSource().getLoadedChunksCount();
@@ -1305,11 +1310,12 @@ public class HBUtil {
 
             level.getChunkSource().removeRegionTicket(MOD_TICKET, chunkPos, chunkMinStatus, ticketId);
 
-            if (forceLoadedChunkTicketIds.containsKey(chunkId) && !forceLoadedChunkTicketIds.get(chunkId).equals(ticketId)) {
+            LongObjectMap<String> ticketIds = ticketIds(level);
+            if (ticketIds.containsKey(chunkId) && !ticketIds.get(chunkId).equals(ticketId)) {
                 return;
             }
             loadedChunkIds.remove(chunkId);
-            forceLoadedChunkTicketIds.remove(chunkId);
+            ticketIds.remove(chunkId);
 
             int totalChunks = level.getChunkSource().getLoadedChunksCount();
             int totalForceChunks = level.getForcedChunks().size();

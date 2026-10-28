@@ -192,6 +192,21 @@ public class ManagedChunkUtility {
         return ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level);
     }
 
+    public static LevelChunk getLevelChunk(LevelAccessor level, BlockPos pos) {
+        return getLevelChunk(level, HBUtil.ChunkUtil.getId(pos));
+
+    }
+
+    public static LevelChunk getLevelChunk(LevelAccessor level, ChunkPos pos) {
+        return getLevelChunk(level, HBUtil.ChunkUtil.getId(pos));
+    }
+
+    public static LevelChunk getLevelChunk(LevelAccessor level, String chunkId) {
+        ManagedChunkUtility util = getInstance(level);
+        if(util == null) return null;
+        return util.getChunk(chunkId, false);
+    }
+
 
     public LevelChunk getChunk(String chunkId, boolean forceLoad) {
         if(chunkId == null) return null;

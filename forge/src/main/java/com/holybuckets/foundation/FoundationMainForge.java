@@ -23,6 +23,7 @@ public class FoundationMainForge {
             )
         );
 
+        //Tested and don't need client class, DistExecutor will handle it
         Balm.initialize(Constants.MOD_ID, CommonClass::init);
         DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> BalmClient.initialize(Constants.MOD_ID, CommonClassClient::initClient));
     }

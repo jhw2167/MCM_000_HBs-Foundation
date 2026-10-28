@@ -144,6 +144,11 @@ public class ManagedChunk implements IMangedChunkData {
         return null;
     }
 
+    public long getTickWritten() { return this.tickWritten; }
+
+    public long getTickLoaded() { return this.tickLoaded; }
+
+
     /**
      * DO NOT ATTEMPT THIS FROM MAIN THREAD LIKE A TICK OR A COMMAND, will crash world
      * @return LevelChunk

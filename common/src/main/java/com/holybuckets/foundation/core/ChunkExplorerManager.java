@@ -38,7 +38,7 @@ public class ChunkExplorerManager {
 
 
     public static final int SCAN_RADIUS_CHUNKS = 1024; //Get out there and scan!
-    public static final int CHUNK_EXPLORER_MAX = 100;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
+    public static final int CHUNK_EXPLORER_MAX = 128;  // safety cap to prevent OOM if something goes wrong with the queue rebuild
     public static final int SCAN_RADIUS_SQUARED = SCAN_RADIUS_CHUNKS*SCAN_RADIUS_CHUNKS;  // 10,000 chunks / 16, RANGE
 
 
@@ -78,7 +78,7 @@ public class ChunkExplorerManager {
         reg.registerOnLevelLoad(ChunkExplorerManager::onLevelLoad);
         reg.registerOnLevelUnload(ChunkExplorerManager::onLevelUnload);
         reg.registerOnServerStopped(ChunkExplorerManager::onServerStopped);
-        reg.registerOnServerTick(TickType.ON_120_TICKS, ChunkExplorerManager::onExploreTick);
+        reg.registerOnServerTick(TickType.ON_20_TICKS, ChunkExplorerManager::onExploreTick);
         reg.registerOnServerTick(TickType.ON_1200_TICKS,  ChunkExplorerManager::on1200TicksSearchNewChunks);
     }
 
@@ -165,70 +165,46 @@ public class ChunkExplorerManager {
 
     private static int SKIP_CHUNKS = 8;
     //** QUEUE REBUILD (every 1200 ticks)
+    private static int pcount=0;
     private void rebuildQueue()
     {
-        if (chunkGenerators.isEmpty()) return;
-
         List<Player> players = new ArrayList<>(chunkGenerators.keySet());
-        final int priorityStride = Math.max(1, players.size());
+        Player player = null;
+        if(!players.isEmpty()) {
+           player = players.get(pcount++ % players.size());
+        }
 
+        chunkExploreQueue.clear();
         for (int i=0; i < CHUNK_EXPLORER_MAX; i++)
         {
-            Player player = players.get(i % players.size());
             ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
-            ChunkPos next = handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
-            if(next == null) break;
-            if(handler.testScanRadiusExceeded(SCAN_RADIUS_CHUNKS)) continue;
-            chunkExploreQueue.addLast(next);
+            ChunkPos current = handler.getCurrentPos();
+            ChunkPos priorityChunk = chunkGenerationPriorityQueue.peekFirst();
 
-            //Sprinkle one submitted chunk in for every player's worth of spiral entries
-            if((i + 1) % priorityStride != 0) continue;
-            ChunkPos priority = pollNextPriorityChunk(players);
-            if(priority != null) chunkExploreQueue.addLast(priority);
-        }
+            if(current!=null && priorityChunk!=null)
+            {   //take the closest by dist
+                ChunkPos playerPos = new ChunkPos(player.blockPosition());
+                double currDist = HBUtil.ChunkUtil.chunkDistSquared(playerPos, current);
+                double priorDist = HBUtil.ChunkUtil.chunkDistSquared(playerPos, priorityChunk);
 
-    }
-
-
-    /**
-     * Takes the next submitted chunk still worth generating. Chunks already initialized or loaded are
-     * dropped; chunks outside the scan radius of every player go to the back of the queue so they
-     * become eligible again once a player moves closer.
-     */
-    private ChunkPos pollNextPriorityChunk(List<Player> players)
-    {
-        synchronized (chunkGenerationPriorityQueue)
-        {
-            int attempts = chunkGenerationPriorityQueue.size();
-            for (int i = 0; i < attempts; i++)
-            {
-                ChunkPos candidate = chunkGenerationPriorityQueue.pollFirst();
-                if (candidate == null) return null;
-
-                if (util.isChunkInitialized(candidate)) continue;
-                if (util.isLoaded(candidate)) continue;
-
-                if (!withinExploreRange(candidate, players)) {
-                    chunkGenerationPriorityQueue.addLast(candidate);
-                    continue;
-                }
-
-                return candidate;
+                if(currDist <= priorDist)
+                    priorityChunk=null;
+                else
+                    current=null;
             }
+
+            if(current==null) {
+                chunkExploreQueue.add(priorityChunk);
+                chunkGenerationPrioritySet.remove(priorityChunk);
+                chunkGenerationPriorityQueue.pollFirst();
+            } else {
+                chunkExploreQueue.add(current);
+                handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
+            }
+
         }
-        return null;
     }
 
-    private boolean withinExploreRange(ChunkPos pos, List<Player> players)
-    {
-        for (Player player : players) {
-            ChunkPos playerChunk = new ChunkPos(player.blockPosition());
-            if (Math.abs(pos.x - playerChunk.x) > SCAN_RADIUS_CHUNKS) continue;
-            if (Math.abs(pos.z - playerChunk.z) > SCAN_RADIUS_CHUNKS) continue;
-            return true;
-        }
-        return false;
-    }
 
 
     //** STATICS
@@ -466,25 +442,7 @@ public class ChunkExplorerManager {
             this.radius = radius;
         }
 
-        public ChunkPos getNextSpiralChunk() {
-            if (total == 0) {
-                total++;
-                return currentPos;
-            }
-
-            if (dirCount == count) {
-                dir      = getNextDirection();
-                dirCount = 0;
-                // Increment the step-count after completing UP or DOWN legs
-                if (dir == UP || dir == DOWN) {
-                    count++;
-                }
-            }
-
-            currentPos = HBUtil.ChunkUtil.posAdd(currentPos, dir);
-            total++;
-            dirCount++;
-
+        public ChunkPos getCurrentPos() {
             return currentPos;
         }
 

@@ -28,6 +28,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -228,7 +229,6 @@ public class EventRegistrar {
         }
 
         GeneralConfig.fireEvent(ServerStoppedEvent.class, event);
-        PlayerCraftedEvent.CRAFTING_GRIDS.clear();
     }
 
     void onServerStarted(ServerStartedEvent event) {
@@ -880,16 +880,16 @@ public class EventRegistrar {
     }
 
     /** Called from the crafting mixins when a player claims a crafted stack, server side only */
-    public static void onPlayerCrafted(Player player, ItemStack crafted)
+    public static void onPlayerCrafted(Player player, CraftingContainer craftSlots, ItemStack crafted)
     {
         EventRegistrar registrar = getInstance();
-        if (registrar == null || player == null || crafted == null || crafted.isEmpty()) return;
+        if (registrar == null || player == null || craftSlots == null || crafted == null || crafted.isEmpty()) return;
         if (player.level().isClientSide) return;
 
         List<Consumer<PlayerCraftedEvent>> specificConsumers = registrar.PLAYER_CRAFTED_MAP.get(crafted.getItem());
         if (specificConsumers == null && registrar.ALL_PLAYER_CRAFTED_CONSUMERS.isEmpty()) return;
 
-        PlayerCraftedEvent event = new PlayerCraftedEvent(player, PlayerCraftedEvent.CRAFTING_GRIDS.get(player), crafted);
+        PlayerCraftedEvent event = new PlayerCraftedEvent(player, craftSlots, crafted);
         registrar.ALL_PLAYER_CRAFTED_CONSUMERS.forEach(consumer -> registrar.tryEvent(consumer, event));
         if (specificConsumers != null) specificConsumers.forEach(consumer -> registrar.tryEvent(consumer, event));
     }

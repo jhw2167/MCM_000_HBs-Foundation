@@ -1,8 +1,6 @@
 package com.holybuckets.foundation.mixin;
 
 import com.holybuckets.foundation.event.EventRegistrar;
-import com.holybuckets.foundation.event.custom.PlayerCraftedEvent;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
@@ -13,7 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -24,21 +21,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class InventoryMenuMixin {
 
     @Shadow @Final private CraftingContainer craftSlots;
-    @Shadow @Final private Player owner;
-
-    @Inject(method = "slotsChanged", at = @At("HEAD"))
-    private void hbs_foundation$trackGrid(Container container, CallbackInfo ci) {
-        if (!this.owner.level().isClientSide) PlayerCraftedEvent.CRAFTING_GRIDS.put(this.owner, this.craftSlots);
-    }
-
-    @Inject(method = "removed", at = @At("HEAD"))
-    private void hbs_foundation$untrackGrid(Player player, CallbackInfo ci) {
-        PlayerCraftedEvent.CRAFTING_GRIDS.remove(player, this.craftSlots);
-    }
 
     @Inject(method = "quickMoveStack", at = @At("HEAD"))
     private void hbs_foundation$onQuickCraft(Player player, int index, CallbackInfoReturnable<ItemStack> cir) {
         if (index != InventoryMenu.RESULT_SLOT) return;
-        EventRegistrar.onPlayerCrafted(player, ((AbstractContainerMenu) (Object) this).slots.get(InventoryMenu.RESULT_SLOT).getItem());
+        EventRegistrar.onPlayerCrafted(player, this.craftSlots,
+            ((AbstractContainerMenu) (Object) this).slots.get(InventoryMenu.RESULT_SLOT).getItem());
     }
 }

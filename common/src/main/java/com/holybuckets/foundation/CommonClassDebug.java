@@ -105,7 +105,7 @@ public class CommonClassDebug {
         CraftingContainer grid = event.getCraftSlots();
         LoggerBase.logInfo(null, "001400",
             "PlayerCrafted: " + event.getPlayer().getName().getString()
-            + " grid " + (grid == null ? "untracked" : grid.getContainerSize())
+            + " grid " + grid.getContainerSize()
             + " " + event.getCraftedItem().getItem());
 
         event.getCraftedItem().setCount(6);

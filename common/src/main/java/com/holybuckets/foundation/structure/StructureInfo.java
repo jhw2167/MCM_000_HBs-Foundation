@@ -105,6 +105,7 @@ public class StructureInfo {
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
         if(origin != null) {
+            tag.putLong("blockPos", origin.asLong());
             tag.putLong("chunkPos", HBUtil.ChunkUtil.getChunkPos1DMap(new ChunkPos(origin)));
             tag.putInt("y", origin.getY());
         }
@@ -118,7 +119,9 @@ public class StructureInfo {
     }
 
     public void deserialize(CompoundTag tag) {
-        if(tag.contains("chunkPos")) {
+        if(tag.contains("blockPos")) {
+            origin = BlockPos.of(tag.getLong("blockPos"));
+        } else if(tag.contains("chunkPos")) {
             origin = HBUtil.ChunkUtil.getWorldPosFrom1DMap(tag.getLong("chunkPos"), tag.getInt("y"));
         } else if(tag.contains("origin")) {
             origin = HBUtil.BlockUtil.stringToBlockPos(tag.getString("origin"));

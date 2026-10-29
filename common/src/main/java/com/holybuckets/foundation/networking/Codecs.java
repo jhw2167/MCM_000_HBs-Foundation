@@ -97,6 +97,8 @@ public class Codecs {
             buf.writeUUID(object.senderId);
         }
         
+        buf.writeUtf(object.levelId == null ? "" : object.levelId);
+
         // Write structure count and data
         buf.writeInt(object.structures.size());
         for (StructureInfo structure : object.structures) {
@@ -113,6 +115,8 @@ public class Codecs {
             senderId = buf.readUUID();
         }
         
+        String levelId = buf.readUtf();
+
         // Read structures
         int count = buf.readInt();
         List<StructureInfo> structures = new ArrayList<>();
@@ -123,7 +127,7 @@ public class Codecs {
             }
         }
         
-        return new StructureInfoMessage(senderId, structures);
+        return new StructureInfoMessage(senderId, levelId, structures);
     }
 
 

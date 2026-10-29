@@ -156,8 +156,8 @@ public class EventRegistrar {
 
     void onBeforeServerStarted(ServerStartingEvent event)
     {
-
         GENERAL_CONFIG = GeneralConfig.getInstance();
+        HBUtil.init(event.getServer());
         GeneralConfig.fireEvent(ServerStartingEvent.class, event);
         // Process deferred item objects for ItemEntity tick events
         processItemEntityDeferredObjects();

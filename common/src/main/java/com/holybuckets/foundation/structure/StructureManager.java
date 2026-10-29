@@ -352,10 +352,11 @@ public class StructureManager {
 
         for(ServerPlayer p : HBUtil.PlayerUtil.getAllPlayers())
         {
+            if (p.level() != this.level) continue;
             IManagedPlayer pData = ManagedPlayer.getManagedPlayer(p).getSubclass(PlayerStructureData.class);
             if(pData != null && (pData instanceof PlayerStructureData psData) ) {
                 if (psData.getCount(level) >= this.structures.size()) continue;
-                StructureInfoMessage.createAndFire(p, data);
+                StructureInfoMessage.createAndFire(p, this.level, data);
             }
         }
 
@@ -691,6 +692,8 @@ public class StructureManager {
         if(GeneralConfig.getInstance().isIntegrated()) return;
         //LoggerBase.logInfo(null, "050004", "handleStructureInfoFromServer message: " + message.structures.size() + " structures");
         if(player == null) return;
+        String playerLevelId = StructureInfoMessage.levelId(player.level());
+        if(message.levelId != null && !message.levelId.isEmpty() && !message.levelId.equals(playerLevelId)) return;
         for(StructureInfo info : message.structures )
         {
             StructureManager sm = StructureManager.get(player.level());

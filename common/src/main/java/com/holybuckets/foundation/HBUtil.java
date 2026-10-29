@@ -58,6 +58,7 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -747,6 +748,15 @@ public class HBUtil {
     }
     //END BLOCK UTIL
 
+    private static Registry<Biome> BIOME_REGISTRY;
+    private static Registry<Item> ITEM_REGISTRY;
+    private static Registry<Structure> STRUCTURE_REGISTRY;
+
+    public static void init(MinecraftServer server) {
+        BIOME_REGISTRY = server.registryAccess().registryOrThrow(Registries.BIOME);
+        ITEM_REGISTRY = server.registryAccess().registryOrThrow(Registries.ITEM);
+        STRUCTURE_REGISTRY = server.registryAccess().registryOrThrow(Registries.STRUCTURE);
+    }
 
     public static class LevelUtil {
 
@@ -757,7 +767,6 @@ public class HBUtil {
         private static void onServerStart(ServerStartingEvent event) {
             levelIdCache.clear();
         }
-
 
 
         public enum LevelNameSpace {
@@ -910,10 +919,13 @@ public class HBUtil {
 
         public static ResourceLocation toBiomeResourceLocation(Biome biome) {
             if (biome == null) return null;
-            MinecraftServer server = GeneralConfig.getInstance().getServer();
-            if (server == null) return null;
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
-            return biomeRegistry.getKey(biome);
+            return BIOME_REGISTRY.getKey(biome);
+        }
+
+        public static String getBiomeNameString(Biome b) {
+            if (b == null) return null;
+            ResourceLocation key = BIOME_REGISTRY.getKey(b);
+            return key != null ? key.toString() : null;
         }
 
         public static ResourceLocation toBiomeResourceLocation(Holder<Biome> holderBiome) {
@@ -936,18 +948,12 @@ public class HBUtil {
             if (server == null) {
                 return null;
             }
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
-            return biomeRegistry.get(location);
+            return BIOME_REGISTRY.get(location);
         }
 
         public static ResourceLocation getBiomeName(Biome b) {
             if (b == null) return null;
-
-            MinecraftServer server = GeneralConfig.getInstance().getServer();
-            if (server == null) return null;
-
-            Registry<Biome> biomeRegistry = server.registryAccess().registryOrThrow(Registries.BIOME);
-            return biomeRegistry.getKey(b);
+            return BIOME_REGISTRY.getKey(b);
         }
 
         /**
@@ -1004,16 +1010,64 @@ public class HBUtil {
             return sb.toString();
         }
 
-        static Holder<Biome> getBiomeAtChunk(ServerLevel level, ChunkPos pos) {
+        public static Holder<Biome> getBiomeAtChunk(ServerLevel level, ChunkPos pos) {
             BlockPos point = pos.getWorldPosition().atY(128);
             return getBiomeAtPoint(level, point);
         }
 
-        static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
+        public static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
             BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
             Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(), level.getChunkSource().randomState().sampler());
             return b;
         }
+
+
+        //Repeat above for Structures
+
+        public static Structure getStructure(String structureName) {
+            ResourceLocation structure = toStructureResourceLocation(structureName);
+            return getStructure(structure);
+        }
+
+        public static Structure getStructure(ResourceLocation loc) {
+            if (loc == null) return null;
+            return STRUCTURE_REGISTRY.get(loc);
+        }
+
+        public static ResourceLocation toStructureResourceLocation(String structureName)
+        {
+            if (structureName == null) return null;
+            String structureId = structureName;
+            String nmspace = "minecraft";
+            if( structureName.contains(":") ) {
+                String[] parts = structureName.split(":");
+                nmspace = parts[0];
+                structureId = parts[1];
+            }
+
+            return new ResourceLocation(nmspace, structureId);
+        }
+
+        public static ResourceLocation toStructureResourceLocation(Structure structure) {
+            if (structure == null) return null;
+            return STRUCTURE_REGISTRY.getKey(structure);
+        }
+
+        public static String getStructureSimpleName(Structure structure) {
+            if( structure == null ) return null;
+            ResourceLocation loc = toStructureResourceLocation(structure);
+            if( loc == null ) return null;
+
+            String name = loc.getPath();
+            String[] parts = name.split("_");
+            StringBuilder simpleName = new StringBuilder();
+            for(String part : parts) {
+                simpleName.append(part.substring(0, 1).toUpperCase()).append(part.substring(1)).append(" ");
+            }
+            return simpleName.toString().trim();
+        }
+
+
     }
 
     private static LevelChunk threadedChunkResult = null;

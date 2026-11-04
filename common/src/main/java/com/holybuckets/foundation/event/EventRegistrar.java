@@ -567,7 +567,7 @@ public class EventRegistrar {
     public boolean onPlayerInteract(PlayerInteractEvent event)
     {
         if (ON_PLAYER_INTERACT_BY_TYPE.isEmpty()) return false;
-        if (GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide) return false;
+        if(GENERAL_CONFIG.isIntegrated() && event.getLevel().isClientSide) return false;
 
         Class<? extends PlayerInteractEvent> eventClass = event.getClass();
         for (Map.Entry<Class<? extends PlayerInteractEvent>, Set<Consumer<PlayerInteractEvent>>> entry : ON_PLAYER_INTERACT_BY_TYPE.entrySet()) {

@@ -31,7 +31,6 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.*;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
@@ -49,6 +48,7 @@ import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.tags.TagKey;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.Registry;
@@ -108,9 +108,36 @@ public class HBUtil {
         return LOC(parts[0], parts[1]);
     }
 
+    public enum JTYPE {
+        STRING, NUMBER, BOOLEAN, OBJECT, ARRAY, NULL
+    }
+    public static boolean JCHECK(JsonObject json, String prop, JTYPE type) {
+        if(json==null || prop==null || prop.isBlank()) return false;
+        if(!json.has(prop)) return false;
+        JsonElement element = json.get(prop);
+        return switch (type) {
+            case STRING -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isString();
+            case NUMBER -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber();
+            case BOOLEAN -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean();
+            case OBJECT -> element.isJsonObject();
+            case ARRAY -> element.isJsonArray();
+            case NULL -> element.isJsonNull();
+        };
+    }
 
+    public static boolean JCHECK(JsonElement element, JTYPE type) {
+        if(element==null) return false;
+        return switch (type) {
+            case STRING -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isString();
+            case NUMBER -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber();
+            case BOOLEAN -> element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean();
+            case OBJECT -> element.isJsonObject();
+            case ARRAY -> element.isJsonArray();
+            case NULL -> element.isJsonNull();
+        };
+    }
 
-    public static class PlayerUtil {
+        public static class PlayerUtil {
 
 
         public static List<ServerPlayer> getAllPlayers() {
@@ -970,20 +997,6 @@ public class HBUtil {
             return sec.getNoiseBiome(x, y, z);
         }
 
-        public static List<String> getBiomeNames(Collection<Holder<Biome>> biomes) {
-            StringBuilder sb = new StringBuilder();
-            List<String> names = new ArrayList<>(biomes.size());
-            Runnable empty = new Runnable() {
-                @Override
-                public void run() {}
-            };
-            for(Holder<Biome> h : biomes) {
-                h.unwrapKey().ifPresentOrElse( key -> names.add(key.toString()), empty );
-            }
-
-            return names;
-        }
-
         public static String getBiomeSimpleName(Holder<Biome> h) {
             if( h == null ) return null;
             if( !h.unwrapKey().isPresent() ) return null;
@@ -1010,11 +1023,70 @@ public class HBUtil {
             return sb.toString();
         }
 
+        public static List<String> getBiomeNames(Collection<Holder<Biome>> biomes) {
+            StringBuilder sb = new StringBuilder();
+            List<String> names = new ArrayList<>(biomes.size());
+            Runnable empty = new Runnable() {
+                @Override
+                public void run() {}
+            };
+            for(Holder<Biome> h : biomes) {
+                h.unwrapKey().ifPresentOrElse( key -> names.add(key.toString()), empty );
+            }
+
+            return names;
+        }
+
+        public static List<Biome> getBiomesFromNamesOrTag(Collection<String> biomeNames) {
+            List<Biome> biomes = new ArrayList<>(biomeNames.size());
+            for(String name : biomeNames) {
+                if(isBiomeTag(name)) {
+                    getBiomesInTag(name).forEach(hb -> biomes.add(hb.value()));
+                    continue;
+                }
+                Biome b = getBiome(name);
+                if(b != null) biomes.add(b);
+            }
+            return biomes;
+        }
+
+        public static boolean isBiomeTag(String biomeTag) {
+            if (biomeTag == null || BIOME_REGISTRY == null) return false;
+            ResourceLocation tagId = ResourceLocation.tryParse(biomeTag.startsWith("#") ? biomeTag.substring(1) : biomeTag);
+            return tagId != null && BIOME_REGISTRY.getTag(TagKey.create(Registries.BIOME, tagId)).isPresent();
+        }
+
+
+            /**
+             * Gets all biomes in a biome tag, e.g. "minecraft:is_forest" or "#c:is_hot"
+             * @param biomeTag tag id, the leading # is optional
+             * @return biome holders in the tag, empty if the tag is unknown or the registry is not ready
+             */
+        public static List<Holder<Biome>> getBiomesInTag(String biomeTag) {
+            if (biomeTag == null || biomeTag.isEmpty()) return List.of();
+            if (!isBiomeTag(biomeTag) ) return List.of();
+            ResourceLocation tagId = ResourceLocation.tryParse(biomeTag.startsWith("#") ? biomeTag.substring(1) : biomeTag);
+            return BIOME_REGISTRY.getTag(TagKey.create(Registries.BIOME, tagId))
+                .map(set -> set.stream().toList())
+                .orElse(List.of());
+        }
+
         public static Holder<Biome> getBiomeAtChunk(ServerLevel level, ChunkPos pos) {
             BlockPos point = pos.getWorldPosition().atY(128);
             return getBiomeAtPoint(level, point);
         }
 
+        public static Holder<Biome> getBiomeAtBlock(Level level, BlockPos pos) {
+            return level.getBiome(pos);
+        }
+
+        /**
+         *
+         * Handles spots in unloaded Chunks. Server Only
+         * @param level
+         * @param pos
+         * @return
+         */
         public static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
             BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
             Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(), level.getChunkSource().randomState().sampler());
@@ -2180,6 +2252,8 @@ public class HBUtil {
 
     }
     //END VALIDATOR
+
+
 
     public static class HBMath {
         // Map to track existing UUIDs for collision detection

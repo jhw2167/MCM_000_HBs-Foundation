@@ -18,13 +18,7 @@ public class MixinIOWorker {
             target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V"),
         require = 1)
     private void hbs$dropClosedChannelReport(Logger logger, String message, Object pos, Object thrown) {
-        if (thrown instanceof ClosedChannelException && hbs$explorerActive()) return;
+        if (thrown instanceof ClosedChannelException) return;
         logger.error(message, pos, thrown);
-    }
-
-    private static boolean hbs$explorerActive() {
-        GeneralConfig config = GeneralConfig.getInstance();
-        CommonClass.check(0);
-        return config.getPerformanceImpactConfig().isEnableChunkExplorer();
     }
 }

@@ -194,7 +194,7 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:ocean", "minecraft:cold_ocean", "minecraft:lukewarm_ocean", "minecraft:deep_lukewarm_ocean"),
             null,
             null, null,
-            Set.of("minecraft:kelp", "minecraft:kelp_block", "minecraft:prismarine")));
+            Set.of("minecraft:kelp", "minecraft:prismarine")));
 
         // Abyssal Essence
         configs.add(new EssenceConfig("abyssal",
@@ -222,7 +222,7 @@ public class EssenceDataJsonConfig implements IStringSerializable {
             Set.of("minecraft:jungle", "minecraft:sparse_jungle"),
             null,
             null, null,
-            Set.of("minecraft:cocoa_beans", "minecraft:jungle_log", "minecraft:jungle_sapling", "minecraft:vines")));
+            Set.of("minecraft:cocoa_beans", "minecraft:jungle_log", "minecraft:jungle_sapling")));
 
         // Bamboo Essence
         configs.add(new EssenceConfig("bamboo",

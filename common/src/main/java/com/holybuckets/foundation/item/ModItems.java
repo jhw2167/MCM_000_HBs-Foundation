@@ -32,10 +32,11 @@ public class ModItems {
 
         creativeModeTab = items.registerCreativeModeTab(
             () -> new ItemStack( ModBlocks.stoneBrickBlockEntity.get().asItem() ), FOUNDATIONS_TAB);
-        items.addToCreativeModeTab(FOUNDATIONS_TAB, () -> new ItemLike[]{
+        FoundationCreativeTab.register(Constants.MOD_ID, FoundationCreativeTab.FOUNDATION_ORDER, () -> new ItemLike[]{
             ModItems.enchantedEssence.get(),
             ModItems.waypointStick.get()
         });
+        items.addToCreativeModeTab(FOUNDATIONS_TAB, FoundationCreativeTab::collectItems);
 
 
     }

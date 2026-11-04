@@ -9,15 +9,16 @@
         "AnvilMenuMixin",
         "BrewingStandBlockEntityMixin",
         "BrewingStandMenuIngredientsSlotMixin",
-        "IOWorkerMixin",
         "CraftingMenuMixin",
         "InventoryMenuMixin",
         "ResultSlotMixin",
-        "ItemEntityMixin"
+        "ItemEntityMixin",
+        "MixinIOWorker"
     ],
     "client": [
         "LevelRendererMixin",
-        "ClientLevelAccessor"
+        "ClientLevelAccessor",
+        "CreativeModeInventoryScreenMixin"
     ],
     "server": [
         "ServerLevelMixin"

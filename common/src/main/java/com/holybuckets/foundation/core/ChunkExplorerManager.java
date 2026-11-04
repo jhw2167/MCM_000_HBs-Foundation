@@ -270,7 +270,7 @@ public class ChunkExplorerManager {
     private static int getExploreInterval() {
         int rate = GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate();
         rate = Math.max(RATE_MIN, Math.min(RATE_MAX, rate));
-        return rate;
+        return rate * (( rate/10)+1); //parabolic rate
     }
 
 

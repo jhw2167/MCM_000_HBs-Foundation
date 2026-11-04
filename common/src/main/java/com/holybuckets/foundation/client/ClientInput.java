@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 
@@ -23,7 +24,7 @@ public class ClientInput {
     
     public static void onClientTick(ClientTickEvent event) {
 
-        Set<Integer> currentInputs = new HashSet<>();
+        Set<Integer> currentInputs = new LinkedHashSet<>();
         int input = collectKeys(currentInputs);
         if (input ==-1 && prevInput == -1 ) return;
 
@@ -39,7 +40,7 @@ public class ClientInput {
     static int collectKeys(Set<Integer> keys) {
         Minecraft client = Minecraft.getInstance();
         LocalPlayer player = client.player;
-        if (player == null || player.input==null) {
+        if (player == null) {
             return -1;
         }
 

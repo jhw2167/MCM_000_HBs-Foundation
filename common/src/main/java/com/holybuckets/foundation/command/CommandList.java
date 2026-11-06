@@ -9,6 +9,8 @@ import com.holybuckets.foundation.biome.BiomeAPI;
 import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.core.ChunkAnalyzer;
+import com.holybuckets.foundation.core.ChunkAnalyzerManager;
+import com.holybuckets.foundation.config.ModConfig;
 import com.holybuckets.foundation.core.ChunkAnalyzer.ChunkBlockDistro;
 import com.holybuckets.foundation.core.MovingWaypoint;
 import com.holybuckets.foundation.core.MovingWaypoint.WaypointInfo;
@@ -77,6 +79,7 @@ public class CommandList {
 
         CommandRegistry.register(SetChunkExploreRate::withRate);
         CommandRegistry.register(SetMaxAllocationRate::withRate);
+        CommandRegistry.register(SetChunkAnalyzeRate::withRate);
 
         CommandRegistry.register(ChunkAnalyze::withRadius);
         CommandRegistry.register(ChunkAnalyze::withRadiusAndLimit);
@@ -861,36 +864,34 @@ public class CommandList {
                 return 0;
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("Block counts for chunk ").append(chunkX).append(", ").append(chunkZ);
-            if (radius > 0) sb.append(" (radius ").append(radius).append(", ").append(distro.chunkCount).append(" loaded chunks)");
-            sb.append(":");
-
-            appendRow(sb, distro, "Air", distro.airTotal);
-            appendRow(sb, distro, "Sky Air", distro.skyAir);
-            appendRow(sb, distro, "Cave Air", distro.caveAir);
-
-            List<Map.Entry<Block, Integer>> sorted = distro.sortedCounts();
-            int shown = (limit < 0) ? sorted.size() : Math.min(limit, sorted.size());
-            for (Map.Entry<Block, Integer> e : sorted.subList(0, shown)) {
-                Block block = e.getKey();
-                appendRow(sb, distro, HBUtil.BlockUtil.blockToString(block), e.getValue());
-                if (distro.isOre(block)) {
-                    String base = ChunkAnalyzer.DEEPSLATE_ORE_BLOCKS.contains(block) ? "deepslate" : "stone";
-                    sb.append(", ").append(String.format("%.5f", distro.oreNormalizedPercent(block))).append("% of ").append(base);
-                }
-            }
-
-            LoggerBase.logInfo(null, "033001", sb.toString());
+            ChunkAnalyzer.log(distro, radius, limit);
             source.sendSuccess(() -> Component.literal("Block counts for chunk " + chunkX + ", " + chunkZ + " have been logged to the server."), false);
             return 1;
         }
+    }
 
-        private static void appendRow(StringBuilder sb, ChunkBlockDistro distro, String name, int count) {
-            sb.append("\n  - ").append(name)
-                .append(" -> ").append(String.format("%,d", count))
-                .append(", ").append(String.format("%,.2f", distro.perChunk(count)))
-                .append(", ").append(String.format("%.5f", distro.percent(count))).append("%");
+
+    private static class SetChunkAnalyzeRate {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withRate() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("setChunkAnalyzeRate")
+                    .requires(source -> source.hasPermission(2))
+                    .then(Commands.argument("rate", IntegerArgumentType.integer(0))
+                        .executes(context -> execute(context.getSource(),
+                            IntegerArgumentType.getInteger(context, "rate")))
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, int rate) {
+            int previous = ChunkAnalyzerManager.getAnalyzeRate();
+            ModConfig.getInstance().setAnalyzeRate(rate);
+            String msg = (rate == 0)
+                ? "Chunk analyzer disabled (was 1 in " + previous + ")."
+                : "Chunk analyzer will log 1 in every " + rate + " loaded chunks (was " + previous + ").";
+            source.sendSuccess(() -> Component.literal(msg), true);
+            return 1;
         }
     }
 

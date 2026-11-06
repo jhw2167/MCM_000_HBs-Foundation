@@ -26,6 +26,9 @@ public class ModConfig {
     private static ModConfig INSTANCE;
     public final Map<String, Set<ResourceLocation>> essenceData;
     public final Map<Item, String> enchantedEssenceItemMap;
+
+    /** 1 in every N loaded chunks is analyzed by ChunkAnalyzerManager; 0 disables it. Set at runtime by command. */
+    private int analyzeRate = 0;
     
     public static ModConfig getInstance() {
         if (INSTANCE == null) {
@@ -84,6 +87,14 @@ public class ModConfig {
         private ResourceLocation toResourceLocation(String name) {
             return new ResourceLocation(addNameSpaceMap(name));
         }
+
+    public int getAnalyzeRate() {
+        return analyzeRate;
+    }
+
+    public void setAnalyzeRate(int analyzeRate) {
+        this.analyzeRate = Math.max(0, analyzeRate);
+    }
 
     @Nullable
     public Set<ResourceLocation> getEssenceData(String key) {

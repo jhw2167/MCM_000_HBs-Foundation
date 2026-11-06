@@ -325,7 +325,7 @@ public class CommonClassDebug {
 
 
         //Add blocks to chunk
-        //HBUtil.TripleInt[] sphere = HBUtil.ShapeUtil.getSphere(8, 32).toArray();
+        //HBUtil.TripleInt[] sphere = ShapeGen.getSphere(8, 32).toArray();
         List<Pair<BlockState, BlockPos>> blockStateList = new ArrayList<>();
 
 

@@ -23,7 +23,12 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.network.BalmNetworking;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
@@ -728,20 +733,61 @@ public class HBUtil {
             return blockPairs;
         }
 
+        /**
+         * Serialize a map of block states and their positions to an SNBT string, keeping every state property
+         * @param blocks - Map of block states and their positions
+         * @return {entries:[{state:{...}, pos:[I;x,y,z,...]}, ...]}
+         */
         public static String serializeBlockStatePairs(Map<BlockState, List<BlockPos>> blocks) {
-            //Create Map<Block, List<BlockPos>> from Map<BlockState, List<BlockPos>>
-            Map<Block, List<BlockPos>> blockMap = new HashMap<>();
-            for(BlockState state : blocks.keySet()) {
-                blockMap.put(state.getBlock(), blocks.get(state));
+            ListTag entries = new ListTag();
+            for (Map.Entry<BlockState, List<BlockPos>> entry : blocks.entrySet()) {
+                List<BlockPos> positions = entry.getValue();
+                int[] xyz = new int[positions.size() * 3];
+                for (int i = 0; i < positions.size(); i++) {
+                    BlockPos pos = positions.get(i);
+                    xyz[i * 3] = pos.getX();
+                    xyz[i * 3 + 1] = pos.getY();
+                    xyz[i * 3 + 2] = pos.getZ();
+                }
+
+                CompoundTag tag = new CompoundTag();
+                tag.put("state", NbtUtils.writeBlockState(entry.getKey()));
+                tag.putIntArray("pos", xyz);
+                entries.add(tag);
             }
-            return serializeBlockPairs(blockMap);
+
+            CompoundTag root = new CompoundTag();
+            root.put("entries", entries);
+            return root.toString();
         }
 
+        /**
+         * Deserialize a string from serializeBlockStatePairs back to block states and their positions
+         * @param data - SNBT string from serializeBlockStatePairs
+         * @return Map of block states and their positions, empty if the data cannot be parsed
+         */
         public static Map<BlockState, List<BlockPos>> deserializeBlockStatePairs(String data) {
-            Map<Block, List<BlockPos>> blockMap = deserializeBlockPairs(data);
             Map<BlockState, List<BlockPos>> stateMap = new HashMap<>();
-            for(Block block : blockMap.keySet()) {
-                stateMap.put(block.defaultBlockState(), blockMap.get(block));
+            if (data == null || data.isEmpty()) return stateMap;
+
+            CompoundTag root;
+            try {
+                root = TagParser.parseTag(data);
+            } catch (CommandSyntaxException e) {
+                LoggerBase.logError(null, CLASS_ID + "010", "Error deserializing block state pairs: " + e.getMessage());
+                return stateMap;
+            }
+
+            ListTag entries = root.getList("entries", Tag.TAG_COMPOUND);
+            for (int i = 0; i < entries.size(); i++) {
+                CompoundTag tag = entries.getCompound(i);
+                BlockState state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("state"));
+                int[] xyz = tag.getIntArray("pos");
+
+                List<BlockPos> positions = stateMap.computeIfAbsent(state, s -> new ArrayList<>());
+                for (int j = 0; j + 2 < xyz.length; j += 3) {
+                    positions.add(new BlockPos(xyz[j], xyz[j + 1], xyz[j + 2]));
+                }
             }
             return stateMap;
         }
@@ -1544,230 +1590,6 @@ public class HBUtil {
     }
 
 
-    public static class ShapeUtil {
-
-        /**
-         * Returns a 3D array of all vertices within a circle of radius r.
-         * The y value is always 0. If the provided radius is odd, it will be incremented by 1.  Returns single block at
-         * the center for radius of 0 or 1 Returns 3x3 square for radius of 2 or 3.
-         * @param radius
-         * @return null if radius is less than 0. returns 3x3 square if radius is 2 or 3. Otherwise
-         * returns all integer solutions where x^2 + z^2 = r^2 or less
-         */
-        public static Fast3DArray getCircle(int radius)
-        {
-            if( radius <= 0 )
-                return null;
-
-            Fast3DArray circle = new Fast3DArray(4 * (radius+1) * (radius+1));
-            circle.add(0, 0, 0);
-            if( radius <= 1 ) {
-                return circle;
-            }
-
-            //if radius is 2, we just return 3x3 square
-            if( radius == 2 )
-            {
-                for (int x = -1; x <= 1; x++) {
-                    for (int z = -1; z <= 1; z++) {
-                        circle.add(x, 0, z);
-                    }
-                }
-                return circle;
-            }
-
-
-            radius -= 1;
-            double softness = 0.5;
-            double radiusSquared = Math.ceil(radius + softness) * (radius+softness);
-            for (int x = -radius; x <= radius; x++)
-            {
-                //Instead, we want all integer solutions where x^2 + y^2 <= r^2
-                for (int z = -radius; z <= radius; z++) {
-                    if (x * x + z * z <= radiusSquared) {
-                        circle.add(x, 0, z);
-                    }
-                }
-            }
-
-            return circle;
-        }
-
-        /**
-         * Returns a 3D array of all vertices within a sphere of radius r.
-         * If height < radius*2, the sphere is compressed vertically.
-         * If height > radius*2, the sphere is stretched vertically.
-         * @param radius Sphere radius
-         * @param height Total height of the sphere
-         * @return Fast3DArray containing all points, null if invalid params
-         */
-        public static Fast3DArray getSphere(int radius, int height) 
-        {
-            if (radius <= 0 || height <= 0) {
-                return null;
-            }
-
-            // Special case: height < 2 returns a circle
-            if (height < 2) {
-                return getCircle(radius);
-            }
-
-            // Special case: tiny radius
-            if (radius < 4) {
-                Fast3DArray sphere = new Fast3DArray(height * 9); // Approximate size
-                Fast3DArray circle = getCircle(1);
-                
-                for (int y = 0; y < height; y++) {
-                    for (int i = 0; i < circle.size; i++) {
-                        sphere.add(circle.X[i], y, circle.Z[i]);
-                    }
-                }
-                return sphere;
-            }
-
-            Fast3DArray sphere = new Fast3DArray((int) (height * radius * radius * Math.PI*2));
-            
-            // Generate layers of circles with decreasing radii
-            int halfHeight = (int) Math.floor(height / 2);
-            double[] radii = new double[halfHeight + 1];
-            double deltaRadiusPerHt =  ( (double) radius / height);
-            for (int y = 0; y <= halfHeight; y++) {
-                if( y == 0)
-                    radii[y] = radius;
-                else
-                    radii[y] = (radii[y-1] - deltaRadiusPerHt) - 0.01;
-            }
-            int yAdj = 0;
-            for (int y = halfHeight*-1; y <= halfHeight; y++)
-            {
-                if(height % 2 == 0 && y == 0) {
-                    yAdj = -1;
-                    continue;
-                }
-
-
-                Fast3DArray layer = getCircle( (int) Math.ceil(radii[Math.abs(y)]) );
-                for (int i = 0; i < layer.size; i++) {
-                    sphere.add(layer.X[i], y+ yAdj, layer.Z[i]);
-                }
-            }
-
-            return sphere;
-        }
-
-
-        /**
-         * Returns a 3D array of all vertices within a 2D square of provided length and width
-         * The y parameter is always 0.
-         * @param length
-         * @param width
-         * @return
-         */
-        public static Fast3DArray getSquare(int length, int width)
-        {
-            if( length <= 0 || width <= 0)
-                return null;
-
-            Fast3DArray square = new Fast3DArray(length * width + 1);
-
-           int modL = ( length % 2 == 0) ? 1 : 0;
-           int modW = ( width % 2 == 0) ? 1 : 0;
-
-            int xStart = -length / 2 + modL;
-            int zStart = -width / 2 + modW;
-
-    //consider edge cases for l/w = 1 or 2
-            if( length == 1 && width == 1)
-            {
-                square.add(0, 0, 0);
-                return square;
-            }
-
-            if( length == 1)
-            {
-                for( int z = zStart; z <= width / 2; z++)
-                {
-                    square.add(0, 0, z);
-                }
-                return square;
-            }
-
-            if( width == 1)
-            {
-                for( int x = xStart; x <= length / 2; x++)
-                {
-                    square.add(x, 0, 0);
-                }
-                return square;
-            }
-
-            if( length == 2 && width == 2)
-            {
-                square.add(-1, 0, -1);
-                square.add(-1, 0, 1);
-                square.add(1, 0, -1);
-                square.add(1, 0, 1);
-                return square;
-            }
-
-            if( length == 2)
-            {
-                for( int z = zStart; z <= width / 2; z++)
-                {
-                    square.add(-1, 0, z);
-                    square.add(1, 0, z);
-                }
-                return square;
-            }
-
-            if( width == 2)
-            {
-                for( int x = xStart; x <= length / 2; x++)
-                {
-                    square.add(x, 0, -1);
-                    square.add(x, 0, 1);
-                }
-                return square;
-            }
-
-            for( int x = xStart; x <= length / 2; x++)
-            {
-                for( int z = zStart; z <= width / 2; z++)
-                {
-                    square.add(x, 0, z);
-                }
-            }
-            //if l==3, xStart = -1, l/2 = 1, that works
-            //if l==4, xStart = -2, l/2 = 2, thats 5 verticies, we need 4
-
-
-
-            return square;
-        }
-
-
-        public static Fast3DArray getCube(int length, int width, int height)
-        {
-            if( height <= 0 || length <= 0 || width <= 0)
-                return null;
-
-            Fast3DArray cube = new Fast3DArray(height * length * width);
-
-            for (int y = 0; y < height; y++)
-            {
-                Fast3DArray plane = getSquare(length, width);
-                for( int i = 0; i < plane.size; i++)
-                {
-                    cube.add(plane.X[i], y, plane.Z[i]);
-                }
-            }
-
-            return cube;
-        }
-
-
-    }
-    //END SHAPEUTIL
 
     public static class NetworkUtil {
 

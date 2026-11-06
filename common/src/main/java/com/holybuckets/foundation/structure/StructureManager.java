@@ -6,6 +6,7 @@ import com.holybuckets.foundation.Constants;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.api.WaystonesCompat;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.*;
@@ -37,6 +38,9 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import com.holybuckets.foundation.util.ModContext;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 
 import static com.holybuckets.foundation.player.ManagedPlayer.registerManagedPlayerData;
 
@@ -450,8 +454,8 @@ public class StructureManager {
         if (loc == null || pos == null) return;
         if (this.structures.containsKey(pos)) return;
 
-        // Hash the resource location to synthesize an int registry id.
-        int rId = loc.hashCode();
+        // Synthesize a negative registry id from the location so pseudo structures never collide with real ones
+        int rId = -1 - (loc.hashCode() & Integer.MAX_VALUE);
         StructureInfo info = new StructureInfo(pos, loc, rId, loc.getPath(), loc);
 
         this.structures.put(pos, info);
@@ -524,6 +528,28 @@ public class StructureManager {
                 this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
             }
         }
+
+        loadPseudoStructures(ds);
+    }
+
+    /**
+     * Pseudo structures are saved separately with exact block positions and are restored without a registry lookup.
+     */
+    private void loadPseudoStructures(DataStore ds)
+    {
+        JsonElement root = ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).get("pseudoStructures");
+        if(root == null || !root.isJsonObject()) return;
+
+        JsonObject rootObj = root.getAsJsonObject();
+        for(String key : rootObj.keySet())
+        {
+            ResourceLocation loc = ResourceLocation.tryParse(key);
+            JsonElement arr = rootObj.get(key);
+            if(loc == null || arr == null || !arr.isJsonArray()) continue;
+            for(JsonElement elem : arr.getAsJsonArray()) {
+                addPseudoStructure(loc, BlockPos.of(elem.getAsLong()));
+            }
+        }
     }
 
     /**
@@ -550,8 +576,19 @@ public class StructureManager {
     private void save(DataStore ds) {
         JsonObject root = new JsonObject();
 
+        JsonObject pseudoRoot = new JsonObject();
+
         for(StructureInfo struct : structures.values() )
         {
+            if(struct.isPseudo()) {
+                ResourceLocation loc = struct.getStructureLocation();
+                if(loc == null || struct.getOrigin() == null) continue;
+                String pseudoKey = loc.toString();
+                if(!pseudoRoot.has(pseudoKey)) pseudoRoot.add(pseudoKey, new JsonArray());
+                pseudoRoot.getAsJsonArray(pseudoKey).add(struct.getOrigin().asLong());
+                continue;
+            }
+
             CompoundTag tag = struct.serialize();
             String key = tag.getString("structureLocation");
             if(key == null || key.isEmpty()) continue;
@@ -568,6 +605,7 @@ public class StructureManager {
         }
 
         ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("structures", root);
+        ds.getOrCreateLevelSaveData(Constants.MOD_ID, this.level).addProperty("pseudoStructures", pseudoRoot);
     }
 
 
@@ -598,6 +636,8 @@ public class StructureManager {
         reg.registerOnChunkUnload(StructureManager::onChunkUnload);
 
         reg.registerOnServerTick(TickType.ON_20_TICKS, StructureManager::on20Ticks);
+        // Locate all custom structures every minute
+        reg.registerOnServerTick(TickType.ON_1200_TICKS, StructureManager::on1200Ticks);
 
         reg.registerOnSimpleMessage(STRUCTURE_MSG_ID, (e) ->
             handleSyncStructureCountsFromClient(e.getPlayer(), e.getContent())
@@ -649,6 +689,58 @@ public class StructureManager {
     private static void onChunkUnload(ChunkLoadingEvent.Unload event) {
         if(event.getLevel().isClientSide()) return;
         StructureManager.get((Level) event.getLevel()).onChunkUnload(event.getChunk());
+    }
+
+    private static void on1200Ticks(ServerTickEvent event) {
+        if (ModContext.getInstance().isLoaded(WAYSTONES_MOD_ID)) addAllWaystones();
+    }
+
+    //** CUSTOM STRUCTURES - WAYSTONES
+
+    public static final String WAYSTONES_MOD_ID = "waystones";
+    private static boolean waystonesIntegrationFailed = false;
+
+    /**
+     * Pulls all waystones from Waystones API and adds them to structures if they dont
+     * exist. For the time being, ignores if waystones are moved
+     */
+    public static void addAllWaystones()
+    {
+        if (waystonesIntegrationFailed) return;
+        MinecraftServer server = GeneralConfig.getInstance().getServer();
+        if (server == null) return;
+
+        var wystnPos = WaystonesCompat.collectWaystones(server);
+        if(wystnPos == null || wystnPos.isEmpty()) return;
+        for (ServerLevel level : server.getAllLevels()) {
+            StructureManager manager = StructureManager.get(level);
+            if (manager == null) continue;
+            manager.syncWaystones(wystnPos);
+        }
+    }
+
+
+    private void syncWaystones(List<WaystonesCompat.WaystoneEntry> waystones)
+    {
+        Set<BlockPos> existingWaystones = new HashSet<>();
+        structures.keySet().forEach( pos -> {
+            StructureInfo info = structures.get(pos);
+            if(WaystonesCompat.isWaystone(info.structureLocation))
+                existingWaystones.add(pos);
+        });
+        for (WaystonesCompat.WaystoneEntry entry : waystones) {
+            if(entry.level !=this.level) continue;
+            if(structures.containsKey(entry.pos)) {
+                existingWaystones.remove(entry.pos);
+                continue;
+            }
+            addPseudoStructure(entry.type, entry.pos);
+        }
+
+        // Remove any waystones that no longer exist
+        for(BlockPos pos : existingWaystones) {
+            removePseudoStructure(pos);
+        }
     }
 
     private static void on20Ticks(ServerTickEvent event) {

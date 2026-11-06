@@ -74,6 +74,7 @@ public class FoundationInitializers {
 
         StructureManager.init(reg);
         BiomeManager.init(reg);
+        ChunkAnalyzerManager.init(reg);
         //ChunkExplorerManager.init(reg);
         //ClientInput.init(reg);
 

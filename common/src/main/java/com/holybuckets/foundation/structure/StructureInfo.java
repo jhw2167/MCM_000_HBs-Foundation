@@ -42,6 +42,11 @@ public class StructureInfo {
         return id;
     }
 
+    /** Pseudo structures are not in the structure registry and always carry a negative registry id */
+    public boolean isPseudo() {
+        return registryId < 0;
+    }
+
     public int getRegistryId() {
         return registryId;
     }

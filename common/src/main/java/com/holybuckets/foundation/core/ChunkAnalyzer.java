@@ -1,5 +1,11 @@
 package com.holybuckets.foundation.core;
 
+import com.holybuckets.foundation.HBUtil;
+import com.holybuckets.foundation.LoggerBase;
+import com.holybuckets.foundation.structure.StructureInfo;
+import com.holybuckets.foundation.structure.StructureManager;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -7,6 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.*;
 
@@ -14,6 +21,7 @@ public class ChunkAnalyzer {
 
     public static final String CLASS_ID = "041";
     public static final int MAX_CACHE_SIZE = 256;
+    public static final int STRUCTURE_SEARCH_BLOCKS = 32;
 
     public static final Set<Block> ORE_BLOCKS = Set.of(
         Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
@@ -63,6 +71,8 @@ public class ChunkAnalyzer {
         ChunkAnalyzer analyzer = getInstance(level);
 
         ChunkBlockDistro area = new ChunkBlockDistro(level, pos);
+        ChunkBlockDistro center = analyzer.getDistro(pos);
+        if (center != null) area.biome = center.biome;
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 ChunkBlockDistro d = analyzer.getDistro(new ChunkPos(pos.x + dx, pos.z + dz));
@@ -120,7 +130,81 @@ public class ChunkAnalyzer {
             }
         }
         distro.chunkCount = 1;
+        distro.biome = findBiome(chunk);
+        distro.structures.addAll(findStructures(chunk.getPos()));
         return distro;
+    }
+
+    private ResourceLocation findBiome(LevelChunk chunk) {
+        ChunkPos pos = chunk.getPos();
+        int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, 8, 8);
+        return HBUtil.LevelUtil.toBiomeResourceLocation(level.getBiome(new BlockPos(pos.getMiddleBlockX(), surfaceY, pos.getMiddleBlockZ())));
+    }
+
+    /**
+     * Names of structures whose origin lies within STRUCTURE_SEARCH_BLOCKS horizontally of the chunk center, any height
+     */
+    private List<String> findStructures(ChunkPos pos) {
+        StructureManager manager = StructureManager.get(level);
+        if (manager == null) return List.of();
+        int cx = pos.getMiddleBlockX();
+        int cz = pos.getMiddleBlockZ();
+        long maxDistSq = (long) STRUCTURE_SEARCH_BLOCKS * STRUCTURE_SEARCH_BLOCKS;
+
+        List<String> names = new ArrayList<>();
+        for (StructureInfo info : manager.getStructures().values()) {
+            BlockPos origin = info.getOrigin();
+            if (origin == null) continue;
+            long dx = origin.getX() - cx;
+            long dz = origin.getZ() - cz;
+            if (dx * dx + dz * dz > maxDistSq) continue;
+            ResourceLocation loc = info.getCurrentStructureLocation();
+            if (loc != null) names.add(loc.toString());
+        }
+        return names;
+    }
+
+    //**** LOGGING ****//
+
+    public static void log(ChunkBlockDistro distro, int radius, int limit) {
+        if (distro == null) return;
+        LoggerBase.logInfo(null, CLASS_ID + "001", format(distro, radius, limit));
+    }
+
+    /**
+     * @param limit max block rows, -1 for all; air and ore rows follow the existing chunkAnalyze format
+     */
+    public static String format(ChunkBlockDistro distro, int radius, int limit)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Block counts for chunk ").append(distro.pos.x).append(", ").append(distro.pos.z);
+        if (radius > 0) sb.append(" (radius ").append(radius).append(", ").append(distro.chunkCount).append(" loaded chunks)");
+        sb.append(":");
+        sb.append("\n  - Biome: ").append(distro.biome == null ? "unknown" : distro.biome);
+        sb.append("\n  - Structures: ").append(Arrays.toString(distro.getStructureNames()));
+
+        appendRow(sb, distro, "Air", distro.airTotal);
+        appendRow(sb, distro, "Sky Air", distro.skyAir);
+        appendRow(sb, distro, "Cave Air", distro.caveAir);
+
+        List<Map.Entry<Block, Integer>> sorted = distro.sortedCounts();
+        int shown = (limit < 0) ? sorted.size() : Math.min(limit, sorted.size());
+        for (Map.Entry<Block, Integer> e : sorted.subList(0, shown)) {
+            Block block = e.getKey();
+            appendRow(sb, distro, HBUtil.BlockUtil.blockToString(block), e.getValue());
+            if (distro.isOre(block)) {
+                String base = DEEPSLATE_ORE_BLOCKS.contains(block) ? "deepslate" : "stone";
+                sb.append(", ").append(String.format("%.5f", distro.oreNormalizedPercent(block))).append("% of ").append(base);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static void appendRow(StringBuilder sb, ChunkBlockDistro distro, String name, int count) {
+        sb.append("\n  - ").append(name)
+            .append(" -> ").append(String.format("%,d", count))
+            .append(", ").append(String.format("%,.2f", distro.perChunk(count)))
+            .append(", ").append(String.format("%.5f", distro.percent(count))).append("%");
     }
 
     //**** INNER CLASS ****//
@@ -134,6 +218,8 @@ public class ChunkAnalyzer {
         public int skyAir;
         public int caveAir;
         public int chunkCount;
+        public ResourceLocation biome;
+        public final Set<String> structures = new LinkedHashSet<>();
 
         ChunkBlockDistro(Level level, ChunkPos pos) {
             this.level = level;
@@ -147,6 +233,15 @@ public class ChunkAnalyzer {
             skyAir += other.skyAir;
             caveAir += other.caveAir;
             chunkCount += other.chunkCount;
+            structures.addAll(other.structures);
+        }
+
+        public ResourceLocation getBiome() {
+            return biome;
+        }
+
+        public String[] getStructureNames() {
+            return structures.toArray(new String[0]);
         }
 
         public List<Map.Entry<Block, Integer>> sortedCounts() {

@@ -6,14 +6,15 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import static com.holybuckets.foundation.HBUtil.Fast3DArray;
 
 /**
- * Shape generation. The List<BlockPos> methods are centered on source in x/z with their base at source y,
- * built from the Fast3DArray primitives below (formerly HBUtil.ShapeUtil).
+ * Shape positions relative to a source block. A shape n wide spans -(n-1)/2 to n/2 on that axis, so odd sizes
+ * center on the source and even sizes center on the seam half a block toward +x/+z, with two center columns.
  */
 public class ShapeGen {
 
@@ -72,10 +73,11 @@ public class ShapeGen {
     /**
      * Returns a flat circle centered at source
      * @param source
-     * @param diameter - width in blocks, odd values are exact
+     * @param diameter - width in blocks, even values sit half a block toward +x/+z
      * @return list of BlockPos representing the circle
      */
     public static List<BlockPos> circle(BlockPos source, int diameter) {
+        if (diameter % 2 == 0) return ellipse(source, diameter, diameter);
         return offsetAll(source, getCircle((diameter + 1) / 2));
     }
 
@@ -88,10 +90,12 @@ public class ShapeGen {
     public static List<BlockPos> sphere(BlockPos source, int diameter) {
         List<BlockPos> positions = new ArrayList<>();
         double r = diameter / 2.0;
-        int c = diameter / 2;
+        double c = (diameter - 1) / 2.0;
         for (int y = 0; y < diameter; y++) {
-            double layerRadius = Math.sqrt(r * r - (y - c) * (y - c));
-            positions.addAll(circle(source.above(y), 2 * (int) layerRadius + 1));
+            double layerRadius = Math.sqrt(Math.max(0, r * r - (y - c) * (y - c)));
+            // Layer widths share the diameter's parity so every layer stays centered
+            int width = (diameter % 2 == 1) ? 2 * (int) layerRadius + 1 : Math.max(2, 2 * (int) Math.round(layerRadius));
+            positions.addAll(circle(source.above(y), width));
         }
         return positions;
     }
@@ -117,7 +121,170 @@ public class ShapeGen {
      * @return list of BlockPos representing the hollow sphere
      */
     public static List<BlockPos> hollowSphere(BlockPos source, int diameter) {
-        List<BlockPos> solid = sphere(source, diameter);
+        return shell(sphere(source, diameter));
+    }
+
+    /**
+     * Returns a flat ellipse centered at source
+     * @param source
+     * @param xSize - width in x direction
+     * @param zSize - width in z direction
+     * @return list of BlockPos representing the ellipse
+     */
+    public static List<BlockPos> ellipse(BlockPos source, int xSize, int zSize) {
+        double cx = ((xSize / 2) - (xSize - 1) / 2) / 2.0;
+        double cz = ((zSize / 2) - (zSize - 1) / 2) / 2.0;
+        double rx = xSize / 2.0;
+        double rz = zSize / 2.0;
+        List<BlockPos> positions = new ArrayList<>();
+        for (int x = -(xSize - 1) / 2; x <= xSize / 2; x++) {
+            for (int z = -(zSize - 1) / 2; z <= zSize / 2; z++) {
+                double dx = (x - cx) / rx;
+                double dz = (z - cz) / rz;
+                if (dx * dx + dz * dz <= 1.0) positions.add(source.offset(x, 0, z));
+            }
+        }
+        return positions;
+    }
+
+    /**
+     * Returns a flat isosceles triangle with its base along x at the low z edge and its point at the high z edge.
+     * Even bases end in a two block point so both sides stay mirrored.
+     * @param source
+     * @param base - width of the base in x direction
+     * @param depth - length from base to point in z direction
+     * @return list of BlockPos representing the triangle
+     */
+    public static List<BlockPos> triangle(BlockPos source, int base, int depth) {
+        return trapezoid(source, base, pointWidth(base), depth);
+    }
+
+    /**
+     * Returns a flat isosceles trapezoid with its base along x at the low z edge and its top at the high z edge
+     * @param source
+     * @param base - width of the base in x direction
+     * @param top - width of the top in x direction, nudged to match the base's parity
+     * @param depth - length from base to top in z direction
+     * @return list of BlockPos representing the trapezoid
+     */
+    public static List<BlockPos> trapezoid(BlockPos source, int base, int top, int depth) {
+        top = matchParity(base, top);
+        int zStart = -(depth - 1) / 2;
+        List<BlockPos> positions = new ArrayList<>();
+        for (int k = 0; k < depth; k++) {
+            int[] bounds = rowBounds(base, top, depth, k);
+            for (int x = bounds[0]; x <= bounds[1]; x++) {
+                positions.add(source.offset(x, 0, zStart + k));
+            }
+        }
+        return positions;
+    }
+
+    /**
+     * Returns a flat right triangle with the right angle at the low x, low z corner
+     * @param source
+     * @param base - width of the base in x direction
+     * @param depth - length of the upright side in z direction
+     * @return list of BlockPos representing the triangle
+     */
+    public static List<BlockPos> rightTriangle(BlockPos source, int base, int depth) {
+        int xStart = -(base - 1) / 2;
+        int zStart = -(depth - 1) / 2;
+        List<BlockPos> positions = new ArrayList<>();
+        for (int k = 0; k < depth; k++) {
+            double t = (depth == 1) ? 0 : (double) k / (depth - 1);
+            int width = (int) Math.round((base - 1) * (1.0 - t)) + 1;
+            for (int x = 0; x < width; x++) {
+                positions.add(source.offset(xStart + x, 0, zStart + k));
+            }
+        }
+        return positions;
+    }
+
+    /**
+     * Returns the half of a flat circle on the high z side, flat edge along x through source
+     * @param source
+     * @param diameter - width in blocks
+     * @return list of BlockPos representing the semicircle
+     */
+    public static List<BlockPos> semicircle(BlockPos source, int diameter) {
+        List<BlockPos> positions = new ArrayList<>();
+        for (BlockPos pos : circle(source, diameter)) {
+            if (pos.getZ() >= source.getZ() + (diameter + 1) % 2) positions.add(pos);
+        }
+        return positions;
+    }
+
+    /**
+     * Returns a solid cylinder with its base centered at source
+     * @param source - center of the base
+     * @param diameter - width in blocks
+     * @param height - height in blocks
+     * @return list of BlockPos representing the cylinder
+     */
+    public static List<BlockPos> cylinder(BlockPos source, int diameter, int height) {
+        return extrude(circle(source, diameter), height);
+    }
+
+    /**
+     * Returns a solid triangular prism, the triangle from triangle() stacked upward
+     * @param source - center of the base
+     * @param base - width of the triangle base in x direction
+     * @param depth - length of the triangle in z direction
+     * @param height - height in blocks
+     * @return list of BlockPos representing the prism
+     */
+    public static List<BlockPos> prism(BlockPos source, int base, int depth, int height) {
+        return extrude(triangle(source, base, depth), height);
+    }
+
+    /**
+     * Returns a solid cone with its base centered at source and its point at the top
+     * @param source - center of the base
+     * @param diameter - width of the base in blocks
+     * @param height - height in blocks
+     * @return list of BlockPos representing the cone
+     */
+    public static List<BlockPos> cone(BlockPos source, int diameter, int height) {
+        return frustum(source, diameter, 1, height);
+    }
+
+    /**
+     * Returns a solid truncated cone, circles shrinking from the bottom diameter to the top diameter
+     * @param source - center of the base
+     * @param bottom - width of the base in blocks
+     * @param top - width of the top in blocks
+     * @param height - height in blocks
+     * @return list of BlockPos representing the frustum
+     */
+    public static List<BlockPos> frustum(BlockPos source, int bottom, int top, int height) {
+        List<BlockPos> positions = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            positions.addAll(circle(source.above(y), frustumWidth(bottom, top, height, y)));
+        }
+        return positions;
+    }
+
+    /**
+     * Stacks a flat shape upward
+     * @param plane - shape at the base y level
+     * @param height - number of layers
+     * @return list of BlockPos representing the extruded shape
+     */
+    public static List<BlockPos> extrude(List<BlockPos> plane, int height) {
+        List<BlockPos> positions = new ArrayList<>(plane.size() * height);
+        for (int y = 0; y < height; y++) {
+            for (BlockPos pos : plane) positions.add(pos.above(y));
+        }
+        return positions;
+    }
+
+    /**
+     * Returns the blocks of a solid shape that have at least one exposed face
+     * @param solid - any filled shape
+     * @return list of BlockPos representing the one block thick shell
+     */
+    public static List<BlockPos> shell(List<BlockPos> solid) {
         Set<BlockPos> lookup = new HashSet<>(solid);
         List<BlockPos> shell = new ArrayList<>();
         for (BlockPos pos : solid) {
@@ -129,6 +296,217 @@ public class ShapeGen {
             }
         }
         return shell;
+    }
+
+    /**
+     * Returns the edge of a flat shape, blocks with an exposed side in the x/z plane
+     * @param plane - any flat filled shape
+     * @return list of BlockPos representing the outline
+     */
+    public static List<BlockPos> outline(List<BlockPos> plane) {
+        Set<BlockPos> lookup = new HashSet<>(plane);
+        List<BlockPos> edge = new ArrayList<>();
+        for (BlockPos pos : plane) {
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                if (!lookup.contains(pos.relative(dir))) {
+                    edge.add(pos);
+                    break;
+                }
+            }
+        }
+        return edge;
+    }
+
+    /**
+     * Returns a straight line of blocks between two points, both ends included.
+     * Halves round away from zero so mirrored lines stay mirrored.
+     * @param from
+     * @param to
+     * @return list of BlockPos representing the line
+     */
+    public static List<BlockPos> line(BlockPos from, BlockPos to) {
+        int dx = to.getX() - from.getX();
+        int dy = to.getY() - from.getY();
+        int dz = to.getZ() - from.getZ();
+        int steps = Math.max(Math.abs(dx), Math.max(Math.abs(dy), Math.abs(dz)));
+        List<BlockPos> positions = new ArrayList<>(steps + 1);
+        for (int i = 0; i <= steps; i++) {
+            double t = (steps == 0) ? 0 : (double) i / steps;
+            positions.add(from.offset(roundHalfAway(dx * t), roundHalfAway(dy * t), roundHalfAway(dz * t)));
+        }
+        return positions;
+    }
+
+    /**
+     * Returns three rings through the six poles of a sphere, one per axis plane. Even diameters have no single
+     * middle layer, so each ring is two blocks thick across the seam.
+     * @param source - center of the base
+     * @param diameter - width and height in blocks
+     * @return list of BlockPos representing the sphere frame
+     */
+    public static List<BlockPos> sphereFrame(BlockPos source, int diameter) {
+        BlockPos center = source.above((diameter - 1) / 2);
+        Set<BlockPos> frame = new LinkedHashSet<>();
+        for (BlockPos p : outline(circle(BlockPos.ZERO, diameter))) {
+            for (int o : centerOffsets(diameter)) {
+                frame.add(center.offset(p.getX(), o, p.getZ()));
+                frame.add(center.offset(p.getX(), p.getZ(), o));
+                frame.add(center.offset(o, p.getZ(), p.getX()));
+            }
+        }
+        return new ArrayList<>(frame);
+    }
+
+    /**
+     * Returns the base ring of a half sphere and the two half rings over its top, matching halfSphere's layers
+     * @param source - center of the base
+     * @param diameter - width in blocks
+     * @return list of BlockPos representing the half sphere frame
+     */
+    public static List<BlockPos> halfSphereFrame(BlockPos source, int diameter) {
+        List<BlockPos> positions = new ArrayList<>();
+        for (BlockPos pos : sphereFrame(source.below(diameter / 2), diameter)) {
+            if (pos.getY() >= source.getY()) positions.add(pos);
+        }
+        return positions;
+    }
+
+    /**
+     * Returns the bottom and top rings of a truncated cone joined by sloped edges, a top of 1 gives a cone.
+     * Even diameters run each edge down both center columns.
+     * @param source - center of the base
+     * @param bottom - width of the base in blocks
+     * @param top - width of the top in blocks, nudged to match the bottom's parity
+     * @param height - height in blocks
+     * @return list of BlockPos representing the frustum frame
+     */
+    public static List<BlockPos> frustumFrame(BlockPos source, int bottom, int top, int height) {
+        top = matchParity(bottom, top);
+        BlockPos topCenter = source.above(height - 1);
+        Set<BlockPos> frame = new LinkedHashSet<>(outline(circle(source, bottom)));
+        frame.addAll(outline(circle(topCenter, top)));
+
+        int lo = -(bottom - 1) / 2;
+        int hi = bottom / 2;
+        int topLo = -(top - 1) / 2;
+        int topHi = top / 2;
+        for (int o : centerOffsets(bottom)) {
+            frame.addAll(line(source.offset(lo, 0, o), topCenter.offset(topLo, 0, o)));
+            frame.addAll(line(source.offset(hi, 0, o), topCenter.offset(topHi, 0, o)));
+            frame.addAll(line(source.offset(o, 0, lo), topCenter.offset(o, 0, topLo)));
+            frame.addAll(line(source.offset(o, 0, hi), topCenter.offset(o, 0, topHi)));
+        }
+        return new ArrayList<>(frame);
+    }
+
+    /**
+     * Returns the twelve edges of a cuboid
+     * @param source - center of the base
+     * @param x - size in x direction
+     * @param y - size in y direction
+     * @param z - size in z direction
+     * @return list of BlockPos representing the cuboid frame
+     */
+    public static List<BlockPos> cuboidFrame(BlockPos source, int x, int y, int z) {
+        List<BlockPos> solid = cuboid(source, x, y, z);
+        BoundingBox box = BoundingBox.encapsulatingPositions(solid).orElseThrow();
+        List<BlockPos> frame = new ArrayList<>();
+        for (BlockPos pos : solid) {
+            int onBounds = 0;
+            if (pos.getX() == box.minX() || pos.getX() == box.maxX()) onBounds++;
+            if (pos.getY() == box.minY() || pos.getY() == box.maxY()) onBounds++;
+            if (pos.getZ() == box.minZ() || pos.getZ() == box.maxZ()) onBounds++;
+            if (onBounds >= 2) frame.add(pos);
+        }
+        return frame;
+    }
+
+    /**
+     * Returns the top and bottom rings of a cylinder joined by vertical edges, doubled across the seam for even diameters
+     * @param source - center of the base
+     * @param diameter - width in blocks
+     * @param height - height in blocks
+     * @return list of BlockPos representing the cylinder frame
+     */
+    public static List<BlockPos> cylinderFrame(BlockPos source, int diameter, int height) {
+        Set<BlockPos> frame = new LinkedHashSet<>();
+        List<BlockPos> ring = outline(circle(source, diameter));
+        frame.addAll(ring);
+        for (BlockPos pos : ring) frame.add(pos.above(height - 1));
+
+        int lo = -(diameter - 1) / 2;
+        int hi = diameter / 2;
+        for (int o : centerOffsets(diameter)) {
+            BlockPos[] sides = {source.offset(lo, 0, o), source.offset(hi, 0, o), source.offset(o, 0, lo), source.offset(o, 0, hi)};
+            for (BlockPos side : sides) frame.addAll(line(side, side.above(height - 1)));
+        }
+        return new ArrayList<>(frame);
+    }
+
+    /**
+     * Returns the edges of a triangular prism: the triangle's outline at the bottom and top joined by vertical
+     * edges at its corners. Using the solid triangle's outline keeps the frame on the same blocks as prism().
+     * @param source - center of the base
+     * @param base - width of the triangle base in x direction
+     * @param depth - length of the triangle in z direction
+     * @param height - height in blocks
+     * @return list of BlockPos representing the prism frame
+     */
+    public static List<BlockPos> prismFrame(BlockPos source, int base, int depth, int height) {
+        List<BlockPos> edge = outline(triangle(source, base, depth));
+        Set<BlockPos> frame = new LinkedHashSet<>(edge);
+        for (BlockPos pos : edge) frame.add(pos.above(height - 1));
+
+        int zStart = -(depth - 1) / 2;
+        int[] first = rowBounds(base, pointWidth(base), depth, 0);
+        int[] last = rowBounds(base, pointWidth(base), depth, depth - 1);
+        BlockPos[] corners = {
+            source.offset(first[0], 0, zStart), source.offset(first[1], 0, zStart),
+            source.offset(last[0], 0, zStart + depth - 1), source.offset(last[1], 0, zStart + depth - 1)
+        };
+        for (BlockPos corner : corners) frame.addAll(line(corner, corner.above(height - 1)));
+        return new ArrayList<>(frame);
+    }
+
+    //** Even size helpers
+
+    // Bounds of row k of a trapezoid, the low bound mirrors the high one about the center so both sides round alike
+    private static int[] rowBounds(int base, int top, int depth, int k) {
+        double cx = ((base / 2) - (base - 1) / 2) / 2.0;
+        double halfBase = (base - 1) / 2.0;
+        double halfTop = (top - 1) / 2.0;
+        double t = (depth == 1) ? 0 : (double) k / (depth - 1);
+        double half = halfBase + (halfTop - halfBase) * t;
+        int hi = (int) Math.floor(cx + half + 0.5);
+        return new int[]{(int) Math.round(2 * cx) - hi, hi};
+    }
+
+    // A pointed shape ends in one block for odd widths and two for even widths
+    private static int pointWidth(int width) {
+        return 2 - width % 2;
+    }
+
+    // Narrower widths must share the parity of the wider one or they sit half a block off center
+    private static int matchParity(int width, int narrower) {
+        return ((width - narrower) % 2 == 0) ? narrower : narrower + 1;
+    }
+
+    // The columns through the middle of a shape, one for odd sizes and two for even sizes
+    private static int[] centerOffsets(int size) {
+        return (size % 2 == 0) ? new int[]{0, 1} : new int[]{0};
+    }
+
+    private static int roundHalfAway(double value) {
+        return (int) (Math.signum(value) * Math.floor(Math.abs(value) + 0.5));
+    }
+
+    // Widths keep the bottom's parity so each layer stays centered on the same column
+    private static int frustumWidth(int bottom, int top, int height, int y) {
+        double t = (height == 1) ? 0 : (double) y / (height - 1);
+        double width = bottom + (top - bottom) * t;
+        int parity = bottom % 2;
+        int w = 2 * (int) Math.round((width - parity) / 2.0) + parity;
+        return Math.max(w, 2 - parity);
     }
 
     private static List<BlockPos> offsetAll(BlockPos source, Fast3DArray shape) {
@@ -145,8 +523,7 @@ public class ShapeGen {
 
     /**
      * Returns a 3D array of all vertices within a circle of radius r.
-     * The y value is always 0. If the provided radius is odd, it will be incremented by 1.  Returns single block at
-     * the center for radius of 0 or 1 Returns 3x3 square for radius of 2 or 3.
+     *
      * @param radius
      * @return null if radius is less than 0. returns 3x3 square if radius is 2 or 3. Otherwise
      * returns all integer solutions where x^2 + z^2 = r^2 or less
@@ -273,7 +650,7 @@ public class ShapeGen {
         int xStart = -length / 2 + modL;
         int zStart = -width / 2 + modW;
 
-//consider edge cases for l/w = 1 or 2
+//consider edge cases for l/w = 1
         if( length == 1 && width == 1)
         {
             square.add(0, 0, 0);
@@ -294,35 +671,6 @@ public class ShapeGen {
             for( int x = xStart; x <= length / 2; x++)
             {
                 square.add(x, 0, 0);
-            }
-            return square;
-        }
-
-        if( length == 2 && width == 2)
-        {
-            square.add(-1, 0, -1);
-            square.add(-1, 0, 1);
-            square.add(1, 0, -1);
-            square.add(1, 0, 1);
-            return square;
-        }
-
-        if( length == 2)
-        {
-            for( int z = zStart; z <= width / 2; z++)
-            {
-                square.add(-1, 0, z);
-                square.add(1, 0, z);
-            }
-            return square;
-        }
-
-        if( width == 2)
-        {
-            for( int x = xStart; x <= length / 2; x++)
-            {
-                square.add(x, 0, -1);
-                square.add(x, 0, 1);
             }
             return square;
         }

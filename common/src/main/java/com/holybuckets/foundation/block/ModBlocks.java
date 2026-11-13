@@ -6,10 +6,15 @@ import net.blay09.mods.balm.api.DeferredObject;
 import net.blay09.mods.balm.api.block.BalmBlocks;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+
+import javax.annotation.Nullable;
+import java.util.EnumMap;
+import java.util.Map;
 
 public class ModBlocks {
 
@@ -19,6 +24,13 @@ public class ModBlocks {
     public static DeferredObject<Block> empty;
     public static DeferredObject<Block> stoneBrickBlockEntity;
     public static DeferredObject<Block> essenceCauldron;
+
+    public static final DyeColor[] MARKER_COLORS = {
+        DyeColor.WHITE, DyeColor.BLACK, DyeColor.BROWN, DyeColor.RED,
+        DyeColor.ORANGE, DyeColor.YELLOW, DyeColor.LIME, DyeColor.GREEN,
+        DyeColor.BLUE, DyeColor.PURPLE, DyeColor.MAGENTA, DyeColor.PINK
+    };
+    public static final Map<DyeColor, DeferredObject<Block>> markers = new EnumMap<>(DyeColor.class);
     //public static Block[] scopedSharestones = new SharestoneBlock[DyeColor.values().length];
 
     public static void initialize(BalmBlocks blocks) {
@@ -32,6 +44,13 @@ public class ModBlocks {
 
         essenceCauldron = blocks.registerBlock(rl -> new EssenceCauldronBlock(), id("essence_cauldron"));
         blocks.registerBlockItem(rl -> itemBlock(essenceCauldron.get()), id("essence_cauldron"), creativeTab);
+
+        for (DyeColor color : MARKER_COLORS) {
+            ResourceLocation markerId = id(color.getSerializedName() + "_marker_block");
+            DeferredObject<Block> marker = blocks.registerBlock(rl -> new MarkerBlock(color), markerId);
+            markers.put(color, marker);
+            blocks.registerBlockItem(rl -> itemBlock(marker.get()), markerId, creativeTab);
+        }
         /*
         DyeColor[] colors = DyeColor.values();
         for (DyeColor color : colors) {
@@ -39,6 +58,12 @@ public class ModBlocks {
         }
         */
 
+    }
+
+    @Nullable
+    public static Block getMarker(DyeColor color) {
+        DeferredObject<Block> marker = markers.get(color);
+        return (marker == null) ? null : marker.get();
     }
 
     private static BlockItem itemBlock(Block block) {

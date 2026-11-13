@@ -10,6 +10,7 @@ import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.services.ChunkLoader;
 import com.mojang.datafixers.util.Either;
+import io.netty.util.collection.IntObjectHashMap;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
@@ -169,41 +170,55 @@ public class ChunkExplorerManager {
     private void rebuildQueue()
     {
         List<Player> players = new ArrayList<>(chunkGenerators.keySet());
-        Player player = null;
-        if(!players.isEmpty()) {
-           player = players.get(pcount++ % players.size());
-        }
+        Player player = players.isEmpty() ? null : players.get(pcount++ % players.size());
+        ChunkGenerationOrderHandler handler = (player == null) ? null : chunkGenerators.get(player);
+        ChunkPos playerPos = (player == null) ? null : player.chunkPosition();
 
         chunkExploreQueue.clear();
-        for (int i=0; i < CHUNK_EXPLORER_MAX; i++)
+        synchronized (chunkGenerationPriorityQueue)
         {
-            ChunkGenerationOrderHandler handler = chunkGenerators.get(player);
-            ChunkPos current = handler.getCurrentPos();
-            ChunkPos priorityChunk = chunkGenerationPriorityQueue.peekFirst();
+            LinkedList<ChunkPos> priority = getClosestPriorityChunks(player);
+            Set<ChunkPos> taken = new HashSet<>();
 
-            if(current!=null && priorityChunk!=null)
-            {   //take the closest by dist
-                ChunkPos playerPos = new ChunkPos(player.blockPosition());
-                double currDist = HBUtil.ChunkUtil.chunkDistSquared(playerPos, current);
-                double priorDist = HBUtil.ChunkUtil.chunkDistSquared(playerPos, priorityChunk);
+            for (int i = 0; i < CHUNK_EXPLORER_MAX; i++)
+            {
+                ChunkPos current = (handler == null) ? null : handler.getCurrentPos();
+                ChunkPos priorityChunk = priority.peekFirst();
+                if (current == null && priorityChunk == null) break;
 
-                if(currDist <= priorDist)
-                    priorityChunk=null;
-                else
-                    current=null;
+                //take the closest by dist, priority chunks win ties
+                boolean takePriority = (priorityChunk==null);
+                if(!takePriority)
+                    takePriority = (current==null);
+                if(!takePriority) {
+                    long d1 = HBUtil.ChunkUtil.chunkDistSquared(playerPos, priorityChunk);
+                    long d2 = HBUtil.ChunkUtil.chunkDistSquared(playerPos, current);
+                    takePriority = d1<=d2;
+                }
+
+                if (takePriority) {
+                    chunkExploreQueue.add(priority.pollFirst());
+                    taken.add(priorityChunk);
+                } else {
+                    chunkExploreQueue.add(current);
+                    handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
+                }
             }
 
-            if(current==null) {
-                chunkExploreQueue.add(priorityChunk);
-                chunkGenerationPrioritySet.remove(priorityChunk);
-                chunkGenerationPriorityQueue.pollFirst();
-            } else {
-                chunkExploreQueue.add(current);
-                handler.getNextUnInitSpiralChunk(util, SKIP_CHUNKS);
+            if (!taken.isEmpty()) {
+                chunkGenerationPriorityQueue.removeIf(taken::contains);
+                chunkGenerationPrioritySet.removeAll(taken);
             }
-
         }
     }
+
+        private LinkedList<ChunkPos> getClosestPriorityChunks(Player p) {
+            LinkedList<ChunkPos> sorted = new LinkedList<>(chunkGenerationPriorityQueue);
+            if (p == null) return sorted;
+            ChunkPos playerPos = p.chunkPosition();
+            sorted.sort(Comparator.comparingInt(c -> HBUtil.ChunkUtil.chunkDistSquared(playerPos, c)));
+            return sorted;
+        }
 
 
 

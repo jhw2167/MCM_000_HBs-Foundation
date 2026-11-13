@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "hbs_foundation:block/purple_marker_block"
+  }
+}

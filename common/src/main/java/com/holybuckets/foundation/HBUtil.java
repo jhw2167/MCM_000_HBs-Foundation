@@ -73,6 +73,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import com.holybuckets.foundation.util.ModContext;
+import net.minecraft.ResourceLocationException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -294,9 +296,40 @@ public class HBUtil {
         public static Item itemNameToItem(String qualifiedItemName) {
             String[] parts = qualifiedItemName.split(":");
             if( parts.length < 2 ) {
-             return itemNameToItem("minecraft", qualifiedItemName);
+             return itemNameToItemAnyNamespace(qualifiedItemName);
             }
             return itemNameToItem(parts[0], parts[1]);
+        }
+
+        /**
+         * Looks up an item name without a namespace in minecraft first, then in every loaded mod's namespace
+         * @return the first item found, or null
+         */
+        public static Item itemNameToItemAnyNamespace(String itemName)
+        {
+            if( itemName == null || itemName.isBlank() ) return itemNameToItem("minecraft", itemName);
+
+            String path = itemName.trim();
+            Item item = findItem("minecraft", path);
+            if( item != null ) return item;
+
+            for( String modId : ModContext.getInstance().getAll().keySet() ) {
+                item = findItem(modId, path);
+                if( item != null ) return item;
+            }
+
+            LoggerBase.logError( null, "004002", "Error parsing item name as string into a Minecraft Item type, " +
+                "item name provided was not found under minecraft or any loaded mod: " + itemName);
+            return null;
+        }
+
+        private static Item findItem(String nameSpace, String path) {
+            try {
+                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(nameSpace, path));
+                return item.equals(Items.AIR) ? null : item;
+            } catch (ResourceLocationException e) {
+                return null;
+            }
         }
 
         public static Item itemNameToItem(String nameSpace, String itemName)
@@ -1118,7 +1151,7 @@ public class HBUtil {
         }
 
         public static Holder<Biome> getBiomeAtChunk(ServerLevel level, ChunkPos pos) {
-            BlockPos point = pos.getWorldPosition().atY(128);
+            BlockPos point = pos.getWorldPosition().atY(196);
             return getBiomeAtPoint(level, point);
         }
 
@@ -1136,6 +1169,14 @@ public class HBUtil {
         public static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
             BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
             Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(), level.getChunkSource().randomState().sampler());
+            return b;
+        }
+
+        public static Holder<Biome> getBiomeAtSurface(ServerLevel level, Vec3i pos) {
+            BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
+            pos = new Vec3i(pos.getX(), 196, pos.getZ());
+            Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(),
+                 level.getChunkSource().randomState().sampler());
             return b;
         }
 

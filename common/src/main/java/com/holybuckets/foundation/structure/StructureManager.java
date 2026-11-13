@@ -38,6 +38,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import com.holybuckets.foundation.util.ModContext;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -54,17 +55,17 @@ public class StructureManager {
     private Map<String, BlockPos> existingStructures; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
 
 
-    private static Map<Level, StructureManager> managers = new HashMap<>();
-    private static final Map<ResourceLocation, String> structureConcepts = new HashMap<>();
-    private static final Map<String, ResourceLocation[]> structureConceptStages = new HashMap<>();
+    private static Map<Level, StructureManager> managers = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, String> structureConcepts = new ConcurrentHashMap<>();
+    private static final Map<String, ResourceLocation[]> structureConceptStages = new ConcurrentHashMap<>();
     private Iterator<StructureInfo> syncIterator;
 
     private StructureManager(Level level) {
         this.level = level;
-        this.structures = new HashMap<>();
-        this.structuresByType = new HashMap<>();
-        this.currentlyLoadedStructures = new HashSet<>();
-        this.existingStructures = new HashMap<>();
+        this.structures = new ConcurrentHashMap<>();
+        this.structuresByType = new ConcurrentHashMap<>();
+        this.currentlyLoadedStructures = ConcurrentHashMap.newKeySet();
+        this.existingStructures = new ConcurrentHashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
             this.structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -87,8 +88,10 @@ public class StructureManager {
     }
 
     public List<BlockPos> getStructurePosByType(ResourceLocation location) {
-        if (!structuresByType.containsKey(location)) return List.of();
-        return List.copyOf( structuresByType.get(location) );
+        if (location == null) return List.of();
+        Set<BlockPos> positions = structuresByType.get(location);
+        if (positions == null) return List.of();
+        return List.copyOf(positions);
     }
 
     public List<BlockPos> getStructurePosByType(Structure structure) {
@@ -99,8 +102,10 @@ public class StructureManager {
     }
 
     public List<StructureInfo> getStructuresByType(ResourceLocation location) {
-        if (!structuresByType.containsKey(location)) return List.of();
-        return List.copyOf( structuresByType.get(location).stream().map(pos -> structures.get(pos)).toList() );
+        if (location == null) return List.of();
+        Set<BlockPos> positions = structuresByType.get(location);
+        if (positions == null) return List.of();
+        return positions.stream().map(structures::get).filter(Objects::nonNull).toList();
     }
 
     public List<StructureInfo> getStructuresByType(Structure structure) {
@@ -255,12 +260,15 @@ public class StructureManager {
     }
 
     public int getDiscoveredCount(ResourceLocation location) {
-        if(!structuresByType.containsKey(location)) return 0;
-        return structuresByType.get(location).size();
+        if (location == null) return 0;
+        Set<BlockPos> positions = structuresByType.get(location);
+        return positions == null ? 0 : positions.size();
     }
 
     public boolean isDiscovered(ResourceLocation location) {
-        return structuresByType.containsKey(location) && !structuresByType.get(location).isEmpty();
+        if (location == null) return false;
+        Set<BlockPos> positions = structuresByType.get(location);
+        return positions != null && !positions.isEmpty();
     }
 
     public Set<ResourceLocation> getDiscoveredTypes() {
@@ -268,7 +276,7 @@ public class StructureManager {
     }
 
     public @javax.annotation.Nullable StructureInfo getStructureAt(BlockPos pos) {
-        return structures.get(pos);
+        return pos == null ? null : structures.get(pos);
     }
 
     /**
@@ -283,6 +291,7 @@ public class StructureManager {
 
     //** STRUCTURE CONCEPTS
     public static void structureUpgraded(String concept, int newStage) {
+        if (concept == null) return;
         ResourceLocation[] stages = structureConceptStages.get(concept);
         if (stages == null || newStage < 0 || newStage >= stages.length) return;
 
@@ -302,12 +311,14 @@ public class StructureManager {
      */
     public static void setAllStructureConcepts(Map<String, ResourceLocation[]> conceptStages)
     {
-        structureConceptStages.putAll(conceptStages);
-
+        if (conceptStages == null) return;
         for(Map.Entry<String, ResourceLocation[]> entry : conceptStages.entrySet()) {
             String concept = entry.getKey();
             ResourceLocation[] stages = entry.getValue();
+            if (concept == null || stages == null) continue;
+            structureConceptStages.put(concept, stages);
             for(ResourceLocation stage : stages) {
+                if (stage == null) continue;
                 structureConcepts.put(stage, concept);
             }
         }
@@ -324,12 +335,12 @@ public class StructureManager {
     }
 
     public static @Nullable ResourceLocation[] getStructureConceptStages(String concept) {
-        return structureConceptStages.get(concept);
+        return concept == null ? null : structureConceptStages.get(concept);
     }
 
     private static void hydrateStructureConcept(StructureInfo info) {
         String concept = info.getStructureConcept();
-        if (concept == null) concept = structureConcepts.get(info.getStructureLocation());
+        if (concept == null && info.getStructureLocation() != null) concept = structureConcepts.get(info.getStructureLocation());
         if (concept == null) return;
 
         info.setStructureConcept(concept);
@@ -434,7 +445,7 @@ public class StructureManager {
         StructureInfo structureInfo = StructureInfo.of(holder, structStartPos, structureRegistry, structureLocation);
         hydrateStructureConcept(structureInfo);
         this.structures.put(structStartPos, structureInfo);
-        this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(structStartPos);
+        this.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(structStartPos);
 
         StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
         LoggerBase.logDebug(null, "050012", "Structure loaded: " + structureLocation
@@ -459,7 +470,7 @@ public class StructureManager {
         StructureInfo info = new StructureInfo(pos, loc, rId, loc.getPath(), loc);
 
         this.structures.put(pos, info);
-        this.structuresByType.computeIfAbsent(loc, k -> new HashSet<>()).add(pos);
+        this.structuresByType.computeIfAbsent(loc, k -> ConcurrentHashMap.newKeySet()).add(pos);
         this.currentlyLoadedStructures.add(pos);
         this.existingStructures.put(new ChunkPos(pos) + ":" + loc, pos);
     }
@@ -522,7 +533,7 @@ public class StructureManager {
                 if(structures.containsKey(info.origin)) continue;
                 hydrateStructureConcept(info);
                 this.structures.put(info.origin, info);
-                this.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
+                this.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(info.origin);
                 this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
                 ChunkPos cp = new ChunkPos(info.origin);
                 this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
@@ -623,6 +634,7 @@ public class StructureManager {
         if(GeneralConfig.getInstance().isIntegrated()) {
             level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, level.dimension());
         }
+        if(level == null) return null;
         if(!managers.containsKey(level))
             init(level);
         return managers.get(level);
@@ -788,12 +800,13 @@ public class StructureManager {
         if(message.levelId != null && !message.levelId.isEmpty() && !message.levelId.equals(playerLevelId)) return;
         for(StructureInfo info : message.structures )
         {
+            if(info == null || info.origin == null) continue;
             StructureManager sm = StructureManager.get(player.level());
             ResourceLocation structureLocation = info.getStructureLocation();
             if(structureLocation != null) {
                 if(sm.structures.containsKey(info.origin)) continue;
                 sm.structures.put(info.origin, info);
-                sm.structuresByType.computeIfAbsent(structureLocation, k -> new HashSet<>()).add(info.origin);
+                sm.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(info.origin);
                 IManagedPlayer playerStructureData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
                 if(playerStructureData != null && (playerStructureData instanceof PlayerStructureData psData) ) {
                     psData.increment( (Level) player.level() );

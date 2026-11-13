@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "hbs_foundation:block/brown_marker_block"
+    }
+  }
+}

@@ -30,7 +30,7 @@ public class ForgeChunkLoader implements ChunkLoader {
 
     public static final String CLASS_ID = "039";
     private static final String ID = "foundations:ChunkExplorer";
-    private static final int GEN = GenerationType.NORMAL_GEN.getIndex();
+    private static final int GEN = GenerationType.FAST_CHECK_GEN.getIndex();
 
     // One entry per level with a pregen task in flight. Only one level may hold a task at a
     // time for now, so these are empty or hold exactly one entry.

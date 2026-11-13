@@ -3,6 +3,7 @@ import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.client.core.MovingWaypoint;
+import com.holybuckets.foundation.client.overlay.ClientOverlayManager;
 import com.holybuckets.foundation.core.WoolColorHelper;
 import com.holybuckets.foundation.datastore.DataStore;
 import com.holybuckets.foundation.event.EventRegistrar;
@@ -41,6 +42,7 @@ public class CommonClassClient {
         messager.init(reg);
         initStructureManager(reg);
         MovingWaypoint.registerEvents(reg);
+        ClientOverlayManager.init(reg);
 
 
         ClientBalmEventRegister.registerEvents();

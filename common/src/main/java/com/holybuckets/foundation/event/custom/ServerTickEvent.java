@@ -37,6 +37,10 @@ public class ServerTickEvent {
         }
     }
 
+    public static class Every6000Ticks extends ServerTickEvent {
+        public Every6000Ticks(long tickCount) { super(tickCount); }
+    }
+
     public static class DailyTickEvent extends ServerTickEvent {
         private Level level;
         private boolean triggeredByWakeUp;

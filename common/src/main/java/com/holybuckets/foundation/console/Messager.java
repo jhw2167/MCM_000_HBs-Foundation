@@ -14,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 public class Messager implements IMessager {
 
     public static final String MSG_ID_BOTTOM_ACTION_HINT = "bottom_screen_action_hint";
+    public static final String MSG_ID_BOTTOM_ACTION_HINT_KEY = "bottom_screen_action_hint_key";
     public static final String MSG_ID_BOTTOM_ERROR_HINT = "bottom_screen_error_hint";
 
     private static Messager INSTANCE;
@@ -81,9 +82,12 @@ public class Messager implements IMessager {
      */
     @Override
     public void sendBottomActionHint(Player player, String modId, String translationKey) {
-        if(modId==null || modId.isEmpty())
+        if(modId==null || modId.isEmpty()) {
             sendBottomActionHint(player, translationKey);
-        sendBottomActionHint(player, Component.translatable(translationKey).getString());
+            return;
+        }
+        if (player == null || translationKey == null || translationKey.isEmpty()) return;
+        SimpleStringMessage.createAndFire(player, MSG_ID_BOTTOM_ACTION_HINT_KEY, translationKey);
     }
 
     /**

@@ -1,6 +1,15 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
+      "model": "hbs_foundation:block/green_marker_block"
+    },
+    "facing=east": {
+      "model": "hbs_foundation:block/green_marker_block"
+    },
+    "facing=south": {
+      "model": "hbs_foundation:block/green_marker_block"
+    },
+    "facing=west": {
       "model": "hbs_foundation:block/green_marker_block"
     }
   }

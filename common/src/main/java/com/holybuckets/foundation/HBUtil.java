@@ -32,6 +32,7 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.QuartPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.*;
@@ -63,6 +64,7 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.blay09.mods.balm.api.BalmRegistries;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
@@ -233,9 +235,11 @@ public class HBUtil {
              }
             String playerName = id.replace("CLIENT:", "").replace("SERVER:", "");
             if( nameSpace == PlayerNameSpace.CLIENT ) {
-                return ManagedPlayer.PLAYERS.get("CLIENT:" + playerName).getPlayer();
+                ManagedPlayer mp = ManagedPlayer.PLAYERS.get("CLIENT:" + playerName);
+                return mp == null ? null : mp.getPlayer();
             } else if( nameSpace == PlayerNameSpace.SERVER ) {
-                return ManagedPlayer.PLAYERS.get("SERVER:" + playerName).getServerPlayer();
+                ManagedPlayer mp = ManagedPlayer.PLAYERS.get("SERVER:" + playerName);
+                return mp == null ? null : mp.getServerPlayer();
             }
             return null;
         }
@@ -350,6 +354,25 @@ public class HBUtil {
             }
 
             return item;
+        }
+
+
+        public static int getItemId(Item item) {
+            if( item == null ) return -1;
+            return BuiltInRegistries.ITEM.getId(item);
+        }
+
+        @Nullable
+        public static Item getItem(int regId) {
+            if( regId < 0 || regId >= BuiltInRegistries.ITEM.size() ) return null;
+            Item item = BuiltInRegistries.ITEM.byId(regId);
+            return (item == null || item == Items.AIR) ? null : item;
+        }
+
+        public static String encodeMessageItem(Item item) {
+            int id = getItemId(item);
+            if( id < 0 ) return "";
+            return "{I:" + id + "}";
         }
 
 
@@ -864,6 +887,14 @@ public class HBUtil {
         STRUCTURE_REGISTRY = server.registryAccess().registryOrThrow(Registries.STRUCTURE);
     }
 
+    @Nullable
+    private static Registry<Biome> getBiomeRegistry() {
+        if( BIOME_REGISTRY != null ) return BIOME_REGISTRY;
+        Level level = GeneralConfig.LOCAL_LEVEL;
+        if( level == null ) return null;
+        return level.registryAccess().registry(Registries.BIOME).orElse(null);
+    }
+
     public static class LevelUtil {
 
         public static void init(EventRegistrar reg) {
@@ -1024,13 +1055,15 @@ public class HBUtil {
         }
 
         public static ResourceLocation toBiomeResourceLocation(Biome biome) {
-            if (biome == null) return null;
-            return BIOME_REGISTRY.getKey(biome);
+            Registry<Biome> registry = getBiomeRegistry();
+            if (biome == null || registry == null) return null;
+            return registry.getKey(biome);
         }
 
         public static String getBiomeNameString(Biome b) {
-            if (b == null) return null;
-            ResourceLocation key = BIOME_REGISTRY.getKey(b);
+            Registry<Biome> registry = getBiomeRegistry();
+            if (b == null || registry == null) return null;
+            ResourceLocation key = registry.getKey(b);
             return key != null ? key.toString() : null;
         }
 
@@ -1058,8 +1091,9 @@ public class HBUtil {
         }
 
         public static ResourceLocation getBiomeName(Biome b) {
-            if (b == null) return null;
-            return BIOME_REGISTRY.getKey(b);
+            Registry<Biome> registry = getBiomeRegistry();
+            if (b == null || registry == null) return null;
+            return registry.getKey(b);
         }
 
         /**
@@ -1168,16 +1202,12 @@ public class HBUtil {
          */
         public static Holder<Biome> getBiomeAtPoint(ServerLevel level, Vec3i pos) {
             BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
-            Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(), level.getChunkSource().randomState().sampler());
-            return b;
+            return source.getNoiseBiome(QuartPos.fromBlock(pos.getX()), QuartPos.fromBlock(pos.getY()),
+                QuartPos.fromBlock(pos.getZ()), level.getChunkSource().randomState().sampler());
         }
 
         public static Holder<Biome> getBiomeAtSurface(ServerLevel level, Vec3i pos) {
-            BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
-            pos = new Vec3i(pos.getX(), 196, pos.getZ());
-            Holder<Biome> b = source.getNoiseBiome(pos.getX(), pos.getY(), pos.getZ(),
-                 level.getChunkSource().randomState().sampler());
-            return b;
+            return getBiomeAtPoint(level, new Vec3i(pos.getX(), 196, pos.getZ()));
         }
 
 
@@ -1189,7 +1219,7 @@ public class HBUtil {
         }
 
         public static Structure getStructure(ResourceLocation loc) {
-            if (loc == null) return null;
+            if (loc == null || STRUCTURE_REGISTRY == null) return null;
             return STRUCTURE_REGISTRY.get(loc);
         }
 
@@ -1208,7 +1238,7 @@ public class HBUtil {
         }
 
         public static ResourceLocation toStructureResourceLocation(Structure structure) {
-            if (structure == null) return null;
+            if (structure == null || STRUCTURE_REGISTRY == null) return null;
             return STRUCTURE_REGISTRY.getKey(structure);
         }
 
@@ -1226,6 +1256,43 @@ public class HBUtil {
             return simpleName.toString().trim();
         }
 
+        public static Set<BlockPos> findInBox(Level level, BoundingBox box, Set<Block> blocks)
+        {
+            Set<BlockPos> found = new HashSet<>();
+            if (level == null || box == null || blocks == null || blocks.isEmpty()) return found;
+
+            int minY = Math.max(box.minY(), level.getMinBuildHeight());
+            int maxY = Math.min(box.maxY(), level.getMaxBuildHeight() - 1);
+            if (minY > maxY) return found;
+
+            for (int cx = box.minX() >> 4; cx <= box.maxX() >> 4; cx++) {
+                for (int cz = box.minZ() >> 4; cz <= box.maxZ() >> 4; cz++) {
+                    LevelChunk chunk = level.getChunk(cx, cz);
+                    int x0 = Math.max(box.minX(), cx << 4);
+                    int x1 = Math.min(box.maxX(), (cx << 4) + 15);
+                    int z0 = Math.max(box.minZ(), cz << 4);
+                    int z1 = Math.min(box.maxZ(), (cz << 4) + 15);
+
+                    for (int si = level.getSectionIndex(minY); si <= level.getSectionIndex(maxY); si++) {
+                        LevelChunkSection section = chunk.getSection(si);
+                        if (section.hasOnlyAir() || !section.maybeHas(state -> blocks.contains(state.getBlock()))) continue;
+
+                        int baseY = level.getSectionYFromSectionIndex(si) << 4;
+                        int y0 = Math.max(minY, baseY);
+                        int y1 = Math.min(maxY, baseY + 15);
+                        for (int y = y0; y <= y1; y++) {
+                            for (int x = x0; x <= x1; x++) {
+                                for (int z = z0; z <= z1; z++) {
+                                    if (blocks.contains(section.getBlockState(x & 15, y & 15, z & 15).getBlock()))
+                                        found.add(new BlockPos(x, y, z));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return found;
+        }
 
     }
 

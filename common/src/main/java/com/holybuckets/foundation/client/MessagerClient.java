@@ -1,5 +1,7 @@
 package com.holybuckets.foundation.client;
 
+import com.holybuckets.foundation.GeneralConfig;
+import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.console.IMessager;
 import com.holybuckets.foundation.console.Messager;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -10,8 +12,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,6 +24,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Description: Client-side messaging class for templated message types
@@ -48,11 +55,23 @@ public class MessagerClient implements IMessager {
         registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT, (event) -> {
             bottomScreenHint(event.getContent(), 0xFFFFFF); // White text
         });
+        registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ACTION_HINT_KEY, (event) -> {
+            bottomScreenHint(Component.translatable(event.getContent()).getString(), 0xFFFFFF);
+        });
         registrar.registerOnSimpleMessage(Messager.MSG_ID_BOTTOM_ERROR_HINT, (event) -> {
             bottomScreenHint(event.getContent(), 0xFF0000); // Red text
         });
     }
     
+    private static boolean isServerCall(Player player) {
+        if (player != null) return player instanceof ServerPlayer;
+        return GeneralConfig.getInstance().isServerThread();
+    }
+
+    private static Messager server() {
+        return Messager.getInstance();
+    }
+
     // List to track active bottom screen messages
     private final Queue<BottomScreenMessage> bottomScreenMessages = new LinkedBlockingDeque<>();
     
@@ -61,6 +80,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendChat(String message) {
+        if (isServerCall(null)) { server().sendChat(message); return; }
         Player player = Balm.getProxy().getClientPlayer();
         if (player != null) {
             sendChat(player, message);
@@ -72,6 +92,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendChat(Player player, String message) {
+        if (isServerCall(player)) { server().sendChat(player, message); return; }
         if (player == null || message == null || message.isEmpty()) return;
         
         // On client side, display as client message
@@ -99,8 +120,11 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomActionHint(Player player, String modId, String translationKey) {
-        if(modId==null || modId.isEmpty())
+        if (isServerCall(player)) { server().sendBottomActionHint(player, modId, translationKey); return; }
+        if(modId==null || modId.isEmpty()) {
             sendBottomActionHint(player, translationKey);
+            return;
+        }
         sendBottomActionHint(player, Component.translatable(translationKey).getString());
     }
 
@@ -109,6 +133,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomActionHint(Player player, String message) {
+        if (isServerCall(player)) { server().sendBottomActionHint(player, message); return; }
         bottomScreenHint(message, 0xFFFFFF); // White text
     }
     
@@ -118,6 +143,7 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void sendBottomActionHint(String message) {
+        if (isServerCall(null)) { server().sendBottomActionHint(message); return; }
         bottomScreenHint(message, 0xFFFFFF); // White text
     }
 
@@ -126,11 +152,13 @@ public class MessagerClient implements IMessager {
      */
     @Override
     public void bottomScreenErrorHint(String message) {
+        if (isServerCall(null)) { server().bottomScreenErrorHint(message); return; }
         bottomScreenHint(message, 0xFF0000); // Red text
     }
 
     @Override
     public void bottomScreenErrorHint(Player player, String message) {
+        if (isServerCall(player)) { server().bottomScreenErrorHint(player, message); return; }
         bottomScreenHint(message, 0xFF0000); // Red text
     }
 
@@ -185,7 +213,7 @@ public class MessagerClient implements IMessager {
             }
             
             // Calculate position (bottom center, with offset for multiple messages)
-            int textWidth = font.width(message.text);
+            int textWidth = getWidth(font, message.segments);
             int x = (screenWidth - textWidth) / 2;
             int y = screenHeight - 72 - yOffset; // 60 pixels from bottom, stacked upward
             
@@ -195,12 +223,68 @@ public class MessagerClient implements IMessager {
             int outlineColor = (int)(alpha * 255) << 24 | 0x000000; // Black outline with alpha
             
             // Draw text with outline effect
-            drawTextWithOutline(guiGraphics, font, message.text, x, y, color, outlineColor);
+            drawSegments(guiGraphics, font, message.segments, x, y, color, outlineColor, alpha);
             
             yOffset += 12; // Stack messages vertically
         }
     }
     
+    private static final Pattern ITEM_TOKEN = Pattern.compile("\\{I:(\\d{1,9})\\}");
+    private static final int ICON_SIZE = 10;
+    private static final float ICON_SCALE = ICON_SIZE / 16f;
+
+    private static List<Object> parseSegments(String text) {
+        List<Object> segments = new ArrayList<>();
+        Matcher matcher = ITEM_TOKEN.matcher(text);
+        int last = 0;
+        while (matcher.find()) {
+            Item item = HBUtil.ItemUtil.getItem(Integer.parseInt(matcher.group(1)));
+            if (item == null) continue;
+            if (matcher.start() > last) segments.add(text.substring(last, matcher.start()));
+            segments.add(new ItemStack(item));
+            last = matcher.end();
+        }
+        if (last < text.length()) segments.add(text.substring(last));
+        return segments;
+    }
+
+    private static String getItemLabel(ItemStack stack) {
+        return " " + stack.getHoverName().getString();
+    }
+
+    private static int getWidth(Font font, List<Object> segments) {
+        int width = 0;
+        for (Object segment : segments) {
+            if (segment instanceof ItemStack stack) width += ICON_SIZE + font.width(getItemLabel(stack));
+            else width += font.width((String) segment);
+        }
+        return width;
+    }
+
+    private void drawSegments(GuiGraphics guiGraphics, Font font, List<Object> segments, int x, int y, int color, int outlineColor, float alpha) {
+        for (Object segment : segments) {
+            String text;
+            if (segment instanceof ItemStack stack) {
+                if (alpha > 0.5f) drawIcon(guiGraphics, stack, x, y);
+                x += ICON_SIZE;
+                text = getItemLabel(stack);
+            } else {
+                text = (String) segment;
+            }
+            drawTextWithOutline(guiGraphics, font, text, x, y, color, outlineColor);
+            x += font.width(text);
+        }
+    }
+
+    private void drawIcon(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
+        PoseStack pose = guiGraphics.pose();
+        pose.pushPose();
+        pose.translate(x, y - 1, 0);
+        pose.scale(ICON_SCALE, ICON_SCALE, 1f);
+        guiGraphics.renderItem(stack, 0, 0);
+        pose.popPose();
+    }
+
     /**
      * Draws text with a black outline for better visibility
      */
@@ -220,6 +304,7 @@ public class MessagerClient implements IMessager {
      */
     private static class BottomScreenMessage {
         private final String text;
+        private final List<Object> segments;
         private final int textColor;
         private final int durationMs;
         private final long startTime;
@@ -231,6 +316,7 @@ public class MessagerClient implements IMessager {
          */
         public BottomScreenMessage(String text, int textColor, int durationMs) {
             this.text = text;
+            this.segments = parseSegments(text);
             this.textColor = textColor;
             this.durationMs = durationMs;
             this.startTime = System.currentTimeMillis();

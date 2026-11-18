@@ -66,6 +66,17 @@ public class ModBlocks {
         return (marker == null) ? null : marker.get();
     }
 
+    @Nullable
+    public static Block getMarker(String color) {
+        for (DyeColor dyeColor : MARKER_COLORS) {
+            if (dyeColor.getSerializedName().equals(color)) {
+                return getMarker(dyeColor);
+            }
+        }
+        return null;
+    }
+
+
     private static BlockItem itemBlock(Block block) {
         return new BlockItem(block, Balm.getItems().itemProperties());
     }

@@ -339,6 +339,27 @@ public class GeneralConfig {
         return !(this.getServer() instanceof DedicatedServer);
     }
 
+    public boolean isLanOpen() {
+        MinecraftServer server = this.getServer();
+        if(server == null || server instanceof DedicatedServer) return false;
+        return server.isPublished();
+    }
+
+    public boolean isLocalOnly() {
+        return this.isIntegrated() && !this.isLanOpen();
+    }
+
+    public boolean isHostPlayer(Player player) {
+        MinecraftServer server = this.getServer();
+        if(player == null || server == null || server instanceof DedicatedServer) return false;
+        return server.isSingleplayerOwner(player.getGameProfile());
+    }
+
+    public boolean isServerThread() {
+        MinecraftServer server = this.getServer();
+        return server != null && server.isSameThread();
+    }
+
 
     @Nullable
     public MinecraftServer getServer() {

@@ -57,6 +57,7 @@ public class FoundationInitializers {
         ModConfig.init(EventRegistrar.getInstance());
 
         ModItems.commonInitialize(Balm.getItems());
+        com.holybuckets.foundation.effect.ModEffects.register();
     }
 
     private static void initConfig()
@@ -75,6 +76,7 @@ public class FoundationInitializers {
         StructureManager.init(reg);
         BiomeManager.init(reg);
         ChunkAnalyzerManager.init(reg);
+        ChunkPriorityExplorer.init(reg);
         //ChunkExplorerManager.init(reg);
         //ClientInput.init(reg);
 

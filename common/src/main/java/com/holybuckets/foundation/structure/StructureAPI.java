@@ -3,9 +3,11 @@ package com.holybuckets.foundation.structure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class StructureAPI {
 
@@ -96,6 +98,18 @@ public class StructureAPI {
         return manager.getStructureAt(pos);
     }
 
+    public boolean isStructureLoaded(BlockPos pos) {
+        return manager.isStructureLoaded(pos);
+    }
+
+    public @Nullable StructureStart loadedStructureStart(BlockPos pos) {
+        return manager.getLoadedStructureStart(pos);
+    }
+
+    public @Nullable StructureStart loadedStructureStart(StructureInfo info) {
+        return info == null ? null : manager.getLoadedStructureStart(info.getOrigin());
+    }
+
     public boolean isDiscovered(ResourceLocation sType) {
         return manager.isDiscovered(sType);
     }
@@ -118,6 +132,34 @@ public class StructureAPI {
 
     public void removePseudoStructure(BlockPos pos) {
         manager.removePseudoStructure(pos);
+    }
+
+    public void syncPseudoStructures(Predicate<ResourceLocation> ownsType, Map<BlockPos, ResourceLocation> entries) {
+        manager.syncPseudoStructures(ownsType, entries);
+    }
+
+    public static boolean addPseudoStructure(Level level, ResourceLocation sType, BlockPos pos) {
+        StructureAPI api = get(level);
+        if(api == null || sType == null || pos == null) return false;
+        api.addPseudoStructure(sType, pos);
+        StructureInfo info = api.structureAt(pos);
+        return info != null && info.isPseudo() && sType.equals(info.getStructureLocation());
+    }
+
+    public static boolean removePseudoStructure(Level level, BlockPos pos) {
+        StructureAPI api = get(level);
+        if(api == null || pos == null) return false;
+        StructureInfo info = api.structureAt(pos);
+        if(info == null || !info.isPseudo()) return false;
+        api.removePseudoStructure(pos);
+        return true;
+    }
+
+    public static boolean syncPseudoStructures(Level level, Predicate<ResourceLocation> ownsType, Map<BlockPos, ResourceLocation> entries) {
+        StructureAPI api = get(level);
+        if(api == null) return false;
+        api.syncPseudoStructures(ownsType, entries);
+        return true;
     }
 
 }

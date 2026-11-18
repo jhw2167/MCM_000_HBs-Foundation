@@ -78,7 +78,7 @@ public class SimpleStringMessage {
         SimpleStringMessage message = (p==null) ? new SimpleStringMessage(messageId, content)
             : new SimpleStringMessage(p.getUUID(), messageId, content);
 
-        if(GeneralConfig.getInstance().isIntegrated()) {
+        if(GeneralConfig.getInstance().isLocalOnly()) {
             if(p==null) {
                 String error = "SimpleStringMessage.createAndFire: Attempt to send message to undefined player. MsgId "+ messageId;
                 LoggerBase.logError(null, "016001", error);
@@ -88,7 +88,7 @@ public class SimpleStringMessage {
             ClientEventRegistrar.getInstance().onSimpleMessage(p, message, message.messageId);
             return message;
         }
-        else if (GeneralConfig.getInstance().isServerSide()) {
+        else if (isFromServer(p)) {
             if(p==null) {
                 String error = "SimpleStringMessage.createAndFire: Attempt to send message from server to undefined player. MsgId "+ messageId;
                 LoggerBase.logError(null, "016001", error);
@@ -100,6 +100,14 @@ public class SimpleStringMessage {
             HBUtil.NetworkUtil.clientSendToServer(message);
         }
         return message;
+    }
+
+    private static boolean isFromServer(@Nullable Player p) {
+        if(p != null) return !p.level().isClientSide();
+        GeneralConfig config = GeneralConfig.getInstance();
+        if(!config.isServerSide()) return false;
+        if(!config.isIntegrated()) return true;
+        return config.isServerThread();
     }
 
     public static SimpleStringMessage createAndFire(String messageId, String content) {
@@ -122,10 +130,10 @@ public class SimpleStringMessage {
 
         public static void handle(Player player, SimpleStringMessage message) {
             // Fire the simple message event with messageId routing
-            if (GeneralConfig.getInstance().isServerSide()) {
-                EventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
-            } else {
+            if (message instanceof SimpleStringClientMessage) {
                 ClientEventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
+            } else {
+                EventRegistrar.getInstance().onSimpleMessage(player, message, message.messageId);
             }
         }
     }

@@ -10,6 +10,7 @@ import com.holybuckets.foundation.biome.BiomeInfo;
 import com.holybuckets.foundation.config.PerformanceImpactConfig;
 import com.holybuckets.foundation.core.ChunkAnalyzer;
 import com.holybuckets.foundation.core.ChunkAnalyzerManager;
+import com.holybuckets.foundation.core.ChunkExplorerManager;
 import com.holybuckets.foundation.config.ModConfig;
 import com.holybuckets.foundation.core.ChunkAnalyzer.ChunkBlockDistro;
 import com.holybuckets.foundation.core.MovingWaypoint;
@@ -18,6 +19,7 @@ import com.holybuckets.foundation.event.CommandRegistry;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.structure.StructureAPI;
 import com.holybuckets.foundation.structure.StructureInfo;
+import com.google.gson.JsonObject;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -25,26 +27,45 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.datafixers.util.Pair;
 import net.blay09.mods.balm.api.event.EventPriority;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class CommandList {
@@ -65,6 +86,7 @@ public class CommandList {
         CommandRegistry.register(NearestStructuresOfType::withTypeAndLimit);
         CommandRegistry.register(NearestDistinctStructures::withLimit);
         CommandRegistry.register(AllStructures::list);
+        CommandRegistry.register(StructureTeleport::withStructure);
 
         CommandRegistry.register(NearestBiomes::noLimit);
         CommandRegistry.register(NearestBiomes::withLimit);
@@ -80,6 +102,8 @@ public class CommandList {
         CommandRegistry.register(SetChunkExploreRate::withRate);
         CommandRegistry.register(SetMaxAllocationRate::withRate);
         CommandRegistry.register(SetChunkAnalyzeRate::withRate);
+        CommandRegistry.register(ChunkExplorerHealthCheck::allLevels);
+        CommandRegistry.register(ChunkExplorerHealthCheck::withDimension);
 
         CommandRegistry.register(ChunkAnalyze::withRadius);
         CommandRegistry.register(ChunkAnalyze::withRadiusAndLimit);
@@ -89,6 +113,9 @@ public class CommandList {
 
 
     private static void onLevelLoad(LevelLoadingEvent event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            dimensionStructureTypes.remove(serverLevel.dimension());
+        }
         try {
             StructureAPI api = new StructureAPI( (Level) event.getLevel());
             validStructureTypes.addAll(api.getAllStructures());
@@ -108,6 +135,30 @@ public class CommandList {
                 validStructureTypes.stream().map(ResourceLocation::toString)
                 , builder);
         };
+
+    private static final Map<ResourceKey<Level>, Set<ResourceLocation>> dimensionStructureTypes = new ConcurrentHashMap<>();
+    private static final SuggestionProvider<CommandSourceStack> DIMENSION_STRUCTURE_SUGGESTIONS =
+        (context, builder) -> SharedSuggestionProvider.suggest(
+            getDimensionStructureTypes(context.getSource().getLevel()).stream()
+                .map(ResourceLocation::toString)
+                .sorted(),
+            builder
+        );
+
+    private static Set<ResourceLocation> getDimensionStructureTypes(ServerLevel level) {
+        return dimensionStructureTypes.computeIfAbsent(level.dimension(), key -> {
+            Set<Holder<Biome>> biomes = level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes();
+            Set<ResourceLocation> types = new HashSet<>();
+            for (Holder<StructureSet> set : level.getChunkSource().getGeneratorState().possibleStructureSets()) {
+                for (StructureSet.StructureSelectionEntry entry : set.value().structures()) {
+                    Holder<Structure> structure = entry.structure();
+                    if (structure.value().biomes().stream().noneMatch(biomes::contains)) continue;
+                    structure.unwrapKey().ifPresent(k -> types.add(k.location()));
+                }
+            }
+            return types;
+        });
+    }
 
 
     //**** STRUCTURES ****//
@@ -359,6 +410,95 @@ public class CommandList {
             }
 
             return 1;
+        }
+    }
+
+    private static class StructureTeleport {
+
+        private static final long LOCATE_TIMEOUT_MS = 5000L;
+        private static final int SEARCH_RADIUS_CHUNKS = 100;
+        private static final int TELEPORT_HEIGHT = 150;
+        private static final ExecutorService locateExecutor = Executors.newCachedThreadPool(runnable -> {
+            Thread thread = new Thread(runnable, "HBs-StructureTeleport");
+            thread.setDaemon(true);
+            return thread;
+        });
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withStructure() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("structureTeleport")
+                    .requires(source -> source.hasPermission(2))
+                    .then(Commands.argument("structure", StringArgumentType.greedyString())
+                        .suggests(DIMENSION_STRUCTURE_SUGGESTIONS)
+                        .executes(context -> execute(context.getSource(),
+                            StringArgumentType.getString(context, "structure")))
+                    )
+                );
+        }
+
+        private static int execute(CommandSourceStack source, String structureName) {
+            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                source.sendFailure(Component.literal("This command can only be used by players"));
+                return 0;
+            }
+
+            ServerLevel level = player.serverLevel();
+            String dimension = level.dimension().location().toString();
+            ResourceLocation structureId = ResourceLocation.tryParse(structureName.trim());
+            if (structureId == null || !getDimensionStructureTypes(level).contains(structureId)) {
+                source.sendFailure(Component.literal("Structure " + structureName + " does not generate in " + dimension));
+                return 0;
+            }
+
+            Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+            Optional<Holder.Reference<Structure>> holder = registry.getHolder(ResourceKey.create(Registries.STRUCTURE, structureId));
+            if (holder.isEmpty()) {
+                source.sendFailure(Component.literal("Structure " + structureId + " is not registered"));
+                return 0;
+            }
+
+            HolderSet<Structure> target = HolderSet.direct(holder.get());
+            BlockPos origin = player.blockPosition();
+            source.sendSuccess(() -> Component.literal("Locating " + structureId + "..."), false);
+
+            CompletableFuture.supplyAsync(
+                () -> level.getChunkSource().getGenerator().findNearestMapStructure(level, target, origin, SEARCH_RADIUS_CHUNKS, false),
+                locateExecutor
+            )
+                .orTimeout(LOCATE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .whenComplete((result, error) -> {
+                    MinecraftServer server = level.getServer();
+                    if (server.isRunning()) server.execute(() -> onLocateComplete(source, player, level, structureId, result, error));
+                });
+
+            return 1;
+        }
+
+        private static void onLocateComplete(CommandSourceStack source, ServerPlayer player, ServerLevel level, ResourceLocation structureId,
+                                             Pair<BlockPos, Holder<Structure>> result, Throwable error) {
+            if (error != null) {
+                Throwable cause = (error instanceof CompletionException && error.getCause() != null) ? error.getCause() : error;
+                if (cause instanceof TimeoutException)
+                    source.sendFailure(Component.literal("Locating " + structureId + " timed out after " + (LOCATE_TIMEOUT_MS / 1000) + "s"));
+                else
+                    source.sendFailure(Component.literal("Error locating " + structureId + ": " + cause.getMessage()));
+                return;
+            }
+
+            if (result == null) {
+                source.sendFailure(Component.literal("No " + structureId + " found within " + SEARCH_RADIUS_CHUNKS + " chunks"));
+                return;
+            }
+
+            if (player.isRemoved() || player.serverLevel() != level) {
+                source.sendFailure(Component.literal("Player left " + level.dimension().location() + " before " + structureId + " was located"));
+                return;
+            }
+
+            BlockPos found = result.getFirst();
+            BlockPos destination = new BlockPos(found.getX(), TELEPORT_HEIGHT, found.getZ());
+            player.teleportTo(level, destination.getX() + 0.5, destination.getY(), destination.getZ() + 0.5, player.getYRot(), player.getXRot());
+            source.sendSuccess(() -> Component.literal("Teleported to " + structureId + " at " + posString(destination)), false);
         }
     }
 
@@ -773,6 +913,62 @@ public class CommandList {
         }
     }
 
+
+    private static class ChunkExplorerHealthCheck {
+
+        private static LiteralArgumentBuilder<CommandSourceStack> allLevels() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("chunkExplorerHealthCheck")
+                    .requires(source -> source.hasPermission(2))
+                    .executes(context -> executeAll(context.getSource()))
+                );
+        }
+
+        private static LiteralArgumentBuilder<CommandSourceStack> withDimension() {
+            return Commands.literal(PREFIX)
+                .then(Commands.literal("chunkExplorerHealthCheck")
+                    .requires(source -> source.hasPermission(2))
+                    .then(Commands.argument("dimension", DimensionArgument.dimension())
+                        .executes(context -> executeLevel(context.getSource(),
+                            DimensionArgument.getDimension(context, "dimension")))
+                    )
+                );
+        }
+
+        private static int executeAll(CommandSourceStack source) {
+            JsonObject all = ChunkExplorerManager.healthCheckAll();
+            if (all.size() == 0) {
+                source.sendFailure(Component.literal("No chunk explorer managers are loaded"));
+                return 0;
+            }
+            for (String levelId : all.keySet()) {
+                report(source, levelId, all.getAsJsonObject(levelId));
+            }
+            return 1;
+        }
+
+        private static int executeLevel(CommandSourceStack source, ServerLevel level) {
+            JsonObject health = ChunkExplorerManager.healthCheck(level);
+            String levelId = HBUtil.LevelUtil.toLevelId(level);
+            if (health == null) {
+                source.sendFailure(Component.literal("No chunk explorer manager for " + levelId));
+                return 0;
+            }
+            report(source, levelId, health);
+            return 1;
+        }
+
+        private static void report(CommandSourceStack source, String levelId, JsonObject health) {
+            ChunkExplorerManager.logHealthCheck(levelId, health);
+            String summary = String.format("Chunk Explorer %s: rate %d, explore queue %d, priority queue %d, initialized chunks %d.",
+                levelId,
+                health.get("exploreRate").getAsInt(),
+                health.get("exploreQueue").getAsInt(),
+                health.get("priorityQueue").getAsInt(),
+                health.get("initializedChunks").getAsLong());
+            source.sendSuccess(() -> Component.literal(summary), false);
+        }
+    }
 
     private static class SetMaxAllocationRate {
 

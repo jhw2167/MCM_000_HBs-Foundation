@@ -140,6 +140,7 @@ public class ManagedChunkBlockUpdates {
     }
 
     private static void onLoadWorld(LevelLoadingEvent.Load event) {
+        if (event.getLevel().isClientSide()) return;
         LEVEL_UPDATES.put(event.getLevel(), new ManagedChunkBlockUpdates(event.getLevel()));
     }
 

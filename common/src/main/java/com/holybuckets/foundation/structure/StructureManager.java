@@ -39,6 +39,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import com.holybuckets.foundation.util.ModContext;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -51,7 +52,7 @@ public class StructureManager {
     private Registry<Structure> structureRegistry; // Nullable - only available on server side
     private Map<BlockPos, StructureInfo> structures;
     private Map<ResourceLocation, Set<BlockPos>> structuresByType;
-    private Set<BlockPos> currentlyLoadedStructures;
+    private Map<BlockPos, StructureStart> currentlyLoadedStructures;
     private Map<String, BlockPos> existingStructures; //join chunkPos and name into a string to combat duplicate entries where blockPos are slightly different
 
 
@@ -64,7 +65,7 @@ public class StructureManager {
         this.level = level;
         this.structures = new ConcurrentHashMap<>();
         this.structuresByType = new ConcurrentHashMap<>();
-        this.currentlyLoadedStructures = ConcurrentHashMap.newKeySet();
+        this.currentlyLoadedStructures = new ConcurrentHashMap<>();
         this.existingStructures = new ConcurrentHashMap<>();
         // Only initialize structure registry on server side
         if (!level.isClientSide()) {
@@ -289,6 +290,59 @@ public class StructureManager {
         return structures.get(canonical != null ? canonical : center);
     }
 
+    public boolean isStructureLoaded(BlockPos pos) {
+        return pos != null && currentlyLoadedStructures.containsKey(pos);
+    }
+
+    public Set<BlockPos> getCurrentlyLoadedStructurePositions() {
+        return Set.copyOf(currentlyLoadedStructures.keySet());
+    }
+
+    /**
+     * Returns the StructureStart of a currently loaded structure keyed by its StructureInfo origin, re-pulling it from loaded chunks when only a placeholder is held.
+     */
+    public @Nullable StructureStart getLoadedStructureStart(BlockPos pos) {
+        if (pos == null) return null;
+        StructureStart start = currentlyLoadedStructures.get(pos);
+        if (start == null) return null;
+        if (start != StructureStart.INVALID_START && start.isValid()) return start;
+
+        StructureStart pulled = pullStartFromLoadedChunks(pos);
+        if (pulled != null) currentlyLoadedStructures.replace(pos, start, pulled);
+        return pulled;
+    }
+
+    private @Nullable StructureStart pullStartFromLoadedChunks(BlockPos pos) {
+        if (structureRegistry == null) return null;
+        StructureInfo info = structures.get(pos);
+        if (info == null || info.isPseudo() || info.getStructureLocation() == null) return null;
+        ResourceLocation loc = info.getStructureLocation();
+        Structure structure = structureRegistry.get(loc);
+        if (structure == null) return null;
+
+        LevelChunk chunk = ManagedChunkUtility.getLevelChunk(level, pos);
+        if (chunk == null) return null;
+        StructureStart start = chunk.getStartForStructure(structure);
+        if (matchesCanonicalPos(loc, start, pos)) return start;
+
+        for (long ref : chunk.getReferencesForStructure(structure)) {
+            LevelChunk startChunk = ManagedChunkUtility.getLevelChunk(level, new ChunkPos(ref));
+            if (startChunk == null) continue;
+            start = startChunk.getStartForStructure(structure);
+            if (matchesCanonicalPos(loc, start, pos)) return start;
+        }
+        return null;
+    }
+
+    private boolean matchesCanonicalPos(ResourceLocation loc, @Nullable StructureStart start, BlockPos pos) {
+        return start != null && start.isValid() && pos.equals(canonicalPos(loc, start));
+    }
+
+    private BlockPos canonicalPos(ResourceLocation loc, StructureStart start) {
+        BlockPos center = start.getBoundingBox().getCenter();
+        return existingStructures.getOrDefault("" + new ChunkPos(center) + ":" + loc, center);
+    }
+
     //** STRUCTURE CONCEPTS
     public static void structureUpgraded(String concept, int newStage) {
         if (concept == null) return;
@@ -385,7 +439,7 @@ public class StructureManager {
             if (!player.level().equals(level)) continue;
             BlockPos playerPos = player.blockPosition();
 
-            for(BlockPos pos : currentlyLoadedStructures) {
+            for(BlockPos pos : currentlyLoadedStructures.keySet()) {
                 if (playerPos.distSqr(pos) <= NEAR_STRUCTURE_THRESHOLD * NEAR_STRUCTURE_THRESHOLD) {
                     StructureInfo info = structures.get(pos);
                     Structure s = structureRegistry.get(info.getStructureLocation());
@@ -429,11 +483,12 @@ public class StructureManager {
         //Canonicalize this chunk+type to the first position we saw for it, so a bounding box
         //center that shifts slightly between loads resolves to the same entry.
         existingStructures.putIfAbsent(key, structStartPos);
-        currentlyLoadedStructures.add(structStartPos);
+        currentlyLoadedStructures.put(structStartPos, start);
 
         if (structures.containsKey(structStartPos)) {
             StructureInfo info = structures.get(structStartPos);
-            EventRegistrar.getInstance().onStructureLoaded(new StructureLoadedEvent(info, false));
+            StructureLoadedEvent event = new StructureLoadedEvent(level, info, false);
+            EventRegistrar.getInstance().onStructureLoaded(event);
             return;
         }
 
@@ -447,16 +502,17 @@ public class StructureManager {
         this.structures.put(structStartPos, structureInfo);
         this.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(structStartPos);
 
-        StructureLoadedEvent event = new StructureLoadedEvent(structureInfo, true);
+        StructureLoadedEvent event = new StructureLoadedEvent(level, structureInfo, true);
         LoggerBase.logDebug(null, "050012", "Structure loaded: " + structureLocation
             + " chunk " + cp + " total, " + this.structures.size() );
         EventRegistrar.getInstance().onStructureLoaded(event);
     }
 
     public void processStructureUnload(Structure structure, StructureStart start) {
-        if (!start.isValid()) return;
+        if (start == null || !start.isValid()) return;
 
-        BlockPos structStartPos = start.getBoundingBox().getCenter();
+        ResourceLocation loc = (structureRegistry == null) ? null : structureRegistry.getKey(structure);
+        BlockPos structStartPos = (loc == null) ? start.getBoundingBox().getCenter() : canonicalPos(loc, start);
         currentlyLoadedStructures.remove(structStartPos);
     }
 
@@ -471,7 +527,7 @@ public class StructureManager {
 
         this.structures.put(pos, info);
         this.structuresByType.computeIfAbsent(loc, k -> ConcurrentHashMap.newKeySet()).add(pos);
-        this.currentlyLoadedStructures.add(pos);
+        this.currentlyLoadedStructures.put(pos, StructureStart.INVALID_START);
         this.existingStructures.put(new ChunkPos(pos) + ":" + loc, pos);
     }
 
@@ -491,6 +547,25 @@ public class StructureManager {
         }
         this.currentlyLoadedStructures.remove(pos);
         this.existingStructures.remove(new ChunkPos(pos) + ":" + loc);
+    }
+
+    public void syncPseudoStructures(Predicate<ResourceLocation> ownsType, Map<BlockPos, ResourceLocation> entries)
+    {
+        if(ownsType == null || entries == null) return;
+        Set<BlockPos> stale = new HashSet<>();
+        structures.forEach((pos, info) -> {
+            if(info.isPseudo() && info.structureLocation != null && ownsType.test(info.structureLocation))
+                stale.add(pos);
+        });
+        entries.forEach((pos, loc) -> {
+            if(pos == null || loc == null) return;
+            if(structures.containsKey(pos)) {
+                stale.remove(pos);
+                return;
+            }
+            addPseudoStructure(loc, pos);
+        });
+        stale.forEach(this::removePseudoStructure);
     }
 
     private void load(DataStore ds)
@@ -534,7 +609,7 @@ public class StructureManager {
                 hydrateStructureConcept(info);
                 this.structures.put(info.origin, info);
                 this.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(info.origin);
-                this.currentlyLoadedStructures.add(info.origin); // Mark as previously loaded
+                this.currentlyLoadedStructures.putIfAbsent(info.origin, StructureStart.INVALID_START); // Mark as previously loaded
                 ChunkPos cp = new ChunkPos(info.origin);
                 this.existingStructures.put( "" + cp + ":" + structureLocation, info.origin );
             }
@@ -663,7 +738,7 @@ public class StructureManager {
     private static void handleSyncStructureCountsFromClient(Player player, String content)
     {
 
-        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        IManagedPlayer pData = getStructureData(player);
         if(pData != null && (pData instanceof PlayerStructureData psData) )
         {
             Map<Level, Integer> deserialized = PlayerStructureData.deserialize(content);
@@ -734,25 +809,11 @@ public class StructureManager {
 
     private void syncWaystones(List<WaystonesCompat.WaystoneEntry> waystones)
     {
-        Set<BlockPos> existingWaystones = new HashSet<>();
-        structures.keySet().forEach( pos -> {
-            StructureInfo info = structures.get(pos);
-            if(WaystonesCompat.isWaystone(info.structureLocation))
-                existingWaystones.add(pos);
-        });
+        Map<BlockPos, ResourceLocation> entries = new HashMap<>();
         for (WaystonesCompat.WaystoneEntry entry : waystones) {
-            if(entry.level !=this.level) continue;
-            if(structures.containsKey(entry.pos)) {
-                existingWaystones.remove(entry.pos);
-                continue;
-            }
-            addPseudoStructure(entry.type, entry.pos);
+            if(entry.level == this.level) entries.put(entry.pos, entry.type);
         }
-
-        // Remove any waystones that no longer exist
-        for(BlockPos pos : existingWaystones) {
-            removePseudoStructure(pos);
-        }
+        syncPseudoStructures(WaystonesCompat::isWaystone, entries);
     }
 
     private static void on20Ticks(ServerTickEvent event) {
@@ -781,7 +842,7 @@ public class StructureManager {
     public static void fireSyncClientStructureCountsToServer(Player player)
     {
         //LoggerBase.logInfo(null, "050002", "fireSyncClientStructureCountsToServer");
-        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        IManagedPlayer pData = getStructureData(player);
         if(pData != null && (pData instanceof PlayerStructureData psData) ) {
             String serializedCounts = psData.serialize();
             if(GeneralConfig.getInstance().isIntegrated())
@@ -807,7 +868,7 @@ public class StructureManager {
                 if(sm.structures.containsKey(info.origin)) continue;
                 sm.structures.put(info.origin, info);
                 sm.structuresByType.computeIfAbsent(structureLocation, k -> ConcurrentHashMap.newKeySet()).add(info.origin);
-                IManagedPlayer playerStructureData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+                IManagedPlayer playerStructureData = getStructureData(player);
                 if(playerStructureData != null && (playerStructureData instanceof PlayerStructureData psData) ) {
                     psData.increment( (Level) player.level() );
                 }
@@ -817,11 +878,16 @@ public class StructureManager {
 
     }
 
+    private static IManagedPlayer getStructureData(Player player) {
+        ManagedPlayer mp = ManagedPlayer.getManagedPlayer(player);
+        return mp == null ? null : mp.getSubclass(PlayerStructureData.class);
+    }
+
     public static void onConnectedToServer(Player player) {
 
         if(GeneralConfig.getInstance().isServerSide()) return;
         managers.clear();
-        IManagedPlayer pData = ManagedPlayer.getManagedPlayer(player).getSubclass(PlayerStructureData.class);
+        IManagedPlayer pData = getStructureData(player);
         if(pData != null && (pData instanceof PlayerStructureData psData) ) {
             psData.clearAll();
         }

@@ -9,6 +9,9 @@ import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
 import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.holybuckets.foundation.platform.services.ChunkLoader;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Either;
 import io.netty.util.collection.IntObjectHashMap;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
@@ -64,6 +67,9 @@ public class ChunkExplorerManager {
     private long     heldSince = Long.MIN_VALUE;
     CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>>     heldChunkFuture = null;
 
+    private final ExploreStats stats = new ExploreStats();
+    private ChunkPos lastLoadedChunk = null;
+
     private ChunkExplorerManager(Level level) {
         this.level = level;
         this.util = ManagedChunkUtility.getInstance(level);
@@ -81,6 +87,7 @@ public class ChunkExplorerManager {
         reg.registerOnServerStopped(ChunkExplorerManager::onServerStopped);
         reg.registerOnServerTick(TickType.ON_20_TICKS, ChunkExplorerManager::onExploreTick);
         reg.registerOnServerTick(TickType.ON_1200_TICKS,  ChunkExplorerManager::on1200TicksSearchNewChunks);
+        reg.registerOnServerTick(TickType.ON_6000_TICKS, ChunkExplorerManager::on6000TicksHealthCheck);
     }
 
     //** GETTERS
@@ -127,6 +134,7 @@ public class ChunkExplorerManager {
         long now = GENERAL_CONFIG.getTotalTickCount();
 
         if(CHUNK_LOADER.isRunning((ServerLevel) level) ) {
+            stats.record(EVENT_SKIP_LOADER_BUSY);
             String msg = String.format("Skipping chunk explore, exploration in progress at chunk: %s, queue size: %d", heldChunk, chunkExploreQueue.size());
             LoggerBase.logInfo(null, "0370013", msg);
             return;
@@ -144,7 +152,11 @@ public class ChunkExplorerManager {
                 heldChunk = next;
                 heldSince = now;
                 requestedChunks.add(next);
-                CHUNK_LOADER.forceChunkLoad((ServerLevel) level, next);
+                boolean accepted = CHUNK_LOADER.forceChunkLoad((ServerLevel) level, next);
+                stats.record(accepted ? EVENT_LOAD_STARTED : EVENT_LOAD_REJECTED);
+                if (accepted) lastLoadedChunk = next;
+            } else {
+                stats.record(EVENT_QUEUE_EXHAUSTED);
             }
         }
     }
@@ -154,9 +166,19 @@ public class ChunkExplorerManager {
         while (!chunkExploreQueue.isEmpty())
         {
             ChunkPos candidate = chunkExploreQueue.poll();
-            if (candidate == null) return  null;
-            if (util.isChunkInitialized(candidate)) continue;
-            if (util.isLoaded(candidate)) continue;
+            if (candidate == null) {
+                stats.record(EVENT_POLLED_NULL_ENTRY);
+                return  null;
+            }
+            releasePriorityChunk(candidate);
+            if (util.isChunkInitialized(candidate)) {
+                stats.record(EVENT_POLL_SKIPPED_INITIALIZED);
+                continue;
+            }
+            if (util.isLoaded(candidate)) {
+                stats.record(EVENT_POLL_SKIPPED_LOADED);
+                continue;
+            }
 
             return candidate;
         }
@@ -174,9 +196,11 @@ public class ChunkExplorerManager {
         ChunkGenerationOrderHandler handler = (player == null) ? null : chunkGenerators.get(player);
         ChunkPos playerPos = (player == null) ? null : player.chunkPosition();
 
-        chunkExploreQueue.clear();
         synchronized (chunkGenerationPriorityQueue)
         {
+            requeueUnprocessedPriorityChunks();
+            chunkExploreQueue.clear();
+
             LinkedList<ChunkPos> priority = getClosestPriorityChunks(player);
             Set<ChunkPos> taken = new HashSet<>();
 
@@ -205,10 +229,36 @@ public class ChunkExplorerManager {
                 }
             }
 
+            taken.remove(null);
             if (!taken.isEmpty()) {
                 chunkGenerationPriorityQueue.removeIf(taken::contains);
-                chunkGenerationPrioritySet.removeAll(taken);
             }
+            stats.record(EVENT_PRIORITY_QUEUED, taken.size());
+        }
+        stats.record(EVENT_QUEUE_REBUILT);
+    }
+
+    private void requeueUnprocessedPriorityChunks() {
+        int discarded = 0;
+        int requeued = 0;
+        Iterator<ChunkPos> it = chunkExploreQueue.descendingIterator();
+        while (it.hasNext()) {
+            ChunkPos pos = it.next();
+            if (pos == null) continue;
+            if (chunkGenerationPrioritySet.contains(pos)) {
+                chunkGenerationPriorityQueue.addFirst(pos);
+                requeued++;
+            } else {
+                discarded++;
+            }
+        }
+        stats.record(EVENT_DISCARDED_ON_REBUILD, discarded);
+        stats.record(EVENT_PRIORITY_REQUEUED_ON_REBUILD, requeued);
+    }
+
+    private void releasePriorityChunk(ChunkPos pos) {
+        synchronized (chunkGenerationPriorityQueue) {
+            chunkGenerationPrioritySet.remove(pos);
         }
     }
 
@@ -233,7 +283,12 @@ public class ChunkExplorerManager {
         return managers.get(level);
     }
 
+    private static boolean isExplorableLevel(Level level) {
+        return Level.OVERWORLD.equals(level.dimension()) || Level.NETHER.equals(level.dimension());
+    }
+
     private static ChunkExplorerManager initLevel(Level level) {
+        if (!isExplorableLevel(level)) return null;
         if (!managers.containsKey(level)) {
             managers.put(level, new ChunkExplorerManager(level));
         }
@@ -244,6 +299,7 @@ public class ChunkExplorerManager {
 
     private static void onServerStart(ServerStartingEvent event) {
         managers.clear();
+        GLOBAL_STATS.reset();
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
@@ -344,13 +400,26 @@ public class ChunkExplorerManager {
     {
         if(!exploreChunksEnabled()) return;
         if (!tickExploreInterval()) return;
+        GLOBAL_STATS.record(EVENT_INTERVAL_REACHED);
 
-        if (diskLimitExceeded()) return;
-        if (averageTickTickTimeExceeded()) return;
-        if (allocationRateExceeded()) return;
+        if (diskLimitExceeded()) {
+            GLOBAL_STATS.record(EVENT_SKIP_DISK_LIMIT);
+            return;
+        }
+        if (averageTickTickTimeExceeded()) {
+            GLOBAL_STATS.record(EVENT_SKIP_TICK_TIME);
+            return;
+        }
+        if (allocationRateExceeded()) {
+            GLOBAL_STATS.record(EVENT_SKIP_ALLOCATION);
+            return;
+        }
 
         for (ChunkExplorerManager manager : managers.values()) {
-            if(!CHUNK_LOADER.isRunningOnLevel((ServerLevel) manager.level)) continue;
+            if(!CHUNK_LOADER.isRunningOnLevel((ServerLevel) manager.level)) {
+                manager.stats.record(EVENT_SKIP_LOADER_UNAVAILABLE);
+                continue;
+            }
             manager.onTickForceLoadChunk(event);
         }
     }
@@ -406,6 +475,124 @@ public class ChunkExplorerManager {
         }
 
         this.rebuildQueue();
+    }
+
+    public static final long HEALTH_WINDOW_TICKS = 6000;
+    private static final Gson HEALTH_GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final ExploreStats GLOBAL_STATS = new ExploreStats();
+
+    private static final String EVENT_INTERVAL_REACHED = "intervalReached";
+    private static final String EVENT_SKIP_DISK_LIMIT = "skippedDiskLimit";
+    private static final String EVENT_SKIP_TICK_TIME = "skippedTickTime";
+    private static final String EVENT_SKIP_ALLOCATION = "skippedAllocationRate";
+    private static final String EVENT_SKIP_LOADER_UNAVAILABLE = "skippedLoaderUnavailable";
+    private static final String EVENT_SKIP_LOADER_BUSY = "skippedLoaderBusy";
+    private static final String EVENT_LOAD_STARTED = "loadStarted";
+    private static final String EVENT_LOAD_REJECTED = "loadRejectedByLoader";
+    private static final String EVENT_QUEUE_EXHAUSTED = "pollReturnedNothing";
+    private static final String EVENT_POLLED_NULL_ENTRY = "polledNullEntry";
+    private static final String EVENT_POLL_SKIPPED_INITIALIZED = "pollSkippedInitialized";
+    private static final String EVENT_POLL_SKIPPED_LOADED = "pollSkippedLoaded";
+    private static final String EVENT_QUEUE_REBUILT = "queueRebuilt";
+    private static final String EVENT_PRIORITY_QUEUED = "priorityMovedToExploreQueue";
+    private static final String EVENT_DISCARDED_ON_REBUILD = "discardedOnRebuild";
+    private static final String EVENT_PRIORITY_REQUEUED_ON_REBUILD = "priorityRequeuedOnRebuild";
+
+    public static JsonObject healthCheckAll() {
+        JsonObject all = new JsonObject();
+        for (ChunkExplorerManager manager : new ArrayList<>(managers.values())) {
+            all.add(HBUtil.LevelUtil.toLevelId(manager.level), manager.healthCheck());
+        }
+        return all;
+    }
+
+    public static JsonObject healthCheck(Level level) {
+        if (level == null) return null;
+        ChunkExplorerManager manager = managers.get(level);
+        return (manager == null) ? null : manager.healthCheck();
+    }
+
+    private static void on6000TicksHealthCheck(ServerTickEvent event) {
+        if (!exploreChunksEnabled()) return;
+        JsonObject all = healthCheckAll();
+        for (String levelId : all.keySet()) {
+            logHealthCheck(levelId, all.getAsJsonObject(levelId));
+        }
+    }
+
+    public static void logHealthCheck(String levelId, JsonObject health) {
+        LoggerBase.logInfo(null, "037020", "Chunk Explorer Health Check for level: " + levelId
+            + "\n\n" + HEALTH_GSON.toJson(health));
+    }
+
+    public JsonObject healthCheck() {
+        JsonObject health = new JsonObject();
+        health.addProperty("level", HBUtil.LevelUtil.toLevelId(level));
+        health.addProperty("exploreRate", GENERAL_CONFIG.getPerformanceImpactConfig().getChunkExploreRate());
+        health.addProperty("exploreQueue", chunkExploreQueue.size());
+        synchronized (chunkGenerationPriorityQueue) {
+            health.addProperty("priorityQueue", chunkGenerationPriorityQueue.size());
+        }
+        health.addProperty("initializedChunks", util.getInitializedChunkCount());
+        return health;
+    }
+
+    private static class ExploreStats {
+        private final Map<String, Deque<long[]>> recent = new HashMap<>();
+        private final Map<String, Long> totals = new HashMap<>();
+        private long startTick = Long.MIN_VALUE;
+
+        void record(String event) {
+            record(event, 1);
+        }
+
+        void record(String event, long amount) {
+            if (GENERAL_CONFIG == null) return;
+            long now = GENERAL_CONFIG.getTotalTickCount();
+            if (startTick == Long.MIN_VALUE) startTick = now;
+            recent.computeIfAbsent(event, k -> new ArrayDeque<>()).addLast(new long[]{now, amount});
+            totals.merge(event, amount, Long::sum);
+            prune(now);
+        }
+
+        void reset() {
+            recent.clear();
+            totals.clear();
+            startTick = Long.MIN_VALUE;
+        }
+
+        long windowTicks(long now) {
+            if (startTick == Long.MIN_VALUE) return 0;
+            return Math.min(HEALTH_WINDOW_TICKS, now - startTick);
+        }
+
+        long recentCount(String event, long now) {
+            prune(now);
+            Deque<long[]> entries = recent.get(event);
+            if (entries == null) return 0;
+            long sum = 0;
+            for (long[] entry : entries) sum += entry[1];
+            return sum;
+        }
+
+        private void prune(long now) {
+            for (Deque<long[]> entries : recent.values()) {
+                while (!entries.isEmpty() && now - entries.peekFirst()[0] > HEALTH_WINDOW_TICKS) entries.pollFirst();
+            }
+        }
+
+        JsonObject toJson(long now) {
+            prune(now);
+            JsonObject window = new JsonObject();
+            for (String event : recent.keySet()) window.addProperty(event, recentCount(event, now));
+            JsonObject lifetime = new JsonObject();
+            totals.forEach(lifetime::addProperty);
+            JsonObject json = new JsonObject();
+            json.addProperty("windowTicks", windowTicks(now));
+            json.add("window", window);
+            json.add("lifetime", lifetime);
+            return json;
+        }
     }
 
     //** INNER CLASS

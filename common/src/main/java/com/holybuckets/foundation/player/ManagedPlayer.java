@@ -1,14 +1,17 @@
 package com.holybuckets.foundation.player;
 
+import com.holybuckets.foundation.CommonClass;
 import com.holybuckets.foundation.GeneralConfig;
 import com.holybuckets.foundation.HBUtil;
 import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.datastore.PlayerSaveData;
 import com.holybuckets.foundation.datastructure.ConcurrentLinkedSet;
+import com.holybuckets.foundation.effect.ModEffects;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.DatastoreSaveEvent;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
+import com.holybuckets.foundation.event.custom.WakeUpAllPlayersEvent;
 import com.holybuckets.foundation.exception.InvalidId;
 import com.holybuckets.foundation.modelInterface.IManagedPlayer;
 import com.holybuckets.foundation.networking.ManagedPlayerSyncMessage;
@@ -18,7 +21,10 @@ import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -49,6 +55,8 @@ public class ManagedPlayer {
     private boolean saveNextTick = false;
     private CompoundTag holdNbt;
     private final HashMap<Class<? extends IManagedPlayer>, IManagedPlayer> managedPlayerData = new HashMap<>();
+    private boolean buildersFlightDamagedToday;
+    private boolean usingBuildersFlight;
 
     //utility
     public final ConcurrentLinkedSet<Entity> nearbyLivingEntities;
@@ -278,6 +286,7 @@ public class ManagedPlayer {
 
     private void handlePlayerDamage(Player player, float damageAmount)
     {
+        handleBuildersFlightDamage(player);
         for(IManagedPlayer data : managedPlayerData.values()) {
             try {
                 data.handlePlayerDamage(player, damageAmount);
@@ -470,7 +479,7 @@ public class ManagedPlayer {
 
     private void syncToClient() {
         if (serverPlayer == null) return;
-        if(GENERAL_CONFIG.isClientSide()) return;
+        if(GENERAL_CONFIG.isHostPlayer(serverPlayer)) return;
         CompoundTag tag = this.serializeNBT();
         if (tag.isEmpty()) return;
         ManagedPlayerSyncMessage msg = new ManagedPlayerSyncMessage(tag);
@@ -622,6 +631,7 @@ public class ManagedPlayer {
         for(ManagedPlayer mp : PLAYERS.values()) {
             if(mp.getServerPlayer() == null) continue;
             mp.updateNearbyMobs();
+            mp.tickBuildersFlight();
             if(mp.saveNextTick)
                 mp.save();
         }
@@ -640,6 +650,12 @@ public class ManagedPlayer {
         CLIENT_PLAYER.setPlayer(p);
         CLIENT_PLAYER.handlePlayerRespawn();
 
+    }
+
+    private static void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
+        for (ManagedPlayer mp : PLAYERS.values()) {
+            mp.handleBuildersFlightWakeUp();
+        }
     }
 
     public static void onServerStarting(ServerStartingEvent event) {
@@ -684,7 +700,56 @@ public class ManagedPlayer {
         reg.registerOnServerStopped(ManagedPlayer::onServerStopped, EventPriority.Lowest);
         //reg.registerOnServerTick(TickType.ON_SINGLE_TICK, ManagedPlayer::onServerTick, EventPriority.Lowest);
         reg.registerOnServerTick(TickType.ON_20_TICKS, ManagedPlayer::on20ServerTicks, EventPriority.Highest);
+        reg.registerOnWakeUpAllPlayers(ManagedPlayer::onWakeUpAllPlayers);
         SamplePlayerData.init();
+    }
+
+
+    //** BUILDER'S FLIGHT **//
+
+    public boolean isUsingBuildersFlight() {
+        return usingBuildersFlight;
+    }
+
+    private void handleBuildersFlightDamage(Player player) {
+        if (player != this.player) return;
+        buildersFlightDamagedToday = true;
+    }
+
+    private void handleBuildersFlightWakeUp() {
+        buildersFlightDamagedToday = false;
+    }
+
+    private void tickBuildersFlight()
+    {
+        ServerPlayer sp = getServerPlayer();
+        if (sp == null || sp.isCreative()) return;
+        if (ModEffects.BUILDERS_FLIGHT == null || !sp.hasEffect(ModEffects.BUILDERS_FLIGHT.get())) return;
+
+        boolean canFly = sp.getAbilities().mayfly;
+        if (usingBuildersFlight)
+        {
+            if (canFly && buildersFlightDamagedToday) {
+                sp.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 200, 0, false, true));
+                String message = Component.translatable("effect.hbs_foundation.builders_flight.desc_lost").getString();
+                CommonClass.MESSAGER.sendBottomActionHint(sp, message);
+
+                sp.getAbilities().mayfly = false;
+                sp.onUpdateAbilities();
+                usingBuildersFlight = false;
+            }
+
+            MobEffectInstance flight = sp.getEffect(ModEffects.BUILDERS_FLIGHT.get());
+            if (flight != null && flight.getDuration() < 40) {
+                sp.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 200, 0, false, true));
+            }
+        }
+
+        if (!canFly && !buildersFlightDamagedToday) {
+            sp.getAbilities().mayfly = true;
+            sp.onUpdateAbilities();
+            usingBuildersFlight = true;
+        }
     }
 
 

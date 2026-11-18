@@ -21,5 +21,9 @@
   "item.hbs_foundation.enchanted_essence.teleport_success": "Teleported to %s!",
   "item.hbs_foundation.enchanted_essence.teleport_success_chat": "Traveled from %s\nto %s! %s blocks away!",
 
-  "item.hbs_foundation.waypoint_stick": "Waypoint Stick"
+  "item.hbs_foundation.waypoint_stick": "Waypoint Stick",
+
+  "effect.hbs_foundation.builders_flight": "Builder's Flight",
+  "effect.hbs_foundation.builders_flight.desc": "Grants Creative Flight until taking damage today. Once lost, you must sleep in a bed to regain flight",
+  "effect.hbs_foundation.builders_flight.desc_lost": "Builder's Flight lost!"
 }

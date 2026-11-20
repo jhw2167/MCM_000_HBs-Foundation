@@ -35,6 +35,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -130,18 +131,16 @@ public class CommandList {
     private static final Set<ResourceLocation> validStructureTypes = new HashSet<>();
     private static final SuggestionProvider<CommandSourceStack> STRUCTURE_TYPE_SUGGESTIONS =
         (context, builder) -> {
-            // Provide some common structure types as suggestions
-            return SharedSuggestionProvider.suggest(
-                validStructureTypes.stream().map(ResourceLocation::toString)
-                , builder);
+            Set<ResourceLocation> types = new HashSet<>(validStructureTypes);
+            StructureAPI api = StructureAPI.get(context.getSource().getLevel());
+            if (api != null) types.addAll(api.getDiscoveredTypes());
+            return SharedSuggestionProvider.suggestResource(types, builder);
         };
 
     private static final Map<ResourceKey<Level>, Set<ResourceLocation>> dimensionStructureTypes = new ConcurrentHashMap<>();
     private static final SuggestionProvider<CommandSourceStack> DIMENSION_STRUCTURE_SUGGESTIONS =
-        (context, builder) -> SharedSuggestionProvider.suggest(
-            getDimensionStructureTypes(context.getSource().getLevel()).stream()
-                .map(ResourceLocation::toString)
-                .sorted(),
+        (context, builder) -> SharedSuggestionProvider.suggestResource(
+            getDimensionStructureTypes(context.getSource().getLevel()),
             builder
         );
 
@@ -277,37 +276,23 @@ public class CommandList {
     //3. Nearest Structures Of Type
     private static class NearestStructuresOfType {
 
-        private static LiteralArgumentBuilder<CommandSourceStack> withType() {
-            return Commands.literal(PREFIX)
-                .then(Commands.literal("nearestStructuresOfType")
-                    .then(Commands.argument("type", StringArgumentType.greedyString())
-                        .suggests(STRUCTURE_TYPE_SUGGESTIONS)
-                            .executes(context -> {
-                                String type = StringArgumentType.getString(context, "type");
-                                return execute(context.getSource(), type, 1);
-                            })
-                        )
-                );
-        }
-
-
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestStructuresOfType")
-                    .then(Commands.argument("type", StringArgumentType.greedyString())
+                    .then(Commands.argument("type", ResourceLocationArgument.id())
                         .suggests(STRUCTURE_TYPE_SUGGESTIONS)
+                        .executes(context -> execute(context.getSource(),
+                            ResourceLocationArgument.getId(context, "type"), 1))
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1))
-                            .executes(context -> {
-                                String type = StringArgumentType.getString(context, "type");
-                                int limit = IntegerArgumentType.getInteger(context, "limit");
-                                return execute(context.getSource(), type, limit);
-                            })
+                            .executes(context -> execute(context.getSource(),
+                                ResourceLocationArgument.getId(context, "type"),
+                                IntegerArgumentType.getInteger(context, "limit")))
                         )
                     )
                 );
         }
 
-        private static int execute(CommandSourceStack source, String type, int limit) {
+        private static int execute(CommandSourceStack source, ResourceLocation structureType, int limit) {
             if (!(source.getEntity() instanceof ServerPlayer player)) {
                 source.sendFailure(Component.literal("This command can only be used by players"));
                 return 0;
@@ -315,10 +300,14 @@ public class CommandList {
 
             Level level = player.level();
             BlockPos playerPos = player.blockPosition();
+            String type = structureType.toString();
 
             try {
-                ResourceLocation structureType = new ResourceLocation(type);
                 StructureAPI api = new StructureAPI(level);
+                if (!api.getAllStructures().contains(structureType) && !api.isDiscovered(structureType)) {
+                    source.sendFailure(Component.literal("Unknown structure type: " + type));
+                    return 0;
+                }
                 List<StructureInfo> structures = api.nearestStructuresOfType(playerPos, structureType, limit);
 
                 if (structures.isEmpty()) {
@@ -326,7 +315,8 @@ public class CommandList {
                 } else {
                     source.sendSuccess(() -> Component.literal("Found " + structures.size() + " structures of type " + type + ":"), false);
                     for (StructureInfo structure : structures) {
-                        String message = structure.getId().toString() + " at " + posString(structure.getOrigin());
+                        String message = structure.getId().toString() + (structure.isPseudo() ? " (pseudo)" : "")
+                            + " at " + posString(structure.getOrigin());
                         source.sendSuccess(() -> Component.literal(message), false);
                     }
                 }
@@ -428,15 +418,15 @@ public class CommandList {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("structureTeleport")
                     .requires(source -> source.hasPermission(2))
-                    .then(Commands.argument("structure", StringArgumentType.greedyString())
+                    .then(Commands.argument("structure", ResourceLocationArgument.id())
                         .suggests(DIMENSION_STRUCTURE_SUGGESTIONS)
                         .executes(context -> execute(context.getSource(),
-                            StringArgumentType.getString(context, "structure")))
+                            ResourceLocationArgument.getId(context, "structure")))
                     )
                 );
         }
 
-        private static int execute(CommandSourceStack source, String structureName) {
+        private static int execute(CommandSourceStack source, ResourceLocation structureId) {
             if (!(source.getEntity() instanceof ServerPlayer player)) {
                 source.sendFailure(Component.literal("This command can only be used by players"));
                 return 0;
@@ -444,9 +434,8 @@ public class CommandList {
 
             ServerLevel level = player.serverLevel();
             String dimension = level.dimension().location().toString();
-            ResourceLocation structureId = ResourceLocation.tryParse(structureName.trim());
-            if (structureId == null || !getDimensionStructureTypes(level).contains(structureId)) {
-                source.sendFailure(Component.literal("Structure " + structureName + " does not generate in " + dimension));
+            if (!getDimensionStructureTypes(level).contains(structureId)) {
+                source.sendFailure(Component.literal("Structure " + structureId + " does not generate in " + dimension));
                 return 0;
             }
 
@@ -508,8 +497,8 @@ public class CommandList {
 
     private static final Set<ResourceLocation> validBiomeTypes = new HashSet<>();
     private static final SuggestionProvider<CommandSourceStack> BIOME_TYPE_SUGGESTIONS =
-        (context, builder) -> SharedSuggestionProvider.suggest(
-            validBiomeTypes.stream().map(ResourceLocation::toString),
+        (context, builder) -> SharedSuggestionProvider.suggestResource(
+            validBiomeTypes,
             builder
         );
 
@@ -585,20 +574,20 @@ public class CommandList {
         private static LiteralArgumentBuilder<CommandSourceStack> withTypeAndLimit() {
             return Commands.literal(PREFIX)
                 .then(Commands.literal("nearestBiomesOfType")
-                    .then(Commands.argument("biomeName", StringArgumentType.greedyString())
+                    .then(Commands.argument("biomeName", ResourceLocationArgument.id())
                         .suggests(BIOME_TYPE_SUGGESTIONS)
-                        .then(Commands.argument("limit", IntegerArgumentType.integer(5))
-                            .executes(context -> {
-                                String type = StringArgumentType.getString(context, "biomeName");
-                                int limit = IntegerArgumentType.getInteger(context, "limit");
-                                return execute(context.getSource(), type, limit);
-                            })
+                        .executes(context -> execute(context.getSource(),
+                            ResourceLocationArgument.getId(context, "biomeName"), 5))
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                            .executes(context -> execute(context.getSource(),
+                                ResourceLocationArgument.getId(context, "biomeName"),
+                                IntegerArgumentType.getInteger(context, "limit")))
                         )
                     )
                 );
         }
 
-        private static int execute(CommandSourceStack source, String type, int limit) {
+        private static int execute(CommandSourceStack source, ResourceLocation biomeType, int limit) {
             if (!(source.getEntity() instanceof ServerPlayer player)) {
                 source.sendFailure(Component.literal("This command can only be used by players"));
                 return 0;
@@ -606,10 +595,14 @@ public class CommandList {
 
             Level level = player.level();
             BlockPos playerPos = player.blockPosition();
+            String type = biomeType.toString();
 
             try {
-                ResourceLocation biomeType = new ResourceLocation(type);
                 BiomeAPI api = new BiomeAPI(level);
+                if (!api.getAllBiomes().contains(biomeType)) {
+                    source.sendFailure(Component.literal("Unknown biome type: " + type));
+                    return 0;
+                }
                 List<BiomeInfo> biomes = api.nearestBiomesOfType(playerPos, biomeType, limit);
 
                 if (biomes.isEmpty()) {
@@ -965,7 +958,8 @@ public class CommandList {
                 health.get("exploreRate").getAsInt(),
                 health.get("exploreQueue").getAsInt(),
                 health.get("priorityQueue").getAsInt(),
-                health.get("initializedChunks").getAsLong());
+                health.get("initializedChunks").getAsLong(),
+                health.get("loadedChunks").getAsLong());
             source.sendSuccess(() -> Component.literal(summary), false);
         }
     }

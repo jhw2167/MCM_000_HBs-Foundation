@@ -177,6 +177,10 @@ public class ManagedChunkUtility {
         return (chunks == null) ? 0 : chunks.size();
     }
 
+    public int getLoadedChunkCount() {
+        return LOADED_CHUNKS.get(level).size();
+    }
+
     @Nullable
     public LongSet getInitializedChunks() {
         if(ManagedChunk.INITIALIZED_LONG_CHUNKS.get(level) == null) return null;

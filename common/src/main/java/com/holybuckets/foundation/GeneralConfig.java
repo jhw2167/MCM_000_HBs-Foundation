@@ -32,11 +32,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.LevelData;
+import org.apache.commons.lang3.RandomUtils;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 
 /**
@@ -63,8 +66,9 @@ public class GeneralConfig {
 
     private MinecraftServer server;
     private final Map<String, Level> LEVELS;
-    private Map<Level, Vec3i> WORLD_SPAWNS;
+    private Map<Level, BlockPos> WORLD_SPAWNS;
     private Long worldSeed;
+    private volatile Random random;
     private volatile boolean isWorldConfigInit;
     private Boolean isPlayerLoaded;
     private PerformanceImpactConfig performanceImpactConfig;
@@ -126,6 +130,10 @@ public class GeneralConfig {
         if(eventClass.equals(LevelLoadingEvent.Unload.class))
             instance.onLevelUnload((LevelLoadingEvent.Unload) event);
 
+    }
+
+    public static Random getRandom() {
+        return instance.random;
     }
 
     private void onWakeUpAllPlayers(WakeUpAllPlayersEvent event) {
@@ -229,8 +237,9 @@ public class GeneralConfig {
         }
         
         WoolColorHelper.initWoolColors();
-        this.dataStore.onBeforeServerStarted(event);
+        DataStore.onBeforeServerStarted(event);
         this.playerSaveData = dataStore.getPlayerSaveData();
+        random = new Random(worldSeed);
     }
 
     public void onServerStopped(ServerStoppedEvent event) {
@@ -319,7 +328,7 @@ public class GeneralConfig {
         return worldSeed;
     }
 
-    public Vec3i getWorldSpawn(LevelAccessor level) {
+    public BlockPos getWorldSpawn(Level level) {
         return WORLD_SPAWNS.get(level);
     }
 
@@ -369,7 +378,7 @@ public class GeneralConfig {
 
     public long getTotalTickCount() {
         if(this.isServerSide)
-            return dataStore.getTotalTicksFromPreviousSession() + server.getTickCount();
+            return DataStore.getTotalTicksFromPreviousSession() + server.getTickCount();
         else return 0;
     }
 

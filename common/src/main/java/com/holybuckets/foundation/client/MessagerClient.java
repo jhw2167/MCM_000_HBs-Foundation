@@ -212,26 +212,59 @@ public class MessagerClient implements IMessager {
                 continue;
             }
             
-            // Calculate position (bottom center, with offset for multiple messages)
-            int textWidth = getWidth(font, message.segments);
-            int x = (screenWidth - textWidth) / 2;
-            int y = screenHeight - 72 - yOffset; // 60 pixels from bottom, stacked upward
-            
-            // Calculate alpha based on fade in/out
             float alpha = message.getAlpha();
-            int color = (int)(alpha * 255) << 24 | (message.textColor & 0xFFFFFF); // Apply alpha to text color
-            int outlineColor = (int)(alpha * 255) << 24 | 0x000000; // Black outline with alpha
-            
-            // Draw text with outline effect
-            drawSegments(guiGraphics, font, message.segments, x, y, color, outlineColor, alpha);
-            
-            yOffset += 12; // Stack messages vertically
+            int color = (int)(alpha * 255) << 24 | (message.textColor & 0xFFFFFF);
+            int outlineColor = (int)(alpha * 255) << 24 | 0x000000;
+
+            int y = screenHeight - 72 - yOffset;
+            for (int i = message.lines.size() - 1; i >= 0; i--) {
+                List<Object> line = message.lines.get(i);
+                int x = (screenWidth - getWidth(font, line)) / 2;
+                drawSegments(guiGraphics, font, line, x, y, color, outlineColor, alpha);
+                int lineHeight = getLineHeight(line);
+                y -= lineHeight;
+                yOffset += lineHeight;
+            }
         }
     }
     
-    private static final Pattern ITEM_TOKEN = Pattern.compile("\\{I:(\\d{1,9})\\}");
-    private static final int ICON_SIZE = 10;
+    private static final Pattern ITEM_TOKEN = Pattern.compile("\\{I:(\\d{1,9})(:?)\\}");
+    private static final int ICON_SIZE = 13;
     private static final float ICON_SCALE = ICON_SIZE / 16f;
+    private static final int TEXT_LINE_HEIGHT = 12;
+    private static final int MAX_LINE_CHARS = 100;
+
+    private record ItemSegment(ItemStack stack, boolean showName) {}
+
+    private static List<List<Object>> parseLines(String text) {
+        List<List<Object>> lines = new ArrayList<>();
+        for (String line : wrapLines(text)) lines.add(parseSegments(line));
+        return lines;
+    }
+
+    private static List<String> wrapLines(String text) {
+        List<String> lines = new ArrayList<>();
+        for (String paragraph : text.split("\\R")) {
+            StringBuilder line = new StringBuilder();
+            for (String word : paragraph.split(" ")) {
+                if (line.length() > 0 && line.length() + 1 + word.length() > MAX_LINE_CHARS) {
+                    lines.add(line.toString());
+                    line.setLength(0);
+                }
+                if (line.length() > 0) line.append(' ');
+                line.append(word);
+            }
+            lines.add(line.toString());
+        }
+        return lines;
+    }
+
+    private static int getLineHeight(List<Object> line) {
+        for (Object segment : line) {
+            if (segment instanceof ItemSegment) return ICON_SIZE + 2;
+        }
+        return TEXT_LINE_HEIGHT;
+    }
 
     private static List<Object> parseSegments(String text) {
         List<Object> segments = new ArrayList<>();
@@ -241,21 +274,21 @@ public class MessagerClient implements IMessager {
             Item item = HBUtil.ItemUtil.getItem(Integer.parseInt(matcher.group(1)));
             if (item == null) continue;
             if (matcher.start() > last) segments.add(text.substring(last, matcher.start()));
-            segments.add(new ItemStack(item));
+            segments.add(new ItemSegment(new ItemStack(item), !matcher.group(2).isEmpty()));
             last = matcher.end();
         }
         if (last < text.length()) segments.add(text.substring(last));
         return segments;
     }
 
-    private static String getItemLabel(ItemStack stack) {
-        return " " + stack.getHoverName().getString();
+    private static String getItemLabel(ItemSegment item) {
+        return item.showName() ? " " + item.stack().getHoverName().getString() : "";
     }
 
     private static int getWidth(Font font, List<Object> segments) {
         int width = 0;
         for (Object segment : segments) {
-            if (segment instanceof ItemStack stack) width += ICON_SIZE + font.width(getItemLabel(stack));
+            if (segment instanceof ItemSegment item) width += ICON_SIZE + font.width(getItemLabel(item));
             else width += font.width((String) segment);
         }
         return width;
@@ -264,13 +297,14 @@ public class MessagerClient implements IMessager {
     private void drawSegments(GuiGraphics guiGraphics, Font font, List<Object> segments, int x, int y, int color, int outlineColor, float alpha) {
         for (Object segment : segments) {
             String text;
-            if (segment instanceof ItemStack stack) {
-                if (alpha > 0.5f) drawIcon(guiGraphics, stack, x, y);
+            if (segment instanceof ItemSegment item) {
+                if (alpha > 0.5f) drawIcon(guiGraphics, item.stack(), x, y);
                 x += ICON_SIZE;
-                text = getItemLabel(stack);
+                text = getItemLabel(item);
             } else {
                 text = (String) segment;
             }
+            if (text.isEmpty()) continue;
             drawTextWithOutline(guiGraphics, font, text, x, y, color, outlineColor);
             x += font.width(text);
         }
@@ -279,7 +313,7 @@ public class MessagerClient implements IMessager {
     private void drawIcon(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
         PoseStack pose = guiGraphics.pose();
         pose.pushPose();
-        pose.translate(x, y - 1, 0);
+        pose.translate(x, y - 2, 0);
         pose.scale(ICON_SCALE, ICON_SCALE, 1f);
         guiGraphics.renderItem(stack, 0, 0);
         pose.popPose();
@@ -304,7 +338,7 @@ public class MessagerClient implements IMessager {
      */
     private static class BottomScreenMessage {
         private final String text;
-        private final List<Object> segments;
+        private final List<List<Object>> lines;
         private final int textColor;
         private final int durationMs;
         private final long startTime;
@@ -316,7 +350,7 @@ public class MessagerClient implements IMessager {
          */
         public BottomScreenMessage(String text, int textColor, int durationMs) {
             this.text = text;
-            this.segments = parseSegments(text);
+            this.lines = parseLines(text);
             this.textColor = textColor;
             this.durationMs = durationMs;
             this.startTime = System.currentTimeMillis();

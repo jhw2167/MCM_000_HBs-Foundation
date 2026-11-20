@@ -312,7 +312,7 @@ public class EssenceCauldronManager {
 
             BlockPos searchPos = startPos.offset(BIOME_SEARCH_OFFSETS[searchOffset++]);
             Pair<BlockPos, Holder<Biome>> res = level.findClosestBiome3d(
-                biomePredicate, searchPos, 6400, 32, 128 //vertical resolution
+                biomePredicate, searchPos, 6400, 64, 128 //search radius, horizontal step, vertical step
             );
 
             if (res != null) {

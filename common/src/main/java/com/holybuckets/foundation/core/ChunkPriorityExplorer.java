@@ -6,170 +6,183 @@ import com.holybuckets.foundation.LoggerBase;
 import com.holybuckets.foundation.event.EventRegistrar;
 import com.holybuckets.foundation.event.custom.ServerTickEvent;
 import com.holybuckets.foundation.event.custom.TickType;
-import com.holybuckets.foundation.model.ManagedChunkUtility;
 import com.mojang.datafixers.util.Pair;
 import net.blay09.mods.balm.api.event.LevelLoadingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStartingEvent;
 import net.blay09.mods.balm.api.event.server.ServerStoppedEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.HolderSet;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
 
 public class ChunkPriorityExplorer {
 
     public static final String CLASS_ID = "044";
 
-    public static final int SEARCH_RADIUS = 6400;
-    public static final int HORIZONTAL_STEP = 32;
+    public static final int SEARCH_RADIUS = 12800;
+    public static final int HORIZONTAL_STEP = 64;
     public static final int VERTICAL_STEP = 64;
-    public static final long SEARCH_TIMEOUT_MS = 1000L;
+    public static final int STRUCTURE_SEARCH_RINGS = 32;
+    public static final float REFRESH_THRESHOLD = 0.5f;
 
-    private static final Map<Level, ChunkPriorityExplorer> explorers = new ConcurrentHashMap<>();
-    private static GeneralConfig GENERAL_CONFIG;
+    private static final Map<Level, ChunkPriorityExplorer> explorers = new HashMap<>();
 
     private final ServerLevel level;
-    private final Map<Holder<Biome>, ChunkPos> biomeChunks = new ConcurrentHashMap<>();
-    private final Set<Holder<Biome>> discoveredBiomes = ConcurrentHashMap.newKeySet();
-    private final ExecutorService searchExecutor;
-    private CompletableFuture<Pair<BlockPos, Holder<Biome>>> runningSearch;
-    private int playerIndex;
+    private final Set<Holder<Biome>> levelBiomes;
+    private final Map<Holder<Biome>, ChunkPos> distantBiomes = new HashMap<>();
+    private final int biomeRefreshSize;
+    private final int structureRefreshSize;
 
-    private ChunkPriorityExplorer(ServerLevel level) {
+    private final Set<Holder<Structure>> levelStructures = new HashSet<>();
+    private final Map<Holder<Structure>, ChunkPos> distantStructures = new HashMap<>();
+    private final Set<Holder<Structure>> missingStructures = new HashSet<>();
+    private BlockPos cachedPos;
+    private boolean biomeOrStructure = true;
+
+    private ChunkPriorityExplorer(ServerLevel level)
+    {
         this.level = level;
-        String threadName = "HBs-ChunkPriorityExplorer-" + level.dimension().location();
-        this.searchExecutor = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, threadName);
-            thread.setDaemon(true);
-            thread.setPriority(Thread.MIN_PRIORITY);
-            return thread;
-        });
+        this.levelBiomes = new HashSet<>(level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes());
+        this.biomeRefreshSize = Math.max(1, (int) (levelBiomes.size() * REFRESH_THRESHOLD));
+
+        for (Holder<StructureSet> set : level.getChunkSource().getGeneratorState().possibleStructureSets()) {
+            for (StructureSet.StructureSelectionEntry entry : set.value().structures()) {
+                levelStructures.add(  entry.structure() );
+            }
+        }
+        this.structureRefreshSize = Math.max(1, (int) (levelStructures.size() * REFRESH_THRESHOLD));
     }
 
-    public Map<Holder<Biome>, ChunkPos> getBiomeChunks() {
-        return Collections.unmodifiableMap(biomeChunks);
-    }
 
-    @Nullable
-    public ChunkPos getChunkPos(Holder<Biome> biome) {
-        return biomeChunks.get(biome);
-    }
-
-    public boolean isDiscovered(Holder<Biome> biome) {
-        return discoveredBiomes.contains(biome);
-    }
-
-    public boolean isSearching() {
-        return runningSearch != null && !runningSearch.isDone();
-    }
-
-    private Set<Holder<Biome>> getUnexploredBiomes() {
-        Set<Holder<Biome>> biomes = new HashSet<>(level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes());
-        biomes.removeAll(biomeChunks.keySet());
-        biomes.removeAll(discoveredBiomes);
-        return biomes;
-    }
-
-    @Nullable
-    private ServerPlayer nextPlayer() {
-        List<ServerPlayer> players = level.players();
-        if (players.isEmpty()) return null;
-        playerIndex = (playerIndex + 1) % players.size();
-        return players.get(playerIndex);
-    }
-
-    private void explore() {
-        if (searchExecutor.isShutdown() || isSearching()) return;
-        Set<Holder<Biome>> targets = getUnexploredBiomes();
-        if (targets.isEmpty()) return;
-        ServerPlayer player = nextPlayer();
-        if (player == null) return;
-
-        BlockPos origin = player.blockPosition();
-        runningSearch = CompletableFuture.supplyAsync(
-            () -> level.findClosestBiome3d(targets::contains, origin, SEARCH_RADIUS, HORIZONTAL_STEP, VERTICAL_STEP),
-            searchExecutor
-        );
-        runningSearch.copy()
-            .orTimeout(SEARCH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .whenComplete((result, error) -> {
-                MinecraftServer server = level.getServer();
-                if (server.isRunning()) server.execute(() -> onSearchComplete(origin, result, error));
-            });
-    }
-
-    private void onSearchComplete(BlockPos origin, @Nullable Pair<BlockPos, Holder<Biome>> result, @Nullable Throwable error) {
-        if (explorers.get(level) != this) return;
-        String dimension = level.dimension().location().toString();
-        if (error != null) {
-            Throwable cause = (error instanceof CompletionException && error.getCause() != null) ? error.getCause() : error;
-            if (cause instanceof TimeoutException)
-                LoggerBase.logDebug(null, CLASS_ID + "001", "Biome search from " + origin + " in " + dimension + " timed out after " + SEARCH_TIMEOUT_MS + "ms");
+    private void handleOnTick()
+    {
+        Player p = HBUtil.PlayerUtil.getRandomPlayer(level);
+        biomeOrStructure = !biomeOrStructure;
+        boolean idle = p == null;
+        if (idle) {
+            if (cachedPos == null) cachedPos = GeneralConfig.getInstance().getWorldSpawn(level);
+            if(biomeOrStructure)
+                exploreBiomes(cachedPos, SEARCH_RADIUS * 2);
             else
-                LoggerBase.logError(null, CLASS_ID + "002", "Biome search from " + origin + " in " + dimension + " failed: " + cause.getMessage());
-            return;
-        }
-        if (result == null) return;
-
-        Holder<Biome> biome = result.getSecond();
-        ChunkPos chunkPos = new ChunkPos(result.getFirst());
-        ManagedChunkUtility chunkUtility = ManagedChunkUtility.getInstance(level);
-        if (chunkUtility != null && chunkUtility.isChunkInitialized(chunkPos)) {
-            discoveredBiomes.add(biome);
-            return;
+                exploreStructures(cachedPos, STRUCTURE_SEARCH_RINGS*2);
+        } else {
+            cachedPos = p.blockPosition();
+            if(biomeOrStructure)
+                exploreBiomes(cachedPos, SEARCH_RADIUS);
+            else
+                exploreStructures(cachedPos, STRUCTURE_SEARCH_RINGS);
         }
 
-        biomeChunks.put(biome, chunkPos);
-        LoggerBase.logDebug(null, CLASS_ID + "003", "Cached " + HBUtil.LevelUtil.getBiomeSimpleName(biome) + " at chunk " + chunkPos + " in " + dimension);
+    }
+
+    private void exploreBiomes(BlockPos origin, int searchRadius)
+    {
+
+        Set<Holder<Biome>> targets = new HashSet<>(levelBiomes);
+        targets.removeAll(distantBiomes.keySet());
+        if (targets.isEmpty()) {
+            refreshBiomeList();
+            return;
+        }
+
+        Pair<BlockPos, Holder<Biome>> found = level.findClosestBiome3d(targets::contains, origin,
+            searchRadius, HORIZONTAL_STEP, VERTICAL_STEP);
+        if (found == null) {
+            refreshBiomeList();
+            return;
+        }
+
+        ChunkPos chunkPos = new ChunkPos(found.getFirst());
+        ChunkExplorerManager.submitPriorityChunk(level, chunkPos);
+        distantBiomes.put(found.getSecond(), chunkPos);
+        LoggerBase.logDebug(null, "044000", "Discovered distant biome: " + HBUtil.LevelUtil.getBiomeSimpleName(found.getSecond()) + " at " + chunkPos);
+
+        if (distantBiomes.size() >= biomeRefreshSize)
+            refreshBiomeList();
+    }
+
+    private void exploreStructures(BlockPos origin, int searchRadius)
+    {
+        HolderSet<Structure> targets = nextUnexploredStructures();
+        if (targets.size()==0) {
+            refreshStructureList();
+            return;
+        }
+
+        Pair<BlockPos, Holder<Structure>> found = level.getChunkSource().getGenerator()
+            .findNearestMapStructure(level, targets, origin, searchRadius, false);
+
+        if (found == null) {
+            refreshStructureList();
+            return;
+        }
+
+        ChunkPos chunkPos = new ChunkPos(found.getFirst());
+        ChunkExplorerManager.submitPriorityChunk(level, chunkPos);
+        distantStructures.put(found.getSecond(), chunkPos);
+        LoggerBase.logDebug(null, "044002", "Discovered distant structure: "
+         + found.getSecond().unwrapKey() + " at " + chunkPos);
+
+
+        if (distantBiomes.size() >= structureRefreshSize)
+            refreshBiomeList();
+    }
+
+    private HolderSet.Direct<Structure> nextUnexploredStructures() {
+        List<Holder<Structure>> unexplored = new ArrayList<>(levelStructures.size());
+        for( Holder<Structure> s : levelStructures) {
+            if(distantStructures.containsKey(s)) continue;
+            if(missingStructures.contains(s)) continue;
+            unexplored.add(s);
+        }
+
+        return HolderSet.direct(unexplored);
+    }
+
+    private void refreshBiomeList() {
+        LoggerBase.logDebug(null, "044001", "Refreshing distant biome list for level: " + level.dimension().location());
+        distantBiomes.clear();
+    }
+
+    private void refreshStructureList() {
+        LoggerBase.logDebug(null, "044003", "Refreshing distant structure list for level: " + level.dimension().location());
+        distantStructures.clear();
     }
 
     private void shutdown() {
-        searchExecutor.shutdownNow();
-        biomeChunks.clear();
-        discoveredBiomes.clear();
+        distantBiomes.clear();
+        distantStructures.clear();
+        missingStructures.clear();
     }
 
-    @Nullable
-    public static ChunkPriorityExplorer get(Level level) {
-        if (level == null) return null;
-        if (GENERAL_CONFIG.isIntegrated()) {
-            level = HBUtil.LevelUtil.toLevel(HBUtil.LevelUtil.LevelNameSpace.SERVER, level.dimension());
-        }
-        if (!(level instanceof ServerLevel serverLevel)) return null;
+    public static ChunkPriorityExplorer get(ServerLevel serverLevel) {
         return explorers.computeIfAbsent(serverLevel, l -> new ChunkPriorityExplorer(serverLevel));
     }
 
     public static void init(EventRegistrar reg) {
-        GENERAL_CONFIG = GeneralConfig.getInstance();
         reg.registerOnBeforeServerStarted(ChunkPriorityExplorer::onServerStart);
         reg.registerOnLevelLoad(ChunkPriorityExplorer::onLevelLoad);
         reg.registerOnLevelUnload(ChunkPriorityExplorer::onLevelUnload);
         reg.registerOnServerStopped(ChunkPriorityExplorer::onServerStopped);
-        reg.registerOnServerTick(TickType.ON_1200_TICKS, ChunkPriorityExplorer::on1200Ticks);
+        reg.registerOnServerTick(TickType.ON_120_TICKS, ChunkPriorityExplorer::on600Ticks);
     }
 
-    private static void on1200Ticks(ServerTickEvent event) {
-        for (ChunkPriorityExplorer explorer : explorers.values()) {
-            explorer.explore();
-        }
+    private static final int INTERVAL = 5;
+    private static int count = 0;
+
+    private static void on600Ticks(ServerTickEvent event) {
+        if(++count % INTERVAL != 0) return;
+        explorers.get(GeneralConfig.OVERWORLD).handleOnTick();
     }
 
     private static void onServerStart(ServerStartingEvent event) {
@@ -177,13 +190,15 @@ public class ChunkPriorityExplorer {
     }
 
     private static void onLevelLoad(LevelLoadingEvent.Load event) {
-        if (event.getLevel().isClientSide()) return;
-        get((Level) event.getLevel());
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        ResourceKey<Level> dimension = level.dimension();
+        if (dimension.equals(Level.OVERWORLD) || dimension.equals(Level.NETHER) || dimension.equals(Level.END))
+            get(level);
     }
 
     private static void onLevelUnload(LevelLoadingEvent.Unload event) {
-        if (event.getLevel().isClientSide()) return;
-        ChunkPriorityExplorer explorer = explorers.remove(event.getLevel());
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        ChunkPriorityExplorer explorer = explorers.remove(level);
         if (explorer != null) explorer.shutdown();
     }
 

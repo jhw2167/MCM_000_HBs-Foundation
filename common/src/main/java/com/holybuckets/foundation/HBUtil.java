@@ -156,6 +156,19 @@ public class HBUtil {
             return server.getPlayerList().getPlayers();
         }
 
+        public static List<ServerPlayer> getAllPlayers(Level l) {
+            MinecraftServer server = GeneralConfig.getInstance().getServer();
+            if (server == null)
+                return List.of();
+            List<ServerPlayer> players = new ArrayList<>();
+            for(ServerPlayer p : server.getPlayerList().getPlayers()) {
+                if(p.level().dimension() == l.dimension()) {
+                    players.add(p);
+                }
+            }
+            return players;
+        }
+
         public static List<Player> getAllSidedPlayers() {
             MinecraftServer server = GeneralConfig.getInstance().getServer();
             if (GeneralConfig.getInstance().isServerSide()) {
@@ -223,7 +236,22 @@ public class HBUtil {
             return (ServerPlayer) getPlayer(getId(p), PlayerNameSpace.SERVER);
         }
 
-        //create a PlayerNameSpace for CLIENT and SERVER
+            public static ServerPlayer getRandomPlayer() {
+                var players = getAllPlayers();
+                if (players.isEmpty()) return null;
+                int i = GeneralConfig.getRandom().nextInt(players.size());
+                return players.get(i);
+            }
+
+            public static ServerPlayer getRandomPlayer(Level l)
+            {
+                var players = getAllPlayers(l);
+                if (players.isEmpty()) return null;
+                int i = GeneralConfig.getRandom().nextInt(players.size());
+                return players.get(i);
+            }
+
+            //create a PlayerNameSpace for CLIENT and SERVER
         public enum PlayerNameSpace {
             SERVER,
             CLIENT
